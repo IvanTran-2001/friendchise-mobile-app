@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "FriendChise Mobile",
+    "slug": "friendchise-mobile-app",
+    "scheme": "friendchise",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:3000"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+import { getApiUrl } from "../config";
+import { getAuthToken } from "../../features/auth/token-store";
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}) {
+  const token = await getAuthToken();
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+
+  if (!(init.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${getApiUrl()}${path}`, {
+    ...init,
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
