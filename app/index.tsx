@@ -4,7 +4,7 @@ import { Redirect } from "expo-router";
 import { getAuthToken } from "../src/features/auth/token-store";
 
 export default function Index() {
-  const [target, setTarget] = useState<"/(auth)/login" | "/(app)/tasks" | null>(
+  const [target, setTarget] = useState<"/(auth)/login" | "/(app)" | null>(
     null,
   );
 
@@ -16,7 +16,7 @@ export default function Index() {
         return;
       }
 
-      setTarget(token ? "/(app)/tasks" : "/(auth)/login");
+      setTarget(token ? "/(app)" : "/(auth)/login");
     });
 
     return () => {

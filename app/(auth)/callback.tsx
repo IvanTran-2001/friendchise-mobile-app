@@ -39,7 +39,7 @@ export default function AuthCallbackScreen() {
     saveAuthToken(token)
       .then(() => {
         setAuthenticated(true);
-        router.replace("/(app)/tasks");
+        router.replace("/(app)");
       })
       .catch(() => {
         setMessage("Could not save the auth token.");
