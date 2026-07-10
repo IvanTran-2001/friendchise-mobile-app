@@ -1,137 +1,147 @@
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Bell, Building2, ListTodo, Network } from "lucide-react-native";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
-import { useTabScrollToTop } from "./tab-scroll-to-top-context";
+import { APP_SHELL_BG } from "../../src/lib/theme";
 
-type NavButtonProps = {
-  label: string;
-  active?: boolean;
-  onPress: () => void;
-};
-
-function NavButton({ label, active, onPress }: NavButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        active && styles.buttonActive,
-        pressed ? styles.buttonPressed : null,
-      ]}
-    >
-      <Text style={[styles.buttonText, active && styles.buttonTextActive]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
+const BAR_HEIGHT = 72;
+const TAB_SIZE = 52;
 
 export function AppBottomBar() {
   const router = useRouter();
-  const segments = useSegments();
   const currentOrgId = useCurrentOrgId();
-  const scrollToTop = useTabScrollToTop();
+  const segments = useSegments();
   const routeSegments = segments as unknown as string[];
-  const orgIndex = routeSegments.indexOf("orgs");
-  const routeOrgId = orgIndex >= 0 ? routeSegments[orgIndex + 1] ?? null : null;
-  const isTasksRoute = !!routeOrgId && routeSegments[orgIndex + 2] === "tasks";
-
-  const isOrgSelected = !!currentOrgId;
-  const isHubActive = !routeOrgId;
-  const isHomeActive = !!routeOrgId && !isTasksRoute;
-  const isTasksActive = isTasksRoute;
-
-  const goHub = () => {
-    if (isHubActive) {
-      scrollToTop();
-      return;
-    }
-
-    router.replace("/(app)");
-  };
-
-  const goHome = () => {
-    if (!currentOrgId) {
-      return;
-    }
-
-    if (isHomeActive) {
-      scrollToTop();
-      return;
-    }
-
-    router.replace(`/(app)/orgs/${currentOrgId}`);
-  };
-
-  const goTasks = () => {
-    if (!currentOrgId) {
-      return;
-    }
-
-    if (isTasksActive) {
-      scrollToTop();
-      return;
-    }
-
-    router.replace(`/(app)/orgs/${currentOrgId}/tasks`);
-  };
+  const tabs = currentOrgId
+    ? getOrgTabs(currentOrgId, routeSegments)
+    : getNonOrgTabs();
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
-      <View style={styles.container}>
-        {!isOrgSelected ? (
-          <NavButton label="Hub" active={isHubActive} onPress={goHub} />
-        ) : (
-          <>
-            <NavButton label="Home" active={isHomeActive} onPress={goHome} />
-            <NavButton label="Tasks" active={isTasksActive} onPress={goTasks} />
-          </>
-        )}
+      <View style={styles.bar}>
+        {tabs.map((tab) => (
+          <Pressable
+            key={tab.label}
+            disabled={tab.disabled}
+            onPress={
+              tab.href
+                ? () => {
+                    const href = tab.href;
+
+                    if (!href) {
+                      return;
+                    }
+
+                    router.push(href);
+                  }
+                : undefined
+            }
+            style={({ pressed }) => [
+              styles.button,
+              tab.active && styles.buttonActive,
+              pressed && styles.buttonPressed,
+              tab.disabled && styles.buttonDisabled,
+            ]}
+          >
+            <tab.icon size={18} strokeWidth={2.1} color={tab.active ? "#1D4ED8" : "#111827"} />
+            <Text style={[styles.buttonLabel, tab.active && styles.buttonLabelActive]} numberOfLines={1}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
     </SafeAreaView>
   );
 }
 
+type BottomTab = {
+  label: string;
+  icon: typeof Building2;
+  active?: boolean;
+  disabled?: boolean;
+  href?: string;
+};
+
+function getNonOrgTabs(): BottomTab[] {
+  return [
+    { label: "HUB", icon: Building2, active: true, disabled: true },
+    { label: "ORG", icon: Network, disabled: true },
+    { label: "NOTIF", icon: Bell, disabled: true },
+  ];
+}
+
+function getOrgTabs(currentOrgId: string, routeSegments: string[]): BottomTab[] {
+  const isTasksRoute = routeSegments.includes("tasks");
+  const orgHomeHref = `/(app)/orgs/${currentOrgId}`;
+  const tasksHref = `/(app)/orgs/${currentOrgId}/tasks`;
+
+  return [
+    {
+      label: "Home",
+      icon: Building2,
+      active: !isTasksRoute,
+      href: orgHomeHref,
+    },
+    {
+      label: "Tasks",
+      icon: ListTodo,
+      active: isTasksRoute,
+      href: tasksHref,
+    },
+  ];
+}
+
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: "#0B1220",
+    backgroundColor: APP_SHELL_BG,
   },
-  container: {
-    minHeight: 66,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  bar: {
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(148, 163, 184, 0.18)",
-    backgroundColor: "#0B1220",
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    height: BAR_HEIGHT,
+    borderRadius: 28,
+    backgroundColor: APP_SHELL_BG,
+    borderWidth: 1,
+    borderColor: "rgba(226, 232, 240, 0.95)",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   button: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 16,
+    width: TAB_SIZE,
+    height: TAB_SIZE,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.2)",
-    backgroundColor: "rgba(15, 23, 42, 0.72)",
+    backgroundColor: "#FFFFFF",
   },
   buttonActive: {
-    borderColor: "rgba(96, 165, 250, 0.5)",
-    backgroundColor: "rgba(37, 99, 235, 0.18)",
+    backgroundColor: "#EEF2FF",
   },
   buttonPressed: {
     opacity: 0.85,
   },
-  buttonText: {
-    color: "#CBD5E1",
-    fontSize: 13,
+  buttonDisabled: {
+    opacity: 0.72,
+  },
+  buttonLabel: {
+    color: "#334155",
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.2,
+    marginTop: 3,
+    textAlign: "center",
   },
-  buttonTextActive: {
-    color: "#F8FAFC",
+  buttonLabelActive: {
+    color: "#1D4ED8",
   },
 });

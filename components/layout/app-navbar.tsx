@@ -1,30 +1,18 @@
-import { Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useCurrentOrgId } from "../../hooks/use-current-org-id";
-import { OrgSwitcher } from "./org-switcher";
+import { ProfileOrgButton } from "./profile-panel";
+import { useNavbarActions } from "./navbar-context";
+import { APP_SHELL_BG } from "../../src/lib/theme";
 
 export function AppNavbar() {
-  const router = useRouter();
-  const currentOrgId = useCurrentOrgId();
+  const pageActions = useNavbarActions();
+  const renderedActions = typeof pageActions === "function" ? pageActions() : pageActions;
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.container}>
-        <Pressable
-          style={({ pressed }) => [styles.brand, pressed && styles.brandPressed]}
-          onPress={() => router.push("/(app)")}
-        >
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoLetter}>F</Text>
-          </View>
-          <Text style={styles.title}>FriendChise</Text>
-        </Pressable>
-
-        <View style={styles.switcherWrap}>
-          <OrgSwitcher currentOrgId={currentOrgId} />
-        </View>
+        <ProfileOrgButton />
+        <View style={styles.pageActionsWrap}>{renderedActions}</View>
       </View>
     </SafeAreaView>
   );
@@ -32,50 +20,30 @@ export function AppNavbar() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: "#0B1220",
+    backgroundColor: APP_SHELL_BG,
   },
   container: {
-    minHeight: 58,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    height: 68,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(148, 163, 184, 0.18)",
-    backgroundColor: "#0B1220",
+    gap: 10,
+    borderRadius: 26,
+    backgroundColor: APP_SHELL_BG,
+    borderWidth: 1,
+    borderColor: "rgba(226, 232, 240, 0.95)",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flexShrink: 1,
-    paddingRight: 12,
-  },
-  brandPressed: {
-    opacity: 0.85,
-  },
-  logoBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    alignItems: "center",
+  pageActionsWrap: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "stretch",
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
-  },
-  logoLetter: {
-    color: "#0B1220",
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  title: {
-    color: "#F8FAFC",
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-  switcherWrap: {
-    flexShrink: 0,
-    maxWidth: 190,
   },
 });

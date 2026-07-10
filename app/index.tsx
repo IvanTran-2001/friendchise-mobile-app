@@ -2,21 +2,31 @@ import { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Redirect } from "expo-router";
 import { getAuthToken } from "../src/features/auth/token-store";
+import { getLastRoute } from "../src/features/navigation/last-route-store";
+import { clearAuthToken } from "../src/features/auth/token-store";
+import { isJwtExpired } from "../src/features/auth/jwt-utils";
 
 export default function Index() {
-  const [target, setTarget] = useState<"/(auth)/login" | "/(app)" | null>(
-    null,
-  );
+  const [target, setTarget] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
 
-    getAuthToken().then((token) => {
+    Promise.all([getAuthToken(), getLastRoute()]).then(([token, lastRoute]) => {
       if (!alive) {
         return;
       }
 
-      setTarget(token ? "/(app)" : "/(auth)/login");
+      if (token && isJwtExpired(token)) {
+        void clearAuthToken();
+        setTarget("/(auth)/login");
+        return;
+      }
+
+      const nextTarget =
+        token && lastRoute && lastRoute !== "/" ? lastRoute : "/(app)";
+
+      setTarget(token ? nextTarget : "/(auth)/login");
     });
 
     return () => {

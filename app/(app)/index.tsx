@@ -1,24 +1,17 @@
-import { ScrollView, View, Text, StyleSheet } from "react-native";
-import { OrgSwitcher } from "../../components/layout/org-switcher";
-import { useRef } from "react";
-import { useRegisterTabScrollToTop } from "../../components/layout/tab-scroll-to-top-context";
+import { ScrollView, Text, StyleSheet, View } from "react-native";
+import { SurfaceCard } from "../../components/ui/surface-card";
+import { APP_SHELL_BG } from "../../src/lib/theme";
 
 export default function HomeScreen() {
-  const scrollRef = useRef<ScrollView | null>(null);
-
-  useRegisterTabScrollToTop(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
-  });
-
   return (
-    <ScrollView ref={scrollRef} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>FriendChise</Text>
-      <Text style={styles.subtitle}>Choose your organization to continue.</Text>
-
-      <View style={styles.panel}>
-        <Text style={styles.panelLabel}>Organization</Text>
-        <OrgSwitcher />
-      </View>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <SurfaceCard style={styles.card}>
+        <View style={styles.kickerPill}>
+          <Text style={styles.kicker}>Organization</Text>
+        </View>
+        <Text style={styles.title}>Choose your organization</Text>
+        <Text style={styles.subtitle}>Select an organization to continue.</Text>
+      </SurfaceCard>
     </ScrollView>
   );
 }
@@ -27,29 +20,38 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 24,
-    backgroundColor: "#0B1220",
+    backgroundColor: APP_SHELL_BG,
     justifyContent: "center",
   },
-  title: {
-    color: "#F8FAFC",
-    fontSize: 34,
-    fontWeight: "700",
-    marginBottom: 8,
+  card: {
+    maxWidth: 420,
+    alignSelf: "center",
+    padding: 20,
+    gap: 8,
   },
-  subtitle: {
-    color: "#94A3B8",
-    fontSize: 15,
-    marginBottom: 20,
+  kickerPill: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  panel: {
-    gap: 10,
-    marginBottom: 22,
-  },
-  panelLabel: {
-    color: "#E2E8F0",
-    fontSize: 12,
-    fontWeight: "700",
+  kicker: {
+    color: "#2563EB",
+    fontSize: 11,
+    fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+  title: {
+    color: "#0F172A",
+    fontSize: 30,
+    fontWeight: "700",
+    lineHeight: 36,
+  },
+  subtitle: {
+    color: "#475569",
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

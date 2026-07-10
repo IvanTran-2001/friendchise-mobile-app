@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 export type SearchableComboboxItem = {
   id: string;
   name: string;
   description?: string | null;
+  image?: string | null;
 };
 
 type SearchableComboboxProps = {
@@ -12,6 +13,7 @@ type SearchableComboboxProps = {
   onSelect: (item: SearchableComboboxItem) => void;
   triggerLabel: string;
   triggerValue?: string | null;
+  triggerImageUri?: string | null;
   triggerBadgeLabel?: string | null;
   placeholder?: string;
   emptyText?: string;
@@ -23,6 +25,7 @@ export function SearchableCombobox({
   onSelect,
   triggerLabel,
   triggerValue,
+  triggerImageUri,
   triggerBadgeLabel,
   placeholder = "Search…",
   emptyText = "No results",
@@ -52,7 +55,9 @@ export function SearchableCombobox({
           disabled ? styles.triggerDisabled : null,
         ]}
       >
-        {triggerBadgeLabel ? (
+        {triggerImageUri ? (
+          <Image source={{ uri: triggerImageUri }} style={styles.triggerImage} />
+        ) : triggerBadgeLabel ? (
           <View style={styles.triggerBadge}>
             <Text style={styles.triggerBadgeText}>{triggerBadgeLabel}</Text>
           </View>
@@ -109,7 +114,16 @@ export function SearchableCombobox({
                   onSelect(item);
                 }}
               >
-                <Text style={styles.itemTitle}>{item.name}</Text>
+                <View style={styles.itemRow}>
+                  {item.image ? (
+                    <Image source={{ uri: item.image }} style={styles.itemImage} />
+                  ) : (
+                    <View style={styles.itemFallback}>
+                      <Text style={styles.itemFallbackText}>{item.name[0]?.toUpperCase() ?? "?"}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.itemTitle}>{item.name}</Text>
+                </View>
                 {item.description ? (
                   <Text style={styles.itemDescription}>{item.description}</Text>
                 ) : null}
@@ -153,6 +167,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 10,
     backgroundColor: "#2563EB",
+  },
+  triggerImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    marginRight: 10,
+    backgroundColor: "#1E293B",
   },
   triggerBadgeText: {
     color: "#FFFFFF",
@@ -229,6 +250,31 @@ const styles = StyleSheet.create({
   },
   itemPressed: {
     opacity: 0.85,
+  },
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 4,
+  },
+  itemImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: "#1E293B",
+  },
+  itemFallback: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563EB",
+  },
+  itemFallbackText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
   },
   itemTitle: {
     color: "#F8FAFC",
