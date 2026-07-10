@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { UserRound, X } from "lucide-react-native";
 import { apiFetch } from "../../../src/lib/api/client";
@@ -10,16 +10,7 @@ import { clearAuthToken } from "../../../src/features/auth/token-store";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { APP_SHELL_BG } from "../../../src/lib/theme";
 import { OrgSwitcher } from "./org-switcher";
-
-type Org = {
-  id: string;
-  name: string;
-  image?: string | null;
-};
-
-type OrgResponse = {
-  organizations: Org[];
-};
+import { fetchOrganizations, type Org } from "./organizations-shared";
 
 type MeResponse = {
   user: {
@@ -28,10 +19,6 @@ type MeResponse = {
     image: string | null;
   };
 };
-
-async function fetchOrganizations() {
-  return apiFetch<OrgResponse>("/api/mobile/me/organizations");
-}
 
 async function fetchMe() {
   return apiFetch<MeResponse>("/api/mobile/me");
@@ -80,6 +67,7 @@ function SelectedOrgAvatar({ org }: { org: Org | null }) {
 
 export function ProfileOrgButton() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const currentOrgId = useCurrentOrgId();
   const [profileOpen, setProfileOpen] = useState(false);
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
@@ -100,6 +88,7 @@ export function ProfileOrgButton() {
   const handleLogout = async () => {
     setProfileOpen(false);
     await clearAuthToken();
+    queryClient.clear();
     setAuthenticated(false);
     router.replace("/(auth)/login");
   };

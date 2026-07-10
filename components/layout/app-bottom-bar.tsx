@@ -33,7 +33,7 @@ export function AppBottomBar() {
                       return;
                     }
 
-                    router.push(href);
+                    router.replace(href);
                   }
                 : undefined
             }

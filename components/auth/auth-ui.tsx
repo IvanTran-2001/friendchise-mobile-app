@@ -73,7 +73,7 @@ export function AuthProviderButton({
     >
       <View style={styles.buttonContent}>
         <View style={[styles.iconWrap, { backgroundColor: config.iconBackgroundColor }]}>
-          <FontAwesome5 name={config.iconName} size={15} color={config.iconColor} />
+          <FontAwesome5 name={config.iconName} size={15} color={config.iconColor} brand />
         </View>
         <Text style={[styles.buttonText, { color: config.textColor }]}>
           {disabled ? loadingLabel : label}

@@ -16,27 +16,13 @@ import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Building2, X } from "lucide-react-native";
-import { apiFetch } from "../../../src/lib/api/client";
 import { SurfaceCard } from "../../ui/surface-card";
 import { APP_SHELL_BG } from "../../../src/lib/theme";
-
-type Org = {
-  id: string;
-  name: string;
-  image?: string | null;
-};
-
-type OrgResponse = {
-  organizations: Org[];
-};
+import { fetchOrganizations, type Org } from "./organizations-shared";
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;
 };
-
-async function fetchOrganizations() {
-  return apiFetch<OrgResponse>("/api/mobile/me/organizations");
-}
 
 function orgHue(id: string): number {
   let hash = 0;

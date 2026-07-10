@@ -26,6 +26,12 @@ export default function Index() {
         token && lastRoute && lastRoute !== "/" ? lastRoute : "/(app)";
 
       setTarget(token ? nextTarget : "/(auth)/login");
+    }).catch(() => {
+      if (!alive) {
+        return;
+      }
+
+      setTarget("/(auth)/login");
     });
 
     return () => {

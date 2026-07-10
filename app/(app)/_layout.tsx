@@ -71,6 +71,14 @@ function SessionWatcher() {
         setAuthenticated(false);
         router.replace("/(auth)/login");
       }, delay);
+    }).catch(() => {
+      if (!alive) {
+        return;
+      }
+
+      clearExpiryTimer();
+      setAuthenticated(false);
+      router.replace("/(auth)/login");
     });
 
     return () => {

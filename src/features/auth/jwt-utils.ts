@@ -23,7 +23,7 @@ export function isJwtExpired(token: string, nowMs = Date.now()) {
   const expiryMs = getJwtExpiryMs(token);
 
   if (!expiryMs) {
-    return false;
+    return true;
   }
 
   return expiryMs <= nowMs;
