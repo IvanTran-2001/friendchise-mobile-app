@@ -1,4 +1,4 @@
-import { Stack, usePathname } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import { AppNavbar } from "../../components/layout/app-navbar";
@@ -9,7 +9,6 @@ import { saveLastRoute } from "../../src/features/navigation/last-route-store";
 import { clearAuthToken, getAuthToken } from "../../src/features/auth/token-store";
 import { isJwtExpired, getJwtExpiryMs } from "../../src/features/auth/jwt-utils";
 import { useAuthStore } from "../../src/features/auth/auth-store";
-import { useRouter } from "expo-router";
 
 function RouteTracker() {
   const pathname = usePathname();

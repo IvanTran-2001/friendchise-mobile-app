@@ -79,15 +79,10 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
     queryFn: fetchOrganizations,
   });
 
-  const organizations = data?.organizations ?? [];
+  const organizations = useMemo(() => data?.organizations ?? [], [data?.organizations]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const currentOrg = organizations.find((org) => org.id === currentOrgId) ?? null;
-
-  if (isLoading || error || organizations.length === 0) {
-    return null;
-  }
-
   const filteredOrgs = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return organizations;
@@ -96,8 +91,11 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
       return org.name.toLowerCase().includes(query) || org.id.toLowerCase().includes(query);
     });
   }, [organizations, search]);
-
   const listOrgs = filteredOrgs.filter((org) => org.id !== currentOrg?.id);
+
+  if (isLoading || error || organizations.length === 0) {
+    return null;
+  }
 
   const closeSheet = () => {
     setOpen(false);

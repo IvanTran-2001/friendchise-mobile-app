@@ -20,19 +20,16 @@ export default function AuthCallbackScreen() {
     access_token?: string | string[];
     error?: string | string[];
   }>();
-  const [message, setMessage] = useState("Completing sign in...");
+  const token = firstParam(params.token) ?? firstParam(params.access_token);
+  const error = firstParam(params.error);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const message = error
+    ? `Sign in failed: ${error}`
+    : saveError ?? (token ? "Completing sign in..." : "Waiting for the backend to return a token...");
 
   useEffect(() => {
-    const token = firstParam(params.token) ?? firstParam(params.access_token);
-    const error = firstParam(params.error);
-
-    if (error) {
-      setMessage(`Sign in failed: ${error}`);
-      return;
-    }
-
-    if (!token) {
-      setMessage("Waiting for the backend to return a token...");
+    if (error || !token) {
       return;
     }
 
@@ -42,9 +39,9 @@ export default function AuthCallbackScreen() {
         router.replace("/(app)");
       })
       .catch(() => {
-        setMessage("Could not save the auth token.");
+        setSaveError("Could not save the auth token.");
       });
-  }, [params.access_token, params.error, params.token, router, setAuthenticated]);
+  }, [error, router, setAuthenticated, token]);
 
   return (
     <View style={styles.container}>

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Redirect } from "expo-router";
-import { getAuthToken } from "../src/features/auth/token-store";
+import { clearAuthToken, getAuthToken } from "../src/features/auth/token-store";
 import { getLastRoute } from "../src/features/navigation/last-route-store";
-import { clearAuthToken } from "../src/features/auth/token-store";
 import { isJwtExpired } from "../src/features/auth/jwt-utils";
 
 export default function Index() {
