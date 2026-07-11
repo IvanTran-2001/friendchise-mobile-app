@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { saveAuthToken } from "../../src/features/auth/token-store";
@@ -20,31 +20,29 @@ export default function AuthCallbackScreen() {
     access_token?: string | string[];
     error?: string | string[];
   }>();
-  const [message, setMessage] = useState("Completing sign in...");
+  const token = firstParam(params.token) ?? firstParam(params.access_token);
+  const error = firstParam(params.error);
+
+  const message = error
+    ? `Sign in failed: ${error}`
+    : token
+      ? "Completing sign in..."
+      : "Waiting for the backend to return a token...";
 
   useEffect(() => {
-    const token = firstParam(params.token) ?? firstParam(params.access_token);
-    const error = firstParam(params.error);
-
-    if (error) {
-      setMessage(`Sign in failed: ${error}`);
-      return;
-    }
-
-    if (!token) {
-      setMessage("Waiting for the backend to return a token...");
+    if (error || !token) {
       return;
     }
 
     saveAuthToken(token)
       .then(() => {
         setAuthenticated(true);
-        router.replace("/(app)/tasks");
+        router.replace("/(app)");
       })
       .catch(() => {
-        setMessage("Could not save the auth token.");
+        router.replace("/(auth)/login");
       });
-  }, [params.access_token, params.error, params.token, router, setAuthenticated]);
+  }, [error, router, setAuthenticated, token]);
 
   return (
     <View style={styles.container}>
