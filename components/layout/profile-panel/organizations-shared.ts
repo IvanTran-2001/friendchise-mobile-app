@@ -6,7 +6,7 @@ export type Org = {
   image?: string | null;
 };
 
-type OrgResponse = {
+export type OrgResponse = {
   organizations: Org[];
 };
 

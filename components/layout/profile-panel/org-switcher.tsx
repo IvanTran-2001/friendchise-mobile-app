@@ -60,7 +60,7 @@ function OrgBadge({ org, size = 28 }: { org: Org; size?: number }) {
 
 export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   const router = useRouter();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["mobile-orgs"],
     queryFn: fetchOrganizations,
   });
@@ -79,10 +79,6 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   }, [organizations, search]);
   const listOrgs = filteredOrgs.filter((org) => org.id !== currentOrg?.id);
 
-  if (isLoading || error || organizations.length === 0) {
-    return null;
-  }
-
   const closeSheet = () => {
     setOpen(false);
     setSearch("");
@@ -94,6 +90,43 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
       router.replace(`/(app)/orgs/${orgId}`);
     });
   };
+
+  if (isLoading) {
+    return (
+      <SurfaceCard style={styles.stateCard}>
+        <Text style={styles.stateTitle}>Loading organizations</Text>
+        <Text style={styles.stateText}>Fetching your organization list.</Text>
+      </SurfaceCard>
+    );
+  }
+
+  if (error) {
+    return (
+      <SurfaceCard style={styles.stateCard}>
+        <Text style={styles.stateTitle}>Could not load organizations</Text>
+        <Text style={styles.stateText}>Check your connection and try again.</Text>
+        <Pressable
+          style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+          onPress={() => {
+            void refetch();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading organizations"
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </Pressable>
+      </SurfaceCard>
+    );
+  }
+
+  if (organizations.length === 0) {
+    return (
+      <SurfaceCard style={styles.stateCard}>
+        <Text style={styles.stateTitle}>No organizations</Text>
+        <Text style={styles.stateText}>There are no organizations available on this account.</Text>
+      </SurfaceCard>
+    );
+  }
 
   return (
     <>
@@ -467,5 +500,39 @@ const styles = StyleSheet.create({
     color: "#64748B",
     textAlign: "center",
     paddingVertical: 24,
+  },
+  stateCard: {
+    gap: 6,
+    padding: 14,
+  },
+  stateTitle: {
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  stateText: {
+    color: "#64748B",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  retryButton: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "rgba(37, 99, 235, 0.16)",
+  },
+  retryButtonPressed: {
+    opacity: 0.85,
+  },
+  retryButtonText: {
+    color: "#1D4ED8",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
