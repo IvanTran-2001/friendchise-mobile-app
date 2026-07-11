@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { saveAuthToken } from "../../src/features/auth/token-store";
@@ -22,11 +22,12 @@ export default function AuthCallbackScreen() {
   }>();
   const token = firstParam(params.token) ?? firstParam(params.access_token);
   const error = firstParam(params.error);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const message = error
     ? `Sign in failed: ${error}`
-    : saveError ?? (token ? "Completing sign in..." : "Waiting for the backend to return a token...");
+    : token
+      ? "Completing sign in..."
+      : "Waiting for the backend to return a token...";
 
   useEffect(() => {
     if (error || !token) {
@@ -39,7 +40,7 @@ export default function AuthCallbackScreen() {
         router.replace("/(app)");
       })
       .catch(() => {
-        setSaveError("Could not save the auth token.");
+        router.replace("/(auth)/login");
       });
   }, [error, router, setAuthenticated, token]);
 
