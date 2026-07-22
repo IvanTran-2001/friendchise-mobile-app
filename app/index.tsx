@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Redirect } from "expo-router";
 import { clearAuthToken, getAuthToken } from "../src/features/auth/token-store";
 import { getLastRoute } from "../src/features/navigation/last-route-store";
+import { Text } from "../components/ui/text";
+import { colors, spacing } from "../src/lib/theme";
 import { isJwtExpired } from "../src/features/auth/jwt-utils";
 
 export default function Index() {
@@ -42,7 +44,10 @@ export default function Index() {
   if (!target) {
     return (
       <View style={styles.container}>
-        <Text style={styles.text}>Loading FriendChise...</Text>
+        <ActivityIndicator color={colors.accent} />
+        <Text variant="body" tone="secondary" style={styles.text}>
+          Loading Friendchise...
+        </Text>
       </View>
     );
   }
@@ -53,12 +58,12 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1220",
+    backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
+    gap: spacing.md,
   },
   text: {
-    color: "#F8FAFC",
-    fontSize: 16,
+    marginTop: spacing.xs,
   },
 });

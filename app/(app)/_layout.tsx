@@ -3,11 +3,11 @@ import { useEffect, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import { AppNavbar } from "../../components/layout/app-navbar";
 import { AppBottomBar } from "../../components/layout/app-bottom-bar";
-import { NavbarProvider, useNavbarSetters } from "../../components/layout/navbar-context";
-import { APP_SHELL_BG } from "../../src/lib/theme";
+import { NavbarProvider } from "../../components/layout/navbar-context";
+import { colors } from "../../src/lib/theme";
 import { saveLastRoute } from "../../src/features/navigation/last-route-store";
 import { clearAuthToken, getAuthToken } from "../../src/features/auth/token-store";
-import { isJwtExpired, getJwtExpiryMs } from "../../src/features/auth/jwt-utils";
+import { isJwtExpired } from "../../src/features/auth/jwt-utils";
 import { useAuthStore } from "../../src/features/auth/auth-store";
 
 function RouteTracker() {
@@ -32,19 +32,10 @@ function SessionWatcher() {
   useEffect(() => {
     let alive = true;
 
-    const clearExpiryTimer = () => {
-      if (expiryTimerRef.current) {
-        clearTimeout(expiryTimerRef.current);
-        expiryTimerRef.current = null;
-      }
-    };
-
     getAuthToken().then((token) => {
       if (!alive) {
         return;
       }
-
-      clearExpiryTimer();
 
       if (!token) {
         setAuthenticated(false);
@@ -59,44 +50,23 @@ function SessionWatcher() {
       }
 
       setAuthenticated(true);
-
-      const expiryMs = getJwtExpiryMs(token);
-      if (!expiryMs) {
-        return;
-      }
-
-      const delay = Math.max(expiryMs - Date.now(), 0);
-      expiryTimerRef.current = setTimeout(() => {
-        void clearAuthToken();
-        setAuthenticated(false);
-        router.replace("/(auth)/login");
-      }, delay);
     }).catch(() => {
       if (!alive) {
         return;
       }
 
-      clearExpiryTimer();
       setAuthenticated(false);
       router.replace("/(auth)/login");
     });
 
     return () => {
       alive = false;
-      clearExpiryTimer();
+      if (expiryTimerRef.current) {
+        clearTimeout(expiryTimerRef.current);
+        expiryTimerRef.current = null;
+      }
     };
   }, [router, setAuthenticated]);
-
-  return null;
-}
-
-function NavbarRouteReset() {
-  const pathname = usePathname();
-  const { setActions } = useNavbarSetters();
-
-  useEffect(() => {
-    setActions?.(null);
-  }, [pathname, setActions]);
 
   return null;
 }
@@ -106,11 +76,10 @@ export default function AppLayout() {
     <NavbarProvider>
       <RouteTracker />
       <SessionWatcher />
-      <NavbarRouteReset />
       <View style={styles.container}>
         <AppNavbar />
         <View style={styles.content}>
-          <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+          <Stack screenOptions={{ headerShown: false, animation: "none" }} />
         </View>
         <AppBottomBar />
       </View>
@@ -121,10 +90,10 @@ export default function AppLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: APP_SHELL_BG,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
-    backgroundColor: APP_SHELL_BG,
+    backgroundColor: colors.background,
   },
 });

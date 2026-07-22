@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,7 +7,8 @@ import { useAuthStore } from "../../src/features/auth/auth-store";
 import { saveAuthToken } from "../../src/features/auth/token-store";
 import { fetchDevUsers, startDevLogin } from "../../src/features/auth/auth-api";
 import { AuthCard } from "../../components/auth/auth-ui";
-import { APP_SHELL_BG } from "../../src/lib/theme";
+import { Text } from "../../components/ui/text";
+import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 
 export function DevUsersOverlay() {
   const router = useRouter();
@@ -33,12 +34,12 @@ export function DevUsersOverlay() {
   });
 
   const panelStyle = useMemo(
-    () => [styles.toggle, { top: insets.top + 72, left: 16 }],
+    () => [styles.toggle, { top: insets.top + 72, left: spacing.lg }],
     [insets.top],
   );
 
   const devPanelStyle = useMemo(
-    () => [styles.panel, { top: insets.top + 126, left: 16 }],
+    () => [styles.panel, { top: insets.top + 126, left: spacing.lg }],
     [insets.top],
   );
 
@@ -55,14 +56,18 @@ export function DevUsersOverlay() {
         accessibilityRole="button"
         accessibilityLabel={open ? "Hide dev users" : "Show dev users"}
       >
-        <Text style={styles.toggleIcon}>{open ? "-" : "+"}</Text>
-        <Text style={styles.toggleLabel}>dev signin</Text>
+        <Text variant="label" tone="inverse" style={styles.toggleIcon}>
+          {open ? "-" : "+"}
+        </Text>
+        <Text variant="label" tone="inverse">
+          dev signin
+        </Text>
       </Pressable>
 
       {open ? (
         <AuthCard style={devPanelStyle}>
-          <Text style={styles.title}>Dev users</Text>
-          <Text style={styles.helper}>
+          <Text variant="heading">Dev users</Text>
+          <Text variant="caption" tone="secondary" style={styles.helper}>
             Development only. Pick a seeded user to sign in without Google or LinkedIn.
           </Text>
 
@@ -73,27 +78,31 @@ export function DevUsersOverlay() {
             nestedScrollEnabled
           >
             {devUsersQuery.isLoading ? (
-              <Text style={styles.status}>Loading dev users...</Text>
+              <Text variant="caption" tone="secondary">
+                Loading dev users...
+              </Text>
             ) : devUsersQuery.error ? (
-              <Text style={styles.error}>Could not load dev users.</Text>
+              <Text variant="caption" tone="danger">
+                Could not load dev users.
+              </Text>
             ) : (
               devUsersQuery.data?.map((user) => (
                 <Pressable
                   key={user.email}
-                  style={[
+                  style={({ pressed }) => [
                     styles.userButton,
+                    pressed && styles.userButtonPressed,
                     devLoginMutation.isPending && styles.disabled,
                   ]}
                   onPress={() => devLoginMutation.mutate(user.email)}
                   disabled={devLoginMutation.isPending}
                 >
-                  <Text style={styles.userLabel}>
-                    {devLoginMutation.isPending &&
-                    devLoginMutation.variables === user.email
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    {devLoginMutation.isPending && devLoginMutation.variables === user.email
                       ? "Signing in..."
                       : user.label}
                   </Text>
-                  <Text style={styles.userMeta}>
+                  <Text variant="caption" tone="secondary" style={styles.userMeta} numberOfLines={1}>
                     {user.role ? `${user.role} · ` : ""}
                     {user.email}
                   </Text>
@@ -103,7 +112,9 @@ export function DevUsersOverlay() {
           </ScrollView>
 
           {devLoginMutation.error ? (
-            <Text style={styles.error}>Could not sign in as dev user.</Text>
+            <Text variant="caption" tone="danger" style={styles.error}>
+              Could not sign in as dev user.
+            </Text>
           ) : null}
         </AuthCard>
       ) : null}
@@ -128,104 +139,63 @@ const styles = StyleSheet.create({
     position: "absolute",
     minWidth: 108,
     height: 38,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "rgba(37, 99, 235, 0.96)",
+    gap: spacing.sm,
+    backgroundColor: colors.accent,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.55)",
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    ...shadows.lg,
   },
   togglePressed: {
     opacity: 0.85,
   },
   toggleOpen: {
-    backgroundColor: "rgba(30, 64, 175, 0.98)",
+    backgroundColor: colors.accentStrong,
   },
   toggleIcon: {
-    color: "#F8FAFC",
-    fontSize: 22,
-    fontWeight: "700",
-    lineHeight: 24,
-    marginTop: -1,
-  },
-  toggleLabel: {
-    color: "#FFF7ED",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
+    fontSize: 18,
   },
   panel: {
     position: "absolute",
     width: 290,
     maxWidth: 290,
     maxHeight: 310,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.18)",
-    backgroundColor: APP_SHELL_BG,
-    padding: 14,
-    gap: 10,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
-  },
-  title: {
-    color: "#0F172A",
-    fontSize: 18,
-    fontWeight: "700",
+    gap: spacing.sm,
   },
   helper: {
-    color: "#475569",
-    fontSize: 13,
-    lineHeight: 19,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   userList: {
     maxHeight: 170,
   },
   userListContent: {
-    gap: 4,
+    gap: spacing.xs,
     paddingBottom: 2,
   },
-  status: {
-    color: "#334155",
-    fontSize: 13,
-  },
   userButton: {
-    marginTop: 4,
-    borderRadius: 16,
+    marginTop: spacing.xs,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.18)",
-    backgroundColor: APP_SHELL_BG,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
-  userLabel: {
-    color: "#0F172A",
-    fontSize: 15,
-    fontWeight: "600",
+  userButtonPressed: {
+    opacity: 0.8,
   },
   userMeta: {
-    marginTop: 4,
-    color: "#64748B",
-    fontSize: 12,
-    lineHeight: 17,
+    marginTop: spacing.xs,
   },
   disabled: {
     opacity: 0.7,
   },
   error: {
-    color: "#B91C1C",
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
 });

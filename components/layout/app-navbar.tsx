@@ -1,8 +1,8 @@
 import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ProfileOrgButton } from "./profile-panel";
+import { ProfileOrgButton } from "./profile-panel/index";
 import { useNavbarActions } from "./navbar-context";
-import { APP_SHELL_BG } from "../../src/lib/theme";
+import { colors, radius, spacing } from "../../src/lib/theme";
 
 export function AppNavbar() {
   const pageActions = useNavbarActions();
@@ -20,25 +20,20 @@ export function AppNavbar() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: APP_SHELL_BG,
+    backgroundColor: colors.background,
   },
   container: {
     height: 68,
-    marginHorizontal: 16,
-    marginTop: 8,
-    paddingHorizontal: 10,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm + 2,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    borderRadius: 26,
-    backgroundColor: APP_SHELL_BG,
+    gap: spacing.sm + 2,
+    borderRadius: radius.xxl,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(226, 232, 240, 0.95)",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    borderColor: colors.hairline,
   },
   pageActionsWrap: {
     flex: 1,

@@ -1,58 +1,197 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  View,
+  StyleSheet,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
+import { useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getTasks } from "../../../../../src/features/tasks/task-api";
-import { APP_SHELL_BG } from "../../../../../src/lib/theme";
-import { useRegisterNavbarActions } from "../../../../../components/layout/navbar-context";
+import { colors, radius, shadows, spacing } from "../../../../../src/lib/theme";
+import { useNavbarSetters } from "../../../../../components/layout/navbar-context";
 import { TaskNavbarActions } from "../../../../../src/features/tasks/components/task-navbar-actions";
 import { TaskListView } from "../../../../../src/features/tasks/components/task-list-view";
+import { SearchField } from "../../../../../components/ui/search-field";
+import {
+  type TaskUiPreferences,
+  useTaskUiPreferences,
+} from "../../../../../src/features/tasks/task-ui";
+
+const DEFAULT_TASK_UI_PREFERENCES: TaskUiPreferences = {
+  mode: "shared",
+  viewMode: "feed",
+  sortMode: "name-asc",
+};
 
 function TaskNavContent() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
   const resolvedOrgId = orgId && !orgId.startsWith("[") ? orgId : undefined;
   const [search, setSearch] = useState("");
-  const navbarActions = useMemo(() => {
-    return <TaskNavbarActions search={search} onSearchChange={setSearch} />;
-  }, [search]);
+  const [searchTranslateY] = useState(() => new Animated.Value(0));
+  const [searchOpacity] = useState(() => new Animated.Value(1));
+  const lastScrollY = useRef(0);
+  const searchVisible = useRef(true);
+  const {
+    isHydrated,
+    preferences,
+    setMode,
+    setViewMode,
+    setSortMode,
+    resetPreferences,
+  } = useTaskUiPreferences(resolvedOrgId);
+  const { setActions } = useNavbarSetters();
 
-  useRegisterNavbarActions(navbarActions);
+  const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tasks", resolvedOrgId ?? "current"],
-    queryFn: () => getTasks(resolvedOrgId),
+    queryKey: ["tasks", resolvedOrgId ?? "current", effectivePreferences.mode, effectivePreferences.sortMode],
+    queryFn: () =>
+      getTasks(resolvedOrgId, {
+        mode: effectivePreferences.mode,
+        sort: effectivePreferences.sortMode,
+      }),
   });
 
-  const filteredTasks = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return data ?? [];
+  const filteredTasks = useMemo(
+    () => (data ?? []).filter((task) => {
+      const query = search.trim().toLowerCase();
+      if (!query) {
+        return true;
+      }
+
+      return (
+        task.name.toLowerCase().includes(query) ||
+        (task.description?.toLowerCase().includes(query) ?? false)
+      );
+    }),
+    [data, search],
+  );
+
+  const navbarActions = useMemo(
+    () =>
+      resolvedOrgId ? (
+        <TaskNavbarActions
+          orgId={resolvedOrgId}
+          mode={effectivePreferences.mode}
+          viewMode={effectivePreferences.viewMode}
+          sortMode={effectivePreferences.sortMode}
+          onModeChange={setMode}
+          onViewModeChange={setViewMode}
+          onSortModeChange={setSortMode}
+          onResetPreferences={resetPreferences}
+        />
+      ) : null,
+    [
+      effectivePreferences.mode,
+      effectivePreferences.sortMode,
+      effectivePreferences.viewMode,
+      resetPreferences,
+      resolvedOrgId,
+      setMode,
+      setSortMode,
+      setViewMode,
+    ],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setActions?.(navbarActions);
+
+      return () => {
+        setActions?.(null);
+      };
+    }, [navbarActions, setActions]),
+  );
+
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    effectivePreferences.mode !== "shared" ||
+    effectivePreferences.viewMode !== "feed" ||
+    effectivePreferences.sortMode !== "name-asc";
+
+  const showSearchBar = () => {
+    if (searchVisible.current) {
+      return;
     }
 
-    return (data ?? []).filter((task) => {
-      return (
-        task.title.toLowerCase().includes(query) ||
-        task.status.toLowerCase().includes(query)
-      );
-    });
-  }, [data, search]);
+    searchVisible.current = true;
+    Animated.parallel([
+      Animated.timing(searchTranslateY, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(searchOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const hideSearchBar = () => {
+    if (!searchVisible.current) {
+      return;
+    }
+
+    searchVisible.current = false;
+    Animated.parallel([
+      Animated.timing(searchTranslateY, {
+        toValue: -64,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(searchOpacity, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentY = event.nativeEvent.contentOffset.y;
+    const deltaY = currentY - lastScrollY.current;
+
+    if (currentY <= 8) {
+      showSearchBar();
+    } else if (deltaY > 8) {
+      hideSearchBar();
+    } else if (deltaY < -8) {
+      showSearchBar();
+    }
+
+    lastScrollY.current = currentY;
+  };
 
   return (
     <View style={styles.container}>
-      {isLoading ? <Text style={styles.stateText}>Loading tasks...</Text> : null}
-      {error ? <Text style={styles.stateText}>Failed to load tasks.</Text> : null}
+      <View style={styles.searchDock} pointerEvents="box-none">
+        <Animated.View
+          style={[
+            styles.searchShell,
+            {
+              transform: [{ translateY: searchTranslateY }],
+              opacity: searchOpacity,
+            },
+          ]}
+        >
+          <SearchField value={search} onChangeText={setSearch} placeholder="Search tasks" />
+        </Animated.View>
+      </View>
 
       <TaskListView
+        orgId={resolvedOrgId}
         tasks={filteredTasks}
         isLoading={isLoading}
         error={error}
         search={search}
-        header={
-          <View style={styles.header}>
-            <Text style={styles.title}>Tasks</Text>
-          </View>
-        }
+        viewMode={effectivePreferences.viewMode}
+        hasActiveFilters={hasActiveFilters}
+        onScroll={handleScroll}
       />
     </View>
   );
@@ -65,19 +204,21 @@ export default function OrgTasksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    backgroundColor: APP_SHELL_BG,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm + 2,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
   },
-  header: {
-    paddingBottom: 8,
+  searchDock: {
+    position: "absolute",
+    top: spacing.sm + 2,
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 10,
+    elevation: 3,
   },
-  title: {
-    color: "#0F172A",
-    fontSize: 32,
-    fontWeight: "700",
-  },
-  stateText: {
-    color: "#64748B",
-    marginBottom: 12,
+  searchShell: {
+    borderRadius: radius.lg,
+    ...shadows.xs,
   },
 });

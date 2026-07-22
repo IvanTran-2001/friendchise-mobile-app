@@ -1,8 +1,11 @@
 import { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { saveAuthToken } from "../../src/features/auth/token-store";
 import { useAuthStore } from "../../src/features/auth/auth-store";
+import { Screen } from "../../components/ui/screen";
+import { Text } from "../../components/ui/text";
+import { colors, spacing } from "../../src/lib/theme";
 
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -45,31 +48,26 @@ export default function AuthCallbackScreen() {
   }, [error, router, setAuthenticated, token]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>FriendChise</Text>
-      <Text style={styles.message}>{message}</Text>
-    </View>
+    <Screen centered>
+      <Text variant="title" align="center" style={styles.title}>
+        Friendchise
+      </Text>
+      {!error ? <ActivityIndicator color={colors.accent} style={styles.spinner} /> : null}
+      <Text variant="body" tone={error ? "danger" : "secondary"} align="center" style={styles.message}>
+        {message}
+      </Text>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B1220",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
   title: {
-    color: "#F8FAFC",
-    fontSize: 32,
-    fontWeight: "700",
-    marginBottom: 12,
+    marginBottom: spacing.md,
+  },
+  spinner: {
+    marginBottom: spacing.md,
   },
   message: {
-    color: "#94A3B8",
-    fontSize: 15,
-    textAlign: "center",
-    lineHeight: 22,
+    maxWidth: 320,
   },
 });

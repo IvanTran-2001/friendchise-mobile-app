@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Bell, Building2, ListTodo, Network } from "lucide-react-native";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
-import { APP_SHELL_BG } from "../../src/lib/theme";
+import { colors, radius, shadows, spacing } from "../../src/lib/theme";
+import { Text } from "../ui/text";
 
 const BAR_HEIGHT = 72;
 const TAB_SIZE = 52;
@@ -37,6 +38,9 @@ export function AppBottomBar() {
                   }
                 : undefined
             }
+            accessibilityRole="button"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: tab.active, disabled: tab.disabled }}
             style={({ pressed }) => [
               styles.button,
               tab.active && styles.buttonActive,
@@ -44,8 +48,16 @@ export function AppBottomBar() {
               tab.disabled && styles.buttonDisabled,
             ]}
           >
-            <tab.icon size={18} strokeWidth={2.1} color={tab.active ? "#1D4ED8" : "#111827"} />
-            <Text style={[styles.buttonLabel, tab.active && styles.buttonLabelActive]} numberOfLines={1}>
+            <tab.icon
+              size={18}
+              strokeWidth={2.1}
+              color={tab.active ? colors.accent : colors.textPrimary}
+            />
+            <Text
+              variant="label"
+              style={[styles.buttonLabel, tab.active && styles.buttonLabelActive]}
+              numberOfLines={1}
+            >
               {tab.label}
             </Text>
           </Pressable>
@@ -94,38 +106,34 @@ function getOrgTabs(currentOrgId: string, routeSegments: string[]): BottomTab[] 
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: APP_SHELL_BG,
+    backgroundColor: colors.background,
   },
   bar: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    gap: spacing.sm + 2,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.sm + 2,
     height: BAR_HEIGHT,
-    borderRadius: 28,
-    backgroundColor: APP_SHELL_BG,
+    borderRadius: radius.xxl + 2,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: "rgba(226, 232, 240, 0.95)",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    borderColor: colors.hairline,
+    ...shadows.md,
   },
   button: {
     width: TAB_SIZE,
     height: TAB_SIZE,
-    borderRadius: 18,
+    borderRadius: radius.xl - 4,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
   },
   buttonActive: {
-    backgroundColor: "#EEF2FF",
+    backgroundColor: colors.accentSoft,
   },
   buttonPressed: {
     opacity: 0.85,
@@ -134,14 +142,13 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
   buttonLabel: {
-    color: "#334155",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    color: colors.textSecondary,
     marginTop: 3,
     textAlign: "center",
+    textTransform: "none",
+    letterSpacing: 0.2,
   },
   buttonLabelActive: {
-    color: "#1D4ED8",
+    color: colors.accent,
   },
 });

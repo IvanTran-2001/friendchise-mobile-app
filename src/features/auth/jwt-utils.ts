@@ -37,5 +37,33 @@ function base64UrlDecode(value: string) {
     return globalThis.atob(padded);
   }
 
-  throw new Error("Base64 decoder unavailable");
+  return decodeBase64(padded);
+}
+
+function decodeBase64(value: string) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let output = "";
+  let buffer = 0;
+  let bits = 0;
+
+  for (const char of value) {
+    if (char === "=") {
+      break;
+    }
+
+    const index = alphabet.indexOf(char);
+    if (index < 0) {
+      continue;
+    }
+
+    buffer = (buffer << 6) | index;
+    bits += 6;
+
+    if (bits >= 8) {
+      bits -= 8;
+      output += String.fromCharCode((buffer >> bits) & 0xff);
+    }
+  }
+
+  return output;
 }

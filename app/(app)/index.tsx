@@ -1,57 +1,83 @@
-import { ScrollView, Text, StyleSheet, View } from "react-native";
-import { SurfaceCard } from "../../components/ui/surface-card";
-import { APP_SHELL_BG } from "../../src/lib/theme";
+import { FlatList, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { Building2 } from "lucide-react-native";
+import { fetchOrganizations } from "../../components/layout/profile-panel/organizations-shared";
+import { Avatar, getInitials } from "../../components/ui/avatar";
+import { Card } from "../../components/ui/card";
+import { ListRow } from "../../components/ui/list-row";
+import { Screen } from "../../components/ui/screen";
+import { ScreenHeader } from "../../components/ui/screen-header";
+import { EmptyState } from "../../components/ui/empty-state";
+import { ErrorState, LoadingState } from "../../components/ui/state-views";
+import { colors, spacing } from "../../src/lib/theme";
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { data, isLoading, error, refetch, isRefetching } = useQuery({
+    queryKey: ["mobile-orgs"],
+    queryFn: fetchOrganizations,
+  });
+
+  const organizations = data?.organizations ?? [];
+
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <SurfaceCard style={styles.card}>
-        <View style={styles.kickerPill}>
-          <Text style={styles.kicker}>Organization</Text>
-        </View>
-        <Text style={styles.title}>Choose your organization</Text>
-        <Text style={styles.subtitle}>Select an organization to continue.</Text>
-      </SurfaceCard>
-    </ScrollView>
+    <Screen>
+      <FlatList
+        data={organizations}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        onRefresh={() => void refetch()}
+        refreshing={isRefetching}
+        ListHeaderComponent={
+          <ScreenHeader
+            kicker="Organization"
+            title="Choose your organization"
+            subtitle="Select an organization to continue."
+          />
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <Card padding="lg">
+              <LoadingState message="Fetching your organizations." />
+            </Card>
+          ) : error ? (
+            <Card padding="lg">
+              <ErrorState onRetry={() => void refetch()} />
+            </Card>
+          ) : (
+            <Card padding="lg">
+              <EmptyState
+                icon={<Building2 size={24} strokeWidth={2} color={colors.textTertiary} />}
+                title="No organizations yet"
+                message="Organizations you belong to will show up here."
+              />
+            </Card>
+          )
+        }
+        renderItem={({ item }) => (
+          <Card padding="sm" style={styles.orgCard}>
+            <ListRow
+              title={item.name}
+              subtitle="Organization"
+              leading={<Avatar imageUri={item.image} label={getInitials(item.name)} tintId={item.id} />}
+              trailing="chevron"
+              onPress={() => router.push(`/(app)/orgs/${item.id}`)}
+            />
+          </Card>
+        )}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    backgroundColor: APP_SHELL_BG,
-    justifyContent: "center",
+  list: {
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
   },
-  card: {
-    maxWidth: 420,
-    alignSelf: "center",
-    padding: 20,
-    gap: 8,
-  },
-  kickerPill: {
-    alignSelf: "flex-start",
-    borderRadius: 999,
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  kicker: {
-    color: "#2563EB",
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  title: {
-    color: "#0F172A",
-    fontSize: 30,
-    fontWeight: "700",
-    lineHeight: 36,
-  },
-  subtitle: {
-    color: "#475569",
-    fontSize: 15,
-    lineHeight: 22,
+  orgCard: {
+    marginBottom: 0,
   },
 });
