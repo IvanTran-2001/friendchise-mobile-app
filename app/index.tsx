@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Redirect } from "expo-router";
-import { getAuthToken } from "../src/features/auth/token-store";
+import { clearAuthToken, getAuthToken } from "../src/features/auth/token-store";
 import { getLastRoute } from "../src/features/navigation/last-route-store";
 import { Text } from "../components/ui/text";
 import { colors, spacing } from "../src/lib/theme";
+import { isJwtExpired } from "../src/features/auth/jwt-utils";
 
 export default function Index() {
   const [target, setTarget] = useState<string | null>(null);
@@ -14,6 +15,12 @@ export default function Index() {
 
     Promise.all([getAuthToken(), getLastRoute()]).then(([token, lastRoute]) => {
       if (!alive) {
+        return;
+      }
+
+      if (token && isJwtExpired(token)) {
+        void clearAuthToken();
+        setTarget("/(auth)/login");
         return;
       }
 

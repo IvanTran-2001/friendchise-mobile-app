@@ -43,31 +43,44 @@ export async function getTasks(
     ? { orgId }
     : await apiFetch<MobileOrganizationResponse>("/api/mobile/me/organization");
 
-  const params = new URLSearchParams();
-  if (options.mode && options.mode !== "shared") {
-    params.set("mode", options.mode);
-  }
-  if (options.sort && options.sort !== "name-asc") {
-    params.set("sort", options.sort);
-  }
-  params.set("limit", "100");
+  const tasks: TaskItem[] = [];
+  let cursor: string | null = null;
 
-  const response = await apiFetch<{ tasks: MobileTaskResponse[] }>(
-    `/api/orgs/${activeOrg.orgId}/tasks/paginated?${params.toString()}`,
-  );
+  do {
+    const params = new URLSearchParams();
+    if (options.mode && options.mode !== "shared") {
+      params.set("mode", options.mode);
+    }
+    if (options.sort && options.sort !== "name-asc") {
+      params.set("sort", options.sort);
+    }
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
+    params.set("limit", "100");
 
-  return response.tasks.map((task) => ({
-    id: task.id,
-    orgId: task.orgId,
-    name: task.name,
-    color: task.color,
-    description: task.description,
-    durationMin: task.durationMin,
-    minPeople: task.minPeople,
-    createdAt: task.createdAt,
-    imageSignedUrl: task.imageSignedUrl ?? null,
-    _available: task._available,
-  })) satisfies TaskItem[];
+    const response = await apiFetch<{ tasks: MobileTaskResponse[]; nextCursor: string | null }>(
+      `/api/orgs/${activeOrg.orgId}/tasks/paginated?${params.toString()}`,
+    );
+
+    tasks.push(
+      ...response.tasks.map((task) => ({
+        id: task.id,
+        orgId: task.orgId,
+        name: task.name,
+        color: task.color,
+        description: task.description,
+        durationMin: task.durationMin,
+        minPeople: task.minPeople,
+        createdAt: task.createdAt,
+        imageSignedUrl: task.imageSignedUrl ?? null,
+        _available: task._available,
+      })),
+    );
+    cursor = response.nextCursor;
+  } while (cursor);
+
+  return tasks;
 }
 
 export type TaskDetailItem = TaskItem & {

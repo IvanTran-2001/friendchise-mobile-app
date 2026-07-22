@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Image, StyleSheet, Text as RNText, View } from "react-native";
+import { Image, Linking, StyleSheet, Text as RNText, View } from "react-native";
 import { colors, radius, spacing } from "../../../lib/theme";
 
 type RichToken =
@@ -28,13 +28,15 @@ function renderBlocks(source: string): ReactNode[] {
   const blocks = source.split(/\n{2,}/);
 
   return blocks.map((block, blockIndex) => {
-    const listItems = block
+    const lines = block
       .split("\n")
       .map((line) => line.trim())
-      .filter(Boolean)
-      .filter((line) => /^([*-]|\d+\.)\s+/.test(line));
+      .filter(Boolean);
 
-    if (listItems.length > 0) {
+    const listItems = lines.filter((line) => /^([*-]|\d+\.)\s+/.test(line));
+    const isListBlock = lines.length > 0 && listItems.length === lines.length;
+
+    if (isListBlock) {
       const ordered = /^\d+\./.test(listItems[0]);
 
       return (
@@ -111,7 +113,15 @@ function renderInline(source: string, keyPrefix: string): ReactNode[] {
 
     if (token.type === "link") {
       return (
-        <RNText key={`${keyPrefix}-link-${index}`} style={styles.link}>
+        <RNText
+          key={`${keyPrefix}-link-${index}`}
+          style={styles.link}
+          onPress={() => {
+            void Linking.openURL(token.href);
+          }}
+          accessibilityRole="link"
+          suppressHighlighting
+        >
           {token.value}
         </RNText>
       );

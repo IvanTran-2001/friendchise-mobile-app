@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
   line: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.hairline,
-    width: "100%",
+    alignSelf: "stretch",
   },
   inset: {
     marginLeft: spacing.lg,

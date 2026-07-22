@@ -37,6 +37,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
       <TextInput
         ref={ref}
         placeholderTextColor={colors.textTertiary}
+        accessibilityLabel={rest.accessibilityLabel ?? label}
         style={[styles.input, error ? styles.inputError : null, style]}
         {...rest}
       />

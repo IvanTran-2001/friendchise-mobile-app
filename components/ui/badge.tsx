@@ -51,10 +51,11 @@ const toneStyles: Record<BadgeTone, { background: string; text: string; border: 
  */
 export function Badge({ label, tone = "neutral", dotted, dotColor }: BadgeProps) {
   const palette = toneStyles[tone];
+  const showDot = dotted || dotColor != null;
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background, borderColor: palette.border }]}>
-      {dotted ? <View style={[styles.dot, { backgroundColor: dotColor ?? palette.dot }]} /> : null}
+      {showDot ? <View style={[styles.dot, { backgroundColor: dotColor ?? palette.dot }]} /> : null}
       <Text variant="label" style={{ color: palette.text }} numberOfLines={1}>
         {label}
       </Text>

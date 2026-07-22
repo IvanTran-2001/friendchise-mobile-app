@@ -54,7 +54,10 @@ export function TaskListView({
           }}
           style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
         >
-          <Card padding={viewMode === "feed" ? "lg" : "md"} style={viewMode === "feed" ? styles.feedCard : null}>
+          <Card
+            padding={viewMode === "feed" ? "lg" : "md"}
+            style={viewMode === "feed" ? styles.feedCard : viewMode === "card" ? styles.cardModeCard : null}
+          >
             {viewMode === "feed" ? (
               <View>
               <View style={styles.feedMediaWrap}>
@@ -98,6 +101,25 @@ export function TaskListView({
                   </Text>
                 )}
               </View>
+              </View>
+            ) : viewMode === "card" ? (
+              <View style={styles.cardMode}>
+                <View style={styles.cardModeHeader}>
+                  <View style={[styles.colorTag, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
+                  <Badge label={item._available ? "Shared" : "My Tasks"} tone={item._available ? "accent" : "neutral"} />
+                </View>
+                <Text variant="bodyStrong" numberOfLines={2} style={styles.cardModeTitle}>
+                  {item.name}
+                </Text>
+                {item.description ? (
+                  <View style={styles.cardModeDescription}>
+                    <TaskRichText source={item.description} />
+                  </View>
+                ) : null}
+                <View style={styles.cardModeMetaRow}>
+                  <Badge label={`${item.durationMin} min`} tone="neutral" />
+                  <Badge label={`${item.minPeople}+ ppl`} tone="neutral" />
+                </View>
               </View>
             ) : (
               <View style={styles.cardTopRow}>
@@ -203,6 +225,29 @@ const styles = StyleSheet.create({
   },
   feedDescription: {
     marginTop: spacing.md,
+  },
+  cardModeCard: {
+    borderColor: colors.borderStrong,
+  },
+  cardMode: {
+    gap: spacing.md,
+  },
+  cardModeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  cardModeTitle: {
+    lineHeight: 24,
+  },
+  cardModeDescription: {
+    paddingTop: spacing.xs,
+  },
+  cardModeMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
   },
   cardPressable: {
     borderRadius: radius.lg,

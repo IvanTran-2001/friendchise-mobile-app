@@ -95,14 +95,15 @@ export function Button({
   const dims = sizeStyles[size];
   const palette = variantStyles[variant];
   const isDisabled = disabled || loading;
+  const labelText = loading ? loadingLabel ?? label : label;
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityLabel={accessibilityLabel ?? labelText}
+      accessibilityState={{ disabled: isDisabled, busy: loading ?? false }}
       style={({ pressed }) => [
         styles.base,
         {
@@ -116,20 +117,13 @@ export function Button({
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={palette.text} />
-      ) : (
-        <View style={styles.content}>
-          {leftIcon}
-          <Text
-            style={[styles.label, { color: palette.text, fontSize: dims.fontSize }]}
-            numberOfLines={1}
-          >
-            {loading ? loadingLabel ?? label : label}
-          </Text>
-          {rightIcon}
-        </View>
-      )}
+      <View style={styles.content}>
+        {loading ? <ActivityIndicator size="small" color={palette.text} /> : leftIcon}
+        <Text style={[styles.label, { color: palette.text, fontSize: dims.fontSize }]} numberOfLines={1}>
+          {labelText}
+        </Text>
+        {!loading ? rightIcon : null}
+      </View>
     </Pressable>
   );
 }

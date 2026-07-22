@@ -6,7 +6,8 @@ import { AppBottomBar } from "../../components/layout/app-bottom-bar";
 import { NavbarProvider } from "../../components/layout/navbar-context";
 import { colors } from "../../src/lib/theme";
 import { saveLastRoute } from "../../src/features/navigation/last-route-store";
-import { getAuthToken } from "../../src/features/auth/token-store";
+import { clearAuthToken, getAuthToken } from "../../src/features/auth/token-store";
+import { isJwtExpired } from "../../src/features/auth/jwt-utils";
 import { useAuthStore } from "../../src/features/auth/auth-store";
 
 function RouteTracker() {
@@ -38,6 +39,13 @@ function SessionWatcher() {
 
       if (!token) {
         setAuthenticated(false);
+        return;
+      }
+
+      if (isJwtExpired(token)) {
+        void clearAuthToken();
+        setAuthenticated(false);
+        router.replace("/(auth)/login");
         return;
       }
 
