@@ -2,7 +2,7 @@
 name: 🟢 Good Issue
 about: Contributor-friendly task with setup notes, requirements, and submission checklist
 title: "🟢 [Good Issue]"
-labels: good first issue, enhancement, help wanted, Beginner Friendly, UI
+labels: enhancement, help wanted, Beginner Friendly, UI
 ---
 
 # 🟢 Good Issue

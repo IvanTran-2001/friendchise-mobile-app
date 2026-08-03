@@ -23,7 +23,7 @@ Examples of unacceptable behavior include:
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project maintainers. All reports will be reviewed and investigated promptly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately by emailing maintainers@friendchise.app. Messages sent there are reviewed and investigated by the FriendChise maintainers.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
@@ -38,4 +38,4 @@ This Code of Conduct applies within all community spaces, including but not limi
 
 ## Attribution
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.0, available at https://www.contributor-covenant.org/version/2_0/code_of_conduct.html.
+This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.0, available at https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.

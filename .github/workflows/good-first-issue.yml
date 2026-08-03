@@ -4,14 +4,16 @@ on:
   issue_comment:
     types: [created]
 
+concurrency:
+  group: issue-claim-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 permissions:
   issues: write
 
 jobs:
   claim:
-    if: >-
-      github.event_name == 'issue_comment' &&
-      github.event.issue.state == 'open'
+    if: github.event.issue.pull_request == null
     runs-on: ubuntu-latest
 
     steps:
@@ -36,6 +38,11 @@ jobs:
               issue_number: issue.number,
             });
 
+            if (freshIssue.state !== 'open' || freshIssue.pull_request) {
+              core.info(`Issue #${issue.number} is no longer eligible for claiming.`);
+              return;
+            }
+
             if ((freshIssue.assignees ?? []).length > 0) {
               core.info(`Issue #${issue.number} is already assigned.`);
               return;
@@ -50,6 +57,17 @@ jobs:
               });
             } catch (error) {
               core.warning(`Could not assign @${claimant} to issue #${issue.number}: ${error.message}`);
+              return;
+            }
+
+            const { data: latestIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+
+            if (latestIssue.state !== 'open') {
+              core.info(`Issue #${issue.number} closed before the claim comment was posted.`);
               return;
             }
 

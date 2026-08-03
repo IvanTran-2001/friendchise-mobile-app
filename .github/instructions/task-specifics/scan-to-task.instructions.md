@@ -5,9 +5,10 @@ Use these rules when working on the scan-to-task feature, including its client c
 ## Feature Boundaries
 
 - Treat `app/(app)/orgs/[orgId]/tools/scan-to-task/scan-to-task-client.tsx` as the central orchestrator for the feature.
-- Keep page files responsible for server-side work and data loading.
+- Keep route files focused on screen composition and any API-backed data loading they need.
 - Keep client files focused on orchestration, state, and UI wiring.
 - Keep sidebar content files simple: compose sections, wire props, and delegate complex behavior into smaller components.
+- Treat any future web-only server-action flow as separate from the mobile path; do not make server actions the default model for this feature.
 - Split new actions or modes into dedicated functions, helpers, or panel components instead of growing one large handler.
 
 ## Core State Semantics
@@ -50,7 +51,7 @@ Use these rules when working on the scan-to-task feature, including its client c
 ## Validation Expectations
 
 - Validate the most specific touched file or action first.
-- If a server action changes, run the matching action or service tests before broader suites.
+- If the feature API changes, run the matching client or API checks before broader suites.
 - If a UI orchestrator changes, validate the smallest relevant slice of the feature before broader checks.
 - If a change affects both state and rendering, validate the state transition first and the UI wiring second.
 
