@@ -1,6 +1,6 @@
 # Scan to Task Instructions
 
-Use these rules when working on the scan-to-task feature, including its client coordinator, sidebar content, inspector, results queue, history, merge flow, and server actions.
+Use these rules when working on the scan-to-task feature, including its client coordinator, sidebar content, inspector, results queue, history, and merge flow.
 
 ## Feature Boundaries
 

@@ -19,7 +19,7 @@ To claim this issue, include `I want to take this` anywhere in your comment. If 
 ---
 
 ## 📌 Description
-Build an admin logs page that shows audit log entries in UTC, with a sidebar entry for `Logs`. The page should support searching and selecting a specific day or month.
+If the app needs audit-log browsing on mobile, create the surface under `app/(app)/orgs/[orgId]/logs/index.tsx` and wire any supporting sidebar content from `app/(app)/orgs/[orgId]/_components/`. The page should support searching, day/month filtering, and UTC timestamps.
 
 ---
 
@@ -46,7 +46,6 @@ Admins should be able to:
 
 ## 💡 Note
 Likely files:
-- `app/admin/layout.tsx`
-- `app/admin/_components/admin-nav-tabs.tsx`
-- `app/admin/page.tsx`
-- `lib/services/audit-log.ts`
+- `app/(app)/orgs/[orgId]/logs/index.tsx`
+- `app/(app)/orgs/[orgId]/_components/logs-sidebar-content.tsx`
+- `src/features/...`
