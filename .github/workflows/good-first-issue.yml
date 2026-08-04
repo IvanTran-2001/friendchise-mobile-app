@@ -1,0 +1,80 @@
+name: Auto Assign Claim
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: issue-claim-${{ github.event.issue.number }}
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  issues: write
+
+jobs:
+  claim:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Assign commenter who claimed the issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const comment = context.payload.comment;
+            const claimant = comment.user.login;
+            const body = comment.body.trim();
+            const claimPhrase = 'i want to take this';
+
+            if (!body.toLowerCase().includes(claimPhrase)) {
+              core.info('No claim phrase found in the comment.');
+              return;
+            }
+
+            const { data: freshIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+
+            if (freshIssue.state !== 'open' || freshIssue.pull_request) {
+              core.info(`Issue #${issue.number} is no longer eligible for claiming.`);
+              return;
+            }
+
+            if ((freshIssue.assignees ?? []).length > 0) {
+              core.info(`Issue #${issue.number} is already assigned.`);
+              return;
+            }
+
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                assignees: [claimant],
+              });
+            } catch (error) {
+              core.warning(`Could not assign @${claimant} to issue #${issue.number}: ${error.message}`);
+              return;
+            }
+
+            const { data: latestIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+
+            if (latestIssue.state !== 'open') {
+              core.info(`Issue #${issue.number} closed before the claim comment was posted.`);
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `⭐ Hi @${claimant}! I assigned this issue to you. Please read quick-start to begin: https://friendchise.app/doc/development/quick-start. If you run into any issues, message here anytime you wish.`,
+            });

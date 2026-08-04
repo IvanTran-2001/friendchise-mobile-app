@@ -1,0 +1,64 @@
+name: PR Welcome Comment
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+concurrency:
+  group: pr-welcome-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Leave a welcome comment on new pull requests
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            try {
+              const issueNumber = context.payload.pull_request.number;
+              const marker = '<!-- friendchise-pr-welcome -->';
+              const message = `${marker}\nThanks for opening this pull request and for contributing to FriendChise. Please note that reviews can take up to 3 days, and we really appreciate your patience while we look it over.`;
+
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                per_page: 100,
+              });
+
+              const alreadyPosted = comments.some((comment) =>
+                comment.user?.login === 'github-actions[bot]' &&
+                comment.body?.includes(marker),
+              );
+
+              if (alreadyPosted) {
+                core.info(`Welcome comment already exists on PR #${issueNumber}.`);
+                return;
+              }
+
+              const { data: freshPullRequest } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: issueNumber,
+              });
+
+              if (freshPullRequest.state !== 'open') {
+                core.info(`PR #${issueNumber} is no longer open.`);
+                return;
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: message,
+              });
+            } catch (error) {
+              core.warning(`Skipping PR welcome comment: ${error.message}`);
+            }

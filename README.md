@@ -20,7 +20,7 @@ Expo React Native app for the FriendChise product.
 
 ## Environment
 
-Use `.env` for local development:
+Use `.env` for local development. The app expects `EXPO_PUBLIC_API_URL` to be set for every environment and does not ship with a baked-in API URL.
 
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:3000

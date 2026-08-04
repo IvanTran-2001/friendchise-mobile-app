@@ -12,7 +12,19 @@
       "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "http://localhost:3000"
+      "router": {},
+      "eas": {
+        "projectId": "b1f4a647-401f-4141-b16d-dc7f585ea223"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.ivantran2001.friendchisemobileapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.ivantran2001.friendchisemobileapp"
     }
   }
 }
