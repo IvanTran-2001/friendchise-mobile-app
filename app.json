@@ -4,12 +4,14 @@
     "slug": "friendchise-mobile-app",
     "scheme": "friendchise",
     "version": "1.0.0",
+    "icon": "./public/LOGO.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "extra": {
       "router": {},
