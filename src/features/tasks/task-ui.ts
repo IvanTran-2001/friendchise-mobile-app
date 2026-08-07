@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
+import { usePersistedState, persistString } from "../shared/use-persisted-state";
 
 export type TaskMode = "shared" | "list" | "available";
 export type TaskViewMode = "list" | "feed" | "card";
@@ -16,6 +17,9 @@ export type TaskUiPreferences = {
   viewMode: TaskViewMode;
   sortMode: TaskSortMode;
 };
+
+const TASK_SEARCH_STORAGE_PREFIX = "friendchise.tasks.search";
+const DEFAULT_TASK_SEARCH = "";
 
 export const TASK_SORT_OPTIONS: { value: TaskSortMode; label: string }[] = [
   { value: "name-asc", label: "Name A–Z" },
@@ -133,5 +137,21 @@ export function useTaskUiPreferences(orgId?: string) {
     setViewMode,
     setSortMode,
     resetPreferences,
+  };
+}
+
+export function useTaskSearch(orgId?: string) {
+  const storageKey = orgId ? `${TASK_SEARCH_STORAGE_PREFIX}.${orgId}` : null;
+  const [search, setSearch, isHydrated] = usePersistedState(storageKey, DEFAULT_TASK_SEARCH, persistString);
+
+  const clearSearch = useCallback(() => {
+    setSearch(DEFAULT_TASK_SEARCH);
+  }, [setSearch]);
+
+  return {
+    isHydrated,
+    search,
+    setSearch,
+    clearSearch,
   };
 }

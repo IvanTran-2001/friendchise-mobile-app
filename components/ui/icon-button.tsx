@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { colors, hitSlop } from "../../src/lib/theme";
 
 type IconButtonSize = "sm" | "md" | "lg";
@@ -11,6 +11,7 @@ type IconButtonProps = {
   variant?: "filled" | "muted" | "ghost";
   disabled?: boolean;
   accessibilityLabel: string;
+  badge?: boolean | number;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -31,9 +32,11 @@ export function IconButton({
   variant = "muted",
   disabled,
   accessibilityLabel,
+  badge,
   style,
 }: IconButtonProps) {
   const dimension = sizes[size];
+  const showBadge = typeof badge === "number" ? badge > 0 : badge;
 
   return (
     <Pressable
@@ -43,6 +46,7 @@ export function IconButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [
+        styles.shell,
         styles.base,
         variant === "filled" && styles.filled,
         variant === "muted" && styles.muted,
@@ -54,6 +58,7 @@ export function IconButton({
       ]}
     >
       {children}
+      {showBadge ? <View style={styles.badge} /> : null}
     </Pressable>
   );
 }
@@ -62,6 +67,9 @@ const styles = StyleSheet.create({
   base: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  shell: {
+    position: "relative",
   },
   filled: {
     backgroundColor: colors.accent,
@@ -80,5 +88,16 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  badge: {
+    position: "absolute",
+    right: -2,
+    top: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.background,
+    backgroundColor: colors.accent,
   },
 });
