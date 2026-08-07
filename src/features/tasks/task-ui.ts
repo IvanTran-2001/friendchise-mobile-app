@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react";
-import { DEFAULT_TASK_SEARCH, DEFAULT_TASK_UI_PREFERENCES, useTaskPersistenceStore } from "./task-persistence-store";
+import {
+  DEFAULT_TASK_SEARCH,
+  DEFAULT_TASK_UI_PREFERENCES,
+  selectPreferences,
+  selectSearch,
+  useTaskPersistenceStore,
+} from "./task-persistence-store";
 import type { TaskMode, TaskSortMode, TaskUiPreferences, TaskViewMode } from "./task-types";
 
 export type { TaskMode, TaskSortMode, TaskUiPreferences, TaskViewMode } from "./task-types";
@@ -16,7 +22,7 @@ export const TASK_SORT_OPTIONS: { value: TaskSortMode; label: string }[] = [
 export function useTaskUiPreferences(orgId?: string) {
   const [localPreferences, setLocalPreferences] = useState<TaskUiPreferences>(DEFAULT_TASK_UI_PREFERENCES);
   const hasHydrated = useTaskPersistenceStore((state) => state.hasHydrated);
-  const persistedPreferences = useTaskPersistenceStore((state) => state.getPreferences(orgId));
+  const persistedPreferences = useTaskPersistenceStore(selectPreferences(orgId));
   const preferences = orgId ? persistedPreferences : localPreferences;
   const isHydrated = orgId ? hasHydrated : true;
 
@@ -79,7 +85,7 @@ export function useTaskUiPreferences(orgId?: string) {
 export function useTaskSearch(orgId?: string) {
   const [localSearch, setLocalSearch] = useState(DEFAULT_TASK_SEARCH);
   const hasHydrated = useTaskPersistenceStore((state) => state.hasHydrated);
-  const persistedSearch = useTaskPersistenceStore((state) => state.getSearch(orgId));
+  const persistedSearch = useTaskPersistenceStore(selectSearch(orgId));
   const search = orgId ? persistedSearch : localSearch;
   const isHydrated = orgId ? hasHydrated : true;
 

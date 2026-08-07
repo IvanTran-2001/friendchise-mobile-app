@@ -14,17 +14,12 @@ import { useNavbarSetters } from "../../../../../components/layout/navbar-contex
 import { TaskNavbarActions } from "../../../../../src/features/tasks/components/task-navbar-actions";
 import { TaskListView } from "../../../../../src/features/tasks/components/task-list-view";
 import { SearchField } from "../../../../../components/ui/search-field";
+import { DEFAULT_TASK_UI_PREFERENCES } from "../../../../../src/features/tasks/task-persistence-store";
 import {
   type TaskUiPreferences,
   useTaskSearch,
   useTaskUiPreferences,
 } from "../../../../../src/features/tasks/task-ui";
-
-const DEFAULT_TASK_UI_PREFERENCES: TaskUiPreferences = {
-  mode: "shared",
-  viewMode: "feed",
-  sortMode: "name-asc",
-};
 
 function TaskNavContent() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
@@ -50,7 +45,7 @@ function TaskNavContent() {
   const { setActions } = useNavbarSetters();
 
   const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
-  const effectiveSearch = isSearchHydrated ? search : "";
+  const effectiveSearch = search;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tasks", resolvedOrgId ?? "current", effectivePreferences.mode, effectivePreferences.sortMode],
@@ -185,7 +180,12 @@ function TaskNavContent() {
             },
           ]}
         >
-          <SearchField value={effectiveSearch} onChangeText={setSearch} placeholder="Search tasks" />
+          <SearchField
+            value={effectiveSearch}
+            onChangeText={setSearch}
+            placeholder="Search tasks"
+            disabled={!isSearchHydrated}
+          />
         </Animated.View>
       </View>
 

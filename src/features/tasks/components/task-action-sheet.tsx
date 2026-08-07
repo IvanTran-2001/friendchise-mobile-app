@@ -72,7 +72,7 @@ export function TaskActionSheet({
       </ActionSheetSection>
 
       <View style={styles.actionsRow}>
-        <Pressable onPress={resetAndClose} hitSlop={12}>
+        <Pressable onPress={resetAndClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Reset preferences">
           <Text variant="captionStrong" tone="accent">
             Reset preferences
           </Text>

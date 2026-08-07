@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Menu } from "lucide-react-native";
 import { IconButton } from "../../../../components/ui/icon-button";
 import { colors } from "../../../lib/theme";
+import { DEFAULT_TASK_UI_PREFERENCES } from "../task-persistence-store";
 import { type TaskMode, type TaskSortMode, type TaskViewMode } from "../task-ui";
 import { TaskActionSheet } from "./task-action-sheet";
 
@@ -30,7 +31,10 @@ export function TaskNavbarActions({
   onAddTaskPress,
 }: TaskNavbarActionsProps) {
   const [open, setOpen] = useState(false);
-  const activePreferenceCount = (mode === "shared" ? 0 : 1) + (viewMode === "feed" ? 0 : 1) + (sortMode === "name-asc" ? 0 : 1);
+  const activePreferenceCount =
+    (mode === DEFAULT_TASK_UI_PREFERENCES.mode ? 0 : 1) +
+    (viewMode === DEFAULT_TASK_UI_PREFERENCES.viewMode ? 0 : 1) +
+    (sortMode === DEFAULT_TASK_UI_PREFERENCES.sortMode ? 0 : 1);
 
   return (
     <>

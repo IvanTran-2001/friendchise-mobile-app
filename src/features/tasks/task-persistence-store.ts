@@ -24,18 +24,27 @@ type TaskPersistenceSnapshot = {
   searchByOrg: Record<string, string>;
 };
 
+type LegacySnapshot = {
+  snapshot: TaskPersistenceSnapshot;
+  legacyKeys: string[];
+};
+
 type TaskPersistenceState = TaskPersistenceSnapshot & {
   hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
-  getPreferences: (orgId?: string) => TaskUiPreferences;
   setMode: (orgId: string, mode: TaskMode) => void;
   setViewMode: (orgId: string, viewMode: TaskViewMode) => void;
   setSortMode: (orgId: string, sortMode: TaskSortMode) => void;
   resetPreferences: (orgId: string) => void;
-  getSearch: (orgId?: string) => string;
   setSearch: (orgId: string, search: string) => void;
   clearSearch: (orgId: string) => void;
 };
+
+export const selectPreferences = (orgId?: string) => (state: TaskPersistenceState) =>
+  orgId ? state.preferencesByOrg[orgId] ?? DEFAULT_TASK_UI_PREFERENCES : DEFAULT_TASK_UI_PREFERENCES;
+
+export const selectSearch = (orgId?: string) => (state: TaskPersistenceState) =>
+  orgId ? state.searchByOrg[orgId] ?? DEFAULT_TASK_SEARCH : DEFAULT_TASK_SEARCH;
 
 function normalizePreferences(value: unknown): TaskUiPreferences {
   if (!value || typeof value !== "object") {
@@ -75,7 +84,9 @@ function updatePreferences(
   };
 }
 
-function readLegacySnapshot(): Promise<TaskPersistenceSnapshot | null> {
+let pendingLegacyKeysToRemove: string[] | null = null;
+
+function readLegacySnapshot(): Promise<LegacySnapshot | null> {
   return AsyncStorage.getAllKeys()
     .then((keys) => {
       const legacyKeys = keys.filter(
@@ -120,8 +131,11 @@ function readLegacySnapshot(): Promise<TaskPersistenceSnapshot | null> {
         }
 
         return {
-          preferencesByOrg,
-          searchByOrg,
+          legacyKeys,
+          snapshot: {
+            preferencesByOrg,
+            searchByOrg,
+          },
         };
       });
     })
@@ -146,12 +160,27 @@ const taskPersistenceStorage = {
       return null;
     }
 
+    pendingLegacyKeysToRemove = legacySnapshot.legacyKeys;
+
     return JSON.stringify({
-      state: legacySnapshot,
+      state: legacySnapshot.snapshot,
       version: 0,
     });
   },
-  setItem: (name: string, value: string) => AsyncStorage.setItem(name, value),
+  setItem: async (name: string, value: string) => {
+    await AsyncStorage.setItem(name, value);
+
+    if (name !== TASK_PERSISTENCE_STORAGE_KEY || !pendingLegacyKeysToRemove?.length) {
+      return;
+    }
+
+    const legacyKeysToRemove = pendingLegacyKeysToRemove;
+    pendingLegacyKeysToRemove = null;
+
+    await AsyncStorage.multiRemove(legacyKeysToRemove).catch(() => {
+      // Ignore cleanup failures. The new storage key is already written.
+    });
+  },
   removeItem: (name: string) => AsyncStorage.removeItem(name),
 };
 
@@ -162,8 +191,6 @@ export const useTaskPersistenceStore = create<TaskPersistenceState>()(
       preferencesByOrg: {},
       searchByOrg: {},
       setHasHydrated: (value) => set({ hasHydrated: value }),
-      getPreferences: (orgId) =>
-        orgId ? get().preferencesByOrg[orgId] ?? DEFAULT_TASK_UI_PREFERENCES : DEFAULT_TASK_UI_PREFERENCES,
       setMode: (orgId, mode) =>
         set((state) => ({
           preferencesByOrg: updatePreferences(state.preferencesByOrg, orgId, (current) =>
@@ -186,8 +213,6 @@ export const useTaskPersistenceStore = create<TaskPersistenceState>()(
         set((state) => ({
           preferencesByOrg: updatePreferences(state.preferencesByOrg, orgId, () => DEFAULT_TASK_UI_PREFERENCES),
         })),
-      getSearch: (orgId) =>
-        orgId ? get().searchByOrg[orgId] ?? DEFAULT_TASK_SEARCH : DEFAULT_TASK_SEARCH,
       setSearch: (orgId, search) =>
         set((state) => ({
           searchByOrg: {
@@ -210,8 +235,14 @@ export const useTaskPersistenceStore = create<TaskPersistenceState>()(
         preferencesByOrg: state.preferencesByOrg,
         searchByOrg: state.searchByOrg,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
+      onRehydrateStorage: () => (state, error) => {
+        if (state) {
+          state.setHasHydrated(true);
+        }
+
+        if (!state || error) {
+          useTaskPersistenceStore.setState({ hasHydrated: true });
+        }
       },
     },
   ),
