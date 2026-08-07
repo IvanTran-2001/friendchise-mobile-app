@@ -1,25 +1,8 @@
 import { useCallback, useState } from "react";
-import {
-  DEFAULT_TASK_SEARCH,
-  DEFAULT_TASK_UI_PREFERENCES,
-  useTaskPersistenceStore,
-} from "../shared/use-persisted-state";
+import { DEFAULT_TASK_SEARCH, DEFAULT_TASK_UI_PREFERENCES, useTaskPersistenceStore } from "./task-persistence-store";
+import type { TaskMode, TaskSortMode, TaskUiPreferences, TaskViewMode } from "./task-types";
 
-export type TaskMode = "shared" | "list" | "available";
-export type TaskViewMode = "list" | "feed" | "card";
-export type TaskSortMode =
-  | "name-asc"
-  | "name-desc"
-  | "duration-asc"
-  | "duration-desc"
-  | "people-asc"
-  | "people-desc";
-
-export type TaskUiPreferences = {
-  mode: TaskMode;
-  viewMode: TaskViewMode;
-  sortMode: TaskSortMode;
-};
+export type { TaskMode, TaskSortMode, TaskUiPreferences, TaskViewMode } from "./task-types";
 
 export const TASK_SORT_OPTIONS: { value: TaskSortMode; label: string }[] = [
   { value: "name-asc", label: "Name A–Z" },
