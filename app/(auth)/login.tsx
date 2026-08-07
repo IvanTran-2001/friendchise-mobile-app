@@ -7,13 +7,41 @@ import { DevUsersOverlay } from "./dev-users-overlay";
 import { AuthCard, AuthProviderButton } from "../../components/auth/auth-ui";
 import { Screen } from "../../components/ui/screen";
 import { Text } from "../../components/ui/text";
+import { ErrorState } from "../../components/ui/state-views";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 
+function describeError(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function LoginScreen() {
-  const logoUri = useMemo(() => `${getApiUrl()}/Logo4.png`, []);
+  const apiUrlResult = useMemo(() => {
+    try {
+      return { apiUrl: getApiUrl(), error: null as string | null };
+    } catch (error) {
+      return { apiUrl: null, error: describeError(error) };
+    }
+  }, []);
+
+  const logoUri = useMemo(
+    () => (apiUrlResult.apiUrl ? `${apiUrlResult.apiUrl}/Logo4.png` : null),
+    [apiUrlResult.apiUrl],
+  );
   const mutation = useMutation({
     mutationFn: (provider: AuthProvider) => startOAuthLogin(provider),
   });
+
+  if (apiUrlResult.error) {
+    return (
+      <View style={styles.root}>
+        <Screen centered>
+          <AuthCard style={styles.card}>
+            <ErrorState title="Backend URL missing" message={apiUrlResult.error} compact />
+          </AuthCard>
+        </Screen>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -21,7 +49,9 @@ export default function LoginScreen() {
         <AuthCard style={styles.card}>
           <View style={styles.hero}>
             <View style={styles.logoFrame}>
-              <Image source={{ uri: logoUri }} style={styles.logoImage} resizeMode="contain" />
+              {logoUri ? (
+                <Image source={{ uri: logoUri }} style={styles.logoImage} resizeMode="contain" />
+              ) : null}
             </View>
             <Text variant="bodyLarge" tone="secondary" align="center" style={styles.subtitle}>
               Sign in with Google or LinkedIn.
@@ -52,7 +82,7 @@ export default function LoginScreen() {
 
         {mutation.error ? (
           <Text variant="caption" tone="danger" style={styles.error}>
-            Could not open sign in.
+            Could not open sign in. {describeError(mutation.error)}
           </Text>
         ) : null}
       </Screen>

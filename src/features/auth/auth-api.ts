@@ -14,11 +14,16 @@ type DevLoginResponse = {
   token: string;
 };
 
+async function getResponseError(response: Response) {
+  const body = await response.text();
+  return body || response.statusText || `HTTP ${response.status}`;
+}
+
 export async function fetchDevUsers() {
   const response = await fetch(`${getApiUrl()}/api/mobile-auth/dev-users`);
 
   if (!response.ok) {
-    throw new Error(`Failed to load dev users: ${response.status}`);
+    throw new Error(`Failed to load dev users: ${await getResponseError(response)}`);
   }
 
   return (await response.json()) as DevUser[];
@@ -37,7 +42,7 @@ export async function startDevLogin(email: string) {
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to sign in dev user: ${response.status}`);
+    throw new Error(`Failed to sign in dev user: ${await getResponseError(response)}`);
   }
 
   return (await response.json()) as DevLoginResponse;
