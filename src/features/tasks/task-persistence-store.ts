@@ -81,6 +81,25 @@ function normalizePreferencesByOrg(value: unknown): Record<string, TaskUiPrefere
   );
 }
 
+function normalizeSearchByOrg(value: unknown, fallback: Record<string, string>): Record<string, string> {
+  if (!value || typeof value !== "object") {
+    return fallback;
+  }
+
+  const normalized = Object.entries(value as Record<string, unknown>).reduce<Record<string, string>>(
+    (accumulator, [orgId, searchValue]) => {
+      if (typeof searchValue === "string") {
+        accumulator[orgId] = searchValue;
+      }
+
+      return accumulator;
+    },
+    {},
+  );
+
+  return Object.keys(normalized).length > 0 ? normalized : fallback;
+}
+
 function updatePreferences(
   current: Record<string, TaskUiPreferences>,
   orgId: string,
@@ -247,11 +266,13 @@ export const useTaskPersistenceStore = create<TaskPersistenceState>()(
       storage: createJSONStorage(() => taskPersistenceStorage),
       merge: (persistedState, currentState) => {
         const snapshot = persistedState as Partial<TaskPersistenceSnapshot> | undefined;
+        const currentSearchByOrg = currentState.searchByOrg ?? {};
 
         return {
           ...currentState,
           ...snapshot,
           preferencesByOrg: normalizePreferencesByOrg(snapshot?.preferencesByOrg ?? currentState.preferencesByOrg),
+          searchByOrg: normalizeSearchByOrg(snapshot?.searchByOrg, currentSearchByOrg),
         };
       },
       partialize: (state) => ({

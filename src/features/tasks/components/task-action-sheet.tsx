@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { ActionSheet, ActionSheetSection } from "../../../../components/ui/action-sheet";
 import { Text } from "../../../../components/ui/text";
@@ -37,6 +37,16 @@ export function TaskActionSheet({
   onAddTaskPress,
 }: TaskActionSheetProps) {
   const pendingAddTaskAlertRef = useRef<{ title: string; message: string } | null>(null);
+
+  useEffect(() => {
+    if (visible || !pendingAddTaskAlertRef.current) {
+      return;
+    }
+
+    const pendingAlert = pendingAddTaskAlertRef.current;
+    pendingAddTaskAlertRef.current = null;
+    Alert.alert(pendingAlert.title, pendingAlert.message);
+  }, [visible]);
 
   const handleAddTaskPress = () => {
     if (onAddTaskPress) {
