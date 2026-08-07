@@ -11,7 +11,8 @@ type IconButtonProps = {
   variant?: "filled" | "muted" | "ghost";
   disabled?: boolean;
   accessibilityLabel: string;
-  badge?: boolean;
+  accessibilityHint?: string;
+  badge?: boolean | number;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -32,6 +33,7 @@ export function IconButton({
   variant = "muted",
   disabled,
   accessibilityLabel,
+  accessibilityHint,
   badge,
   style,
 }: IconButtonProps) {
@@ -45,7 +47,7 @@ export function IconButton({
       hitSlop={hitSlop.sm}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint={showBadge ? "Has active task preferences." : undefined}
+      accessibilityHint={accessibilityHint}
       style={({ pressed }) => [
         styles.shell,
         styles.base,

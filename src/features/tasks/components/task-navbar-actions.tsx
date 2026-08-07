@@ -39,7 +39,12 @@ export function TaskNavbarActions({
   return (
     <>
       <View style={styles.shell}>
-        <IconButton accessibilityLabel="Open task actions" badge={activePreferenceCount > 0} onPress={() => setOpen(true)}>
+        <IconButton
+          accessibilityLabel="Open task actions"
+          accessibilityHint={activePreferenceCount > 0 ? "Has active task preferences." : undefined}
+          badge={activePreferenceCount}
+          onPress={() => setOpen(true)}
+        >
           <Menu size={18} strokeWidth={2.4} color={colors.textPrimary} />
         </IconButton>
       </View>

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { ActionSheet, ActionSheetSection } from "../../../../components/ui/action-sheet";
 import { Text } from "../../../../components/ui/text";
@@ -35,20 +36,23 @@ export function TaskActionSheet({
   onResetPreferences,
   onAddTaskPress,
 }: TaskActionSheetProps) {
-  const handleAddTaskPress = () => {
-    onClose();
+  const pendingAddTaskAlertRef = useRef<{ title: string; message: string } | null>(null);
 
+  const handleAddTaskPress = () => {
     if (onAddTaskPress) {
+      onClose();
       onAddTaskPress();
       return;
     }
 
-    Alert.alert(
-      "Add task",
-      orgId
+    pendingAddTaskAlertRef.current = {
+      title: "Add task",
+      message: orgId
         ? "Task creation is not wired up in the mobile app yet."
         : "Choose an organization before creating tasks.",
-    );
+    };
+
+    onClose();
   };
 
   const resetAndClose = () => {
@@ -56,8 +60,19 @@ export function TaskActionSheet({
     onClose();
   };
 
+  const handleDismiss = () => {
+    const pendingAlert = pendingAddTaskAlertRef.current;
+
+    if (!pendingAlert) {
+      return;
+    }
+
+    pendingAddTaskAlertRef.current = null;
+    Alert.alert(pendingAlert.title, pendingAlert.message);
+  };
+
   return (
-    <ActionSheet visible={visible} onClose={onClose} title="Tasks">
+    <ActionSheet visible={visible} onClose={onClose} onDismiss={handleDismiss} title="Tasks">
       <ActionSheetSection title="Create">
         <TaskActionPanel onAddTaskPress={handleAddTaskPress} />
         <TaskLibraryPanel mode={mode} onModeChange={onModeChange} />

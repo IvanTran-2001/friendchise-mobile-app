@@ -67,6 +67,20 @@ function normalizePreferences(value: unknown): TaskUiPreferences {
   };
 }
 
+function normalizePreferencesByOrg(value: unknown): Record<string, TaskUiPreferences> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, TaskUiPreferences>>(
+    (accumulator, [orgId, orgPreferences]) => {
+      accumulator[orgId] = normalizePreferences(orgPreferences);
+      return accumulator;
+    },
+    {},
+  );
+}
+
 function updatePreferences(
   current: Record<string, TaskUiPreferences>,
   orgId: string,
@@ -231,6 +245,15 @@ export const useTaskPersistenceStore = create<TaskPersistenceState>()(
     {
       name: TASK_PERSISTENCE_STORAGE_KEY,
       storage: createJSONStorage(() => taskPersistenceStorage),
+      merge: (persistedState, currentState) => {
+        const snapshot = persistedState as Partial<TaskPersistenceSnapshot> | undefined;
+
+        return {
+          ...currentState,
+          ...snapshot,
+          preferencesByOrg: normalizePreferencesByOrg(snapshot?.preferencesByOrg ?? currentState.preferencesByOrg),
+        };
+      },
       partialize: (state) => ({
         preferencesByOrg: state.preferencesByOrg,
         searchByOrg: state.searchByOrg,

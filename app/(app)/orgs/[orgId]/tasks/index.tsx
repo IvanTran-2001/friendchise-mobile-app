@@ -15,11 +15,7 @@ import { TaskNavbarActions } from "../../../../../src/features/tasks/components/
 import { TaskListView } from "../../../../../src/features/tasks/components/task-list-view";
 import { SearchField } from "../../../../../components/ui/search-field";
 import { DEFAULT_TASK_UI_PREFERENCES } from "../../../../../src/features/tasks/task-persistence-store";
-import {
-  type TaskUiPreferences,
-  useTaskSearch,
-  useTaskUiPreferences,
-} from "../../../../../src/features/tasks/task-ui";
+import { useTaskSearch, useTaskUiPreferences } from "../../../../../src/features/tasks/task-ui";
 
 function TaskNavContent() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();

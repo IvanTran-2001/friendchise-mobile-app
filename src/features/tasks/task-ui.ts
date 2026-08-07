@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_TASK_SEARCH,
   DEFAULT_TASK_UI_PREFERENCES,
@@ -86,8 +86,30 @@ export function useTaskSearch(orgId?: string) {
   const [localSearch, setLocalSearch] = useState(DEFAULT_TASK_SEARCH);
   const hasHydrated = useTaskPersistenceStore((state) => state.hasHydrated);
   const persistedSearch = useTaskPersistenceStore(selectSearch(orgId));
-  const search = orgId ? persistedSearch : localSearch;
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const search = localSearch;
   const isHydrated = orgId ? hasHydrated : true;
+
+  useEffect(() => {
+    if (!orgId) {
+      setLocalSearch(DEFAULT_TASK_SEARCH);
+      return;
+    }
+
+    if (hasHydrated) {
+      setLocalSearch(persistedSearch);
+    }
+  }, [hasHydrated, orgId, persistedSearch]);
+
+  useEffect(
+    () => () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    },
+    [orgId],
+  );
 
   const clearSearch = useCallback(() => {
     if (!orgId) {
@@ -95,7 +117,16 @@ export function useTaskSearch(orgId?: string) {
       return;
     }
 
-    useTaskPersistenceStore.getState().clearSearch(orgId);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    setLocalSearch(DEFAULT_TASK_SEARCH);
+    debounceTimerRef.current = setTimeout(() => {
+      useTaskPersistenceStore.getState().setSearch(orgId, DEFAULT_TASK_SEARCH);
+      debounceTimerRef.current = null;
+    }, 200);
   }, [orgId]);
 
   const setSearch = useCallback((value: string) => {
@@ -104,7 +135,16 @@ export function useTaskSearch(orgId?: string) {
       return;
     }
 
-    useTaskPersistenceStore.getState().setSearch(orgId, value);
+    setLocalSearch(value);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      useTaskPersistenceStore.getState().setSearch(orgId, value);
+      debounceTimerRef.current = null;
+    }, 200);
   }, [orgId]);
 
   return {

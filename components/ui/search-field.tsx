@@ -17,6 +17,7 @@ export function SearchField({ autoFocusOnMount, disabled, ...rest }: SearchField
     <View style={styles.container}>
       <Search size={16} strokeWidth={2.2} color={colors.textTertiary} />
       <TextInput
+        {...rest}
         autoFocus={autoFocusOnMount}
         editable={!disabled}
         placeholderTextColor={colors.textTertiary}
@@ -25,7 +26,6 @@ export function SearchField({ autoFocusOnMount, disabled, ...rest }: SearchField
         autoCapitalize="none"
         returnKeyType="search"
         clearButtonMode="while-editing"
-        {...rest}
       />
     </View>
   );
