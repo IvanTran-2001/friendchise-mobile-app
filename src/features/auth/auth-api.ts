@@ -32,7 +32,10 @@ export async function fetchDevUsers() {
 export async function startOAuthLogin(provider: AuthProvider) {
   const callbackUrl = ExpoLinking.createURL("/callback");
   const completeUrl = `/api/mobile-auth/complete?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-  const url = `${getApiUrl()}/api/auth/signin/${provider}?callbackUrl=${encodeURIComponent(completeUrl)}`;
+  // Not /api/auth/signin/[provider] directly — Auth.js requires a CSRF-tokened
+  // POST there, which a plain browser GET can't provide (fails with
+  // error=Configuration). This mobile-only route calls signIn() internally instead.
+  const url = `${getApiUrl()}/api/mobile-auth/oauth-start/${provider}?callbackUrl=${encodeURIComponent(completeUrl)}`;
   await Linking.openURL(url);
 }
 
