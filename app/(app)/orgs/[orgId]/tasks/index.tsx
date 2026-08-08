@@ -1,11 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  View,
-  StyleSheet,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from "react-native";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { StyleSheet } from "react-native";
 import { useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getTasks } from "../../../../../src/features/tasks/task-api";
@@ -13,18 +7,16 @@ import { colors, radius, shadows, spacing } from "../../../../../src/lib/theme";
 import { useNavbarSetters } from "../../../../../components/layout/navbar-context";
 import { TaskNavbarActions } from "../../../../../src/features/tasks/components/task-navbar-actions";
 import { TaskListView } from "../../../../../src/features/tasks/components/task-list-view";
-import { SearchField } from "../../../../../components/ui/search-field";
+import { CollapsibleSearchDock } from "../../../../../components/ui/collapsible-search-dock";
 import { DEFAULT_TASK_UI_PREFERENCES } from "../../../../../src/features/tasks/task-persistence-store";
 import { useTaskSearch, useTaskUiPreferences } from "../../../../../src/features/tasks/task-ui";
+import { useDebouncedValue } from "../../../../../hooks/use-debounced-value";
+import { useDismissKeyboardOnIdle } from "../../../../../hooks/use-dismiss-keyboard-on-idle";
 
 function TaskNavContent() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
   const resolvedOrgId = orgId && !orgId.startsWith("[") ? orgId : undefined;
-  const [searchTranslateY] = useState(() => new Animated.Value(0));
-  const [searchOpacity] = useState(() => new Animated.Value(1));
-  const lastScrollY = useRef(0);
-  const searchVisible = useRef(true);
   const {
     isHydrated,
     preferences,
@@ -42,30 +34,24 @@ function TaskNavContent() {
 
   const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
   const effectiveSearch = search;
+  const debouncedSearch = useDebouncedValue(effectiveSearch, 150);
+  const previousSearchRef = useRef(effectiveSearch);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tasks", resolvedOrgId ?? "current", effectivePreferences.mode, effectivePreferences.sortMode],
+    queryKey: [
+      "tasks",
+      resolvedOrgId ?? "current",
+      effectivePreferences.mode,
+      effectivePreferences.sortMode,
+      debouncedSearch,
+    ],
     queryFn: () =>
       getTasks(resolvedOrgId, {
         mode: effectivePreferences.mode,
         sort: effectivePreferences.sortMode,
+        search: debouncedSearch,
       }),
   });
-
-  const filteredTasks = useMemo(
-    () => (data ?? []).filter((task) => {
-      const query = effectiveSearch.trim().toLowerCase();
-      if (!query) {
-        return true;
-      }
-
-      return (
-        task.name.toLowerCase().includes(query) ||
-        (task.description?.toLowerCase().includes(query) ?? false)
-      );
-    }),
-    [data, effectiveSearch],
-  );
 
   const navbarActions = useMemo(
     () =>
@@ -103,99 +89,38 @@ function TaskNavContent() {
     }, [navbarActions, setActions]),
   );
 
+
+  useDismissKeyboardOnIdle(effectiveSearch, 1000, { enabled: isSearchHydrated });
+
   const hasActiveFilters =
     effectiveSearch.trim().length > 0 ||
     effectivePreferences.mode !== "shared" ||
     effectivePreferences.viewMode !== "feed" ||
     effectivePreferences.sortMode !== "name-asc";
 
-  const showSearchBar = () => {
-    if (searchVisible.current) {
-      return;
-    }
-
-    searchVisible.current = true;
-    Animated.parallel([
-      Animated.timing(searchTranslateY, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(searchOpacity, {
-        toValue: 1,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const hideSearchBar = () => {
-    if (!searchVisible.current) {
-      return;
-    }
-
-    searchVisible.current = false;
-    Animated.parallel([
-      Animated.timing(searchTranslateY, {
-        toValue: -64,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(searchOpacity, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const currentY = event.nativeEvent.contentOffset.y;
-    const deltaY = currentY - lastScrollY.current;
-
-    if (currentY <= 8) {
-      showSearchBar();
-    } else if (deltaY > 8) {
-      hideSearchBar();
-    } else if (deltaY < -8) {
-      showSearchBar();
-    }
-
-    lastScrollY.current = currentY;
-  };
-
   return (
-    <View style={styles.container}>
-      <View style={styles.searchDock} pointerEvents="box-none">
-        <Animated.View
-          style={[
-            styles.searchShell,
-            {
-              transform: [{ translateY: searchTranslateY }],
-              opacity: searchOpacity,
-            },
-          ]}
-        >
-          <SearchField
-            value={effectiveSearch}
-            onChangeText={setSearch}
-            placeholder="Search tasks"
-            disabled={!isSearchHydrated}
-          />
-        </Animated.View>
-      </View>
-
-      <TaskListView
-        orgId={resolvedOrgId}
-        tasks={filteredTasks}
-        isLoading={isLoading}
-        error={error}
-        search={effectiveSearch}
-        viewMode={effectivePreferences.viewMode}
-        hasActiveFilters={hasActiveFilters}
-        onScroll={handleScroll}
-      />
-    </View>
+    <CollapsibleSearchDock
+      search={effectiveSearch}
+      onChangeSearch={setSearch}
+      placeholder="Search tasks"
+      disabled={!isSearchHydrated}
+      containerStyle={styles.container}
+      searchDockStyle={styles.searchDock}
+      searchShellStyle={styles.searchShell}
+    >
+      {({ onScroll }) => (
+        <TaskListView
+          orgId={resolvedOrgId}
+          tasks={data ?? []}
+          isLoading={isLoading}
+          error={error}
+          search={effectiveSearch}
+          viewMode={effectivePreferences.viewMode}
+          hasActiveFilters={hasActiveFilters}
+          onScroll={onScroll}
+        />
+      )}
+    </CollapsibleSearchDock>
   );
 }
 

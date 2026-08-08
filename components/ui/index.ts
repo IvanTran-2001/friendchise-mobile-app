@@ -13,6 +13,7 @@ export * from "./dropdown-select";
 export * from "./card";
 export * from "./divider";
 export * from "./empty-state";
+export * from "./collapsible-search-dock";
 export * from "./icon-button";
 export * from "./list-row";
 export * from "./screen";

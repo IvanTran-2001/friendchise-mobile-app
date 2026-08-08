@@ -37,7 +37,7 @@ type MobileOrganizationResponse = {
 
 export async function getTasks(
   orgId?: string,
-  options: { mode?: TaskMode; sort?: TaskSortMode } = {},
+  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string } = {},
 ) {
   const activeOrg = orgId
     ? { orgId }
@@ -53,6 +53,9 @@ export async function getTasks(
     }
     if (options.sort && options.sort !== "name-asc") {
       params.set("sort", options.sort);
+    }
+    if (options.search?.trim()) {
+      params.set("search", options.search.trim().toLowerCase());
     }
     if (cursor) {
       params.set("cursor", cursor);
