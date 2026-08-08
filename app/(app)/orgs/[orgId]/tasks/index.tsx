@@ -14,22 +14,13 @@ import { useNavbarSetters } from "../../../../../components/layout/navbar-contex
 import { TaskNavbarActions } from "../../../../../src/features/tasks/components/task-navbar-actions";
 import { TaskListView } from "../../../../../src/features/tasks/components/task-list-view";
 import { SearchField } from "../../../../../components/ui/search-field";
-import {
-  type TaskUiPreferences,
-  useTaskUiPreferences,
-} from "../../../../../src/features/tasks/task-ui";
-
-const DEFAULT_TASK_UI_PREFERENCES: TaskUiPreferences = {
-  mode: "shared",
-  viewMode: "feed",
-  sortMode: "name-asc",
-};
+import { DEFAULT_TASK_UI_PREFERENCES } from "../../../../../src/features/tasks/task-persistence-store";
+import { useTaskSearch, useTaskUiPreferences } from "../../../../../src/features/tasks/task-ui";
 
 function TaskNavContent() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
   const resolvedOrgId = orgId && !orgId.startsWith("[") ? orgId : undefined;
-  const [search, setSearch] = useState("");
   const [searchTranslateY] = useState(() => new Animated.Value(0));
   const [searchOpacity] = useState(() => new Animated.Value(1));
   const lastScrollY = useRef(0);
@@ -42,9 +33,15 @@ function TaskNavContent() {
     setSortMode,
     resetPreferences,
   } = useTaskUiPreferences(resolvedOrgId);
+  const {
+    isHydrated: isSearchHydrated,
+    search,
+    setSearch,
+  } = useTaskSearch(resolvedOrgId);
   const { setActions } = useNavbarSetters();
 
   const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
+  const effectiveSearch = search;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tasks", resolvedOrgId ?? "current", effectivePreferences.mode, effectivePreferences.sortMode],
@@ -57,7 +54,7 @@ function TaskNavContent() {
 
   const filteredTasks = useMemo(
     () => (data ?? []).filter((task) => {
-      const query = search.trim().toLowerCase();
+      const query = effectiveSearch.trim().toLowerCase();
       if (!query) {
         return true;
       }
@@ -67,7 +64,7 @@ function TaskNavContent() {
         (task.description?.toLowerCase().includes(query) ?? false)
       );
     }),
-    [data, search],
+    [data, effectiveSearch],
   );
 
   const navbarActions = useMemo(
@@ -107,7 +104,7 @@ function TaskNavContent() {
   );
 
   const hasActiveFilters =
-    search.trim().length > 0 ||
+    effectiveSearch.trim().length > 0 ||
     effectivePreferences.mode !== "shared" ||
     effectivePreferences.viewMode !== "feed" ||
     effectivePreferences.sortMode !== "name-asc";
@@ -179,7 +176,12 @@ function TaskNavContent() {
             },
           ]}
         >
-          <SearchField value={search} onChangeText={setSearch} placeholder="Search tasks" />
+          <SearchField
+            value={effectiveSearch}
+            onChangeText={setSearch}
+            placeholder="Search tasks"
+            disabled={!isSearchHydrated}
+          />
         </Animated.View>
       </View>
 
@@ -188,7 +190,7 @@ function TaskNavContent() {
         tasks={filteredTasks}
         isLoading={isLoading}
         error={error}
-        search={search}
+        search={effectiveSearch}
         viewMode={effectivePreferences.viewMode}
         hasActiveFilters={hasActiveFilters}
         onScroll={handleScroll}

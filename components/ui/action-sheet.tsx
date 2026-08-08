@@ -7,6 +7,7 @@ import { Text } from "./text";
 type ActionSheetProps = {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   title: string;
   subtitle?: string;
   children: ReactNode;
@@ -23,9 +24,9 @@ type ActionSheetSectionProps = {
  * and view toggles. Keep task-specific content inside the sections, and reuse
  * this shell for any future action panels that need the same mobile pattern.
  */
-export function ActionSheet({ visible, onClose, title, subtitle, children }: ActionSheetProps) {
+export function ActionSheet({ visible, onClose, onDismiss, title, subtitle, children }: ActionSheetProps) {
   return (
-    <SheetModal visible={visible} onClose={onClose} title={title} subtitle={subtitle}>
+    <SheetModal visible={visible} onClose={onClose} onDismiss={onDismiss} title={title} subtitle={subtitle}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {children}
       </ScrollView>

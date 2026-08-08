@@ -1,21 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_TASK_SEARCH,
+  DEFAULT_TASK_UI_PREFERENCES,
+  selectPreferences,
+  selectSearch,
+  useTaskPersistenceStore,
+} from "./task-persistence-store";
+import type { TaskMode, TaskSortMode, TaskUiPreferences, TaskViewMode } from "./task-types";
 
-export type TaskMode = "shared" | "list" | "available";
-export type TaskViewMode = "list" | "feed" | "card";
-export type TaskSortMode =
-  | "name-asc"
-  | "name-desc"
-  | "duration-asc"
-  | "duration-desc"
-  | "people-asc"
-  | "people-desc";
-
-export type TaskUiPreferences = {
-  mode: TaskMode;
-  viewMode: TaskViewMode;
-  sortMode: TaskSortMode;
-};
+export type { TaskMode, TaskSortMode, TaskUiPreferences, TaskViewMode } from "./task-types";
 
 export const TASK_SORT_OPTIONS: { value: TaskSortMode; label: string }[] = [
   { value: "name-asc", label: "Name A–Z" },
@@ -26,105 +19,58 @@ export const TASK_SORT_OPTIONS: { value: TaskSortMode; label: string }[] = [
   { value: "people-desc", label: "People ↓" },
 ];
 
-const TASK_UI_STORAGE_PREFIX = "friendchise.tasks.ui";
-const DEFAULT_PREFERENCES: TaskUiPreferences = {
-  mode: "shared",
-  viewMode: "feed",
-  sortMode: "name-asc",
-};
-
-function normalizePreferences(value: unknown): TaskUiPreferences {
-  if (!value || typeof value !== "object") {
-    return DEFAULT_PREFERENCES;
-  }
-
-  const candidate = value as Partial<TaskUiPreferences>;
-
-  return {
-    mode: candidate.mode === "list" || candidate.mode === "available" ? candidate.mode : "shared",
-    viewMode: candidate.viewMode === "list" || candidate.viewMode === "card" ? candidate.viewMode : "feed",
-    sortMode:
-      candidate.sortMode === "name-desc" ||
-      candidate.sortMode === "duration-asc" ||
-      candidate.sortMode === "duration-desc" ||
-      candidate.sortMode === "people-asc" ||
-      candidate.sortMode === "people-desc"
-        ? candidate.sortMode
-        : "name-asc",
-  };
-}
-
 export function useTaskUiPreferences(orgId?: string) {
-  const storageKey = orgId ? `${TASK_UI_STORAGE_PREFIX}.${orgId}` : null;
-  const [preferences, setPreferences] = useState<TaskUiPreferences>(DEFAULT_PREFERENCES);
-  const [hydratedStorageKey, setHydratedStorageKey] = useState<string | null>(null);
-  const isHydrated = storageKey ? hydratedStorageKey === storageKey : true;
+  const [localPreferences, setLocalPreferences] = useState<TaskUiPreferences>(DEFAULT_TASK_UI_PREFERENCES);
+  const hasHydrated = useTaskPersistenceStore((state) => state.hasHydrated);
+  const persistedPreferences = useTaskPersistenceStore(selectPreferences(orgId));
+  const preferences = orgId ? persistedPreferences : localPreferences;
+  const isHydrated = orgId ? hasHydrated : true;
 
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!storageKey) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    AsyncStorage.getItem(storageKey)
-      .then((raw) => {
-        if (cancelled) {
-          return;
-        }
-
-        setPreferences(raw ? normalizePreferences(JSON.parse(raw)) : DEFAULT_PREFERENCES);
-        setHydratedStorageKey(storageKey);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPreferences(DEFAULT_PREFERENCES);
-          setHydratedStorageKey(storageKey);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!storageKey || !isHydrated) {
+  const setMode = useCallback((mode: TaskMode) => {
+    if (!orgId) {
+      setLocalPreferences((current) => (current.mode === mode ? current : { ...current, mode }));
       return;
     }
 
-    AsyncStorage.setItem(storageKey, JSON.stringify(preferences)).catch(() => {
-      // Ignore persistence failures. The screen should still work.
-    });
-  }, [isHydrated, preferences, storageKey]);
-
-  const setMode = useCallback((mode: TaskMode) => {
-    setPreferences((current) => (current.mode === mode ? current : { ...current, mode }));
-  }, []);
+    useTaskPersistenceStore.getState().setMode(orgId, mode);
+  }, [orgId]);
 
   const setViewMode = useCallback((viewMode: TaskViewMode) => {
-    setPreferences((current) =>
-      current.viewMode === viewMode ? current : { ...current, viewMode },
-    );
-  }, []);
+    if (!orgId) {
+      setLocalPreferences((current) =>
+        current.viewMode === viewMode ? current : { ...current, viewMode },
+      );
+      return;
+    }
+
+    useTaskPersistenceStore.getState().setViewMode(orgId, viewMode);
+  }, [orgId]);
 
   const setSortMode = useCallback((sortMode: TaskSortMode) => {
-    setPreferences((current) =>
-      current.sortMode === sortMode ? current : { ...current, sortMode },
-    );
-  }, []);
+    if (!orgId) {
+      setLocalPreferences((current) =>
+        current.sortMode === sortMode ? current : { ...current, sortMode },
+      );
+      return;
+    }
+
+    useTaskPersistenceStore.getState().setSortMode(orgId, sortMode);
+  }, [orgId]);
 
   const resetPreferences = useCallback(() => {
-    setPreferences((current) =>
-      current.mode === DEFAULT_PREFERENCES.mode &&
-      current.viewMode === DEFAULT_PREFERENCES.viewMode &&
-      current.sortMode === DEFAULT_PREFERENCES.sortMode
-        ? current
-        : DEFAULT_PREFERENCES,
-    );
-  }, []);
+    if (!orgId) {
+      setLocalPreferences((current) =>
+        current.mode === DEFAULT_TASK_UI_PREFERENCES.mode &&
+        current.viewMode === DEFAULT_TASK_UI_PREFERENCES.viewMode &&
+        current.sortMode === DEFAULT_TASK_UI_PREFERENCES.sortMode
+          ? current
+          : DEFAULT_TASK_UI_PREFERENCES,
+      );
+      return;
+    }
+
+    useTaskPersistenceStore.getState().resetPreferences(orgId);
+  }, [orgId]);
 
   return {
     isHydrated,
@@ -133,5 +79,78 @@ export function useTaskUiPreferences(orgId?: string) {
     setViewMode,
     setSortMode,
     resetPreferences,
+  };
+}
+
+export function useTaskSearch(orgId?: string) {
+  const [localSearch, setLocalSearch] = useState(DEFAULT_TASK_SEARCH);
+  const hasHydrated = useTaskPersistenceStore((state) => state.hasHydrated);
+  const persistedSearch = useTaskPersistenceStore(selectSearch(orgId));
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const search = localSearch;
+  const isHydrated = orgId ? hasHydrated : true;
+
+  useEffect(() => {
+    if (!orgId) {
+      setLocalSearch(DEFAULT_TASK_SEARCH);
+      return;
+    }
+
+    if (hasHydrated) {
+      setLocalSearch(persistedSearch);
+    }
+  }, [hasHydrated, orgId, persistedSearch]);
+
+  useEffect(
+    () => () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    },
+    [orgId],
+  );
+
+  const clearSearch = useCallback(() => {
+    if (!orgId) {
+      setLocalSearch(DEFAULT_TASK_SEARCH);
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    setLocalSearch(DEFAULT_TASK_SEARCH);
+    debounceTimerRef.current = setTimeout(() => {
+      useTaskPersistenceStore.getState().setSearch(orgId, DEFAULT_TASK_SEARCH);
+      debounceTimerRef.current = null;
+    }, 200);
+  }, [orgId]);
+
+  const setSearch = useCallback((value: string) => {
+    if (!orgId) {
+      setLocalSearch(value);
+      return;
+    }
+
+    setLocalSearch(value);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      useTaskPersistenceStore.getState().setSearch(orgId, value);
+      debounceTimerRef.current = null;
+    }, 200);
+  }, [orgId]);
+
+  return {
+    isHydrated,
+    search,
+    setSearch,
+    clearSearch,
   };
 }

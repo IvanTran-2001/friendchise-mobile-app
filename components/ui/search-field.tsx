@@ -4,6 +4,7 @@ import { colors, radius, spacing } from "../../src/lib/theme";
 
 type SearchFieldProps = Omit<TextInputProps, "style"> & {
   autoFocusOnMount?: boolean;
+  disabled?: boolean;
 };
 
 /**
@@ -11,19 +12,20 @@ type SearchFieldProps = Omit<TextInputProps, "style"> & {
  *
  * @example <SearchField placeholder="Search tasks" value={search} onChangeText={setSearch} />
  */
-export function SearchField({ autoFocusOnMount, ...rest }: SearchFieldProps) {
+export function SearchField({ autoFocusOnMount, disabled, ...rest }: SearchFieldProps) {
   return (
     <View style={styles.container}>
       <Search size={16} strokeWidth={2.2} color={colors.textTertiary} />
       <TextInput
+        {...rest}
         autoFocus={autoFocusOnMount}
+        editable={!disabled}
         placeholderTextColor={colors.textTertiary}
         style={styles.input}
         autoCorrect={false}
         autoCapitalize="none"
         returnKeyType="search"
         clearButtonMode="while-editing"
-        {...rest}
       />
     </View>
   );

@@ -9,6 +9,7 @@ import { Text } from "./text";
 type SheetModalProps = {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   title?: string;
   subtitle?: string;
   children: ReactNode;
@@ -24,9 +25,15 @@ type SheetModalProps = {
  *   {content}
  * </SheetModal>
  */
-export function SheetModal({ visible, onClose, title, subtitle, children }: SheetModalProps) {
+export function SheetModal({ visible, onClose, onDismiss, title, subtitle, children }: SheetModalProps) {
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+      onDismiss={onDismiss}
+    >
       <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
         <View style={styles.header}>
           <IconButton accessibilityLabel="Close" onPress={onClose} style={styles.closeButton}>
