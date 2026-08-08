@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
-import { useRouter, useSegments } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Bell, Building2, ListTodo, Network } from "lucide-react-native";
+import { Bell, Building2, ListTodo, Network, Wrench } from "lucide-react-native";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 import { Text } from "../ui/text";
@@ -12,10 +12,9 @@ const TAB_SIZE = 52;
 export function AppBottomBar() {
   const router = useRouter();
   const currentOrgId = useCurrentOrgId();
-  const segments = useSegments();
-  const routeSegments = segments as unknown as string[];
+  const pathname = usePathname();
   const tabs = currentOrgId
-    ? getOrgTabs(currentOrgId, routeSegments)
+    ? getOrgTabs(currentOrgId, pathname)
     : getNonOrgTabs();
 
   return (
@@ -83,16 +82,20 @@ function getNonOrgTabs(): BottomTab[] {
   ];
 }
 
-function getOrgTabs(currentOrgId: string, routeSegments: string[]): BottomTab[] {
-  const isTasksRoute = routeSegments.includes("tasks");
+function getOrgTabs(currentOrgId: string, pathname: string): BottomTab[] {
+  const orgPath = `/orgs/${currentOrgId}`;
+  const isHomeRoute = pathname === orgPath;
+  const isTasksRoute = pathname.startsWith(`${orgPath}/tasks`);
+  const isToolsRoute = pathname.startsWith(`${orgPath}/tools`);
   const orgHomeHref = `/(app)/orgs/${currentOrgId}`;
   const tasksHref = `/(app)/orgs/${currentOrgId}/tasks`;
+  const toolsHref = `/(app)/orgs/${currentOrgId}/tools`;
 
   return [
     {
       label: "Home",
       icon: Building2,
-      active: !isTasksRoute,
+      active: isHomeRoute,
       href: orgHomeHref,
     },
     {
@@ -100,6 +103,12 @@ function getOrgTabs(currentOrgId: string, routeSegments: string[]): BottomTab[] 
       icon: ListTodo,
       active: isTasksRoute,
       href: tasksHref,
+    },
+    {
+      label: "Tools",
+      icon: Wrench,
+      active: isToolsRoute,
+      href: toolsHref,
     },
   ];
 }
