@@ -176,8 +176,8 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     color: colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   bold: {
     color: colors.textPrimary,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   listBullet: {
     color: colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 20,
     width: 16,
   },
   listContent: {

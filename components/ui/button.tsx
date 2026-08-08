@@ -30,9 +30,9 @@ type ButtonProps = {
 
 const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number; fontSize: number }> = {
   // 44 is the minimum comfortable, accessible tap target (see minTapTarget).
-  sm: { height: minTapTarget, paddingHorizontal: spacing.lg, fontSize: 13 },
-  md: { height: 50, paddingHorizontal: spacing.xl, fontSize: 15 },
-  lg: { height: 56, paddingHorizontal: spacing.xxl, fontSize: 16 },
+  sm: { height: minTapTarget, paddingHorizontal: spacing.lg, fontSize: 12 },
+  md: { height: 50, paddingHorizontal: spacing.xl, fontSize: 14 },
+  lg: { height: 56, paddingHorizontal: spacing.xxl, fontSize: 15 },
 };
 
 const variantStyles: Record<
