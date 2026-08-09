@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
+      "expo-image-picker",
       "expo-secure-store",
       "expo-font"
     ],
@@ -22,7 +23,10 @@
     "ios": {
       "bundleIdentifier": "com.ivantran2001.friendchisemobileapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow FriendChise to take photos for task images.",
+        "NSPhotoLibraryUsageDescription": "Allow FriendChise to pick task images from your photo library.",
+        "NSPhotoLibraryAddUsageDescription": "Allow FriendChise to save task images to your photo library."
       }
     },
     "android": {
