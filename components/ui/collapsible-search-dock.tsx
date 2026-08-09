@@ -8,7 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors, spacing } from "../../src/lib/theme";
+import { spacing } from "../../src/lib/theme";
 import { SearchField } from "./search-field";
 
 type CollapsibleSearchDockProps = {
