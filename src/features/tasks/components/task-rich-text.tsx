@@ -1,231 +1,154 @@
-import type { ReactNode } from "react";
-import { Image, Linking, StyleSheet, Text as RNText, View } from "react-native";
-import { colors, radius, spacing } from "../../../lib/theme";
+import { useEffect, useState } from "react";
+import { useWindowDimensions } from "react-native";
+import RenderHTML from "react-native-render-html";
+import MarkdownIt from "markdown-it";
+import { colors, spacing } from "../../../lib/theme";
+import { getRichTextImageReadUrl } from "../task-image-api";
 
-type RichToken =
-  | { type: "text"; value: string }
-  | { type: "bold"; value: string }
-  | { type: "italic"; value: string }
-  | { type: "code"; value: string }
-  | { type: "link"; value: string; href: string }
-  | { type: "image"; alt: string; src: string };
+/**
+ * Renders task descriptions as web-style markdown rich text.
+ *
+ * Markdown is rendered to HTML first, then any org-owned storage-path images
+ * are resolved to signed read URLs before the markup is passed to the HTML
+ * renderer.
+ */
 
 type TaskRichTextProps = {
   source: string;
+  orgId?: string;
 };
 
-export function TaskRichText({ source }: TaskRichTextProps) {
+/**
+ * Renders task descriptions as web-style markdown rich text.
+ */
+export function TaskRichText({ source, orgId }: TaskRichTextProps) {
+  /** Normalized source text used by the renderer and image resolver. */
   const blocks = source.replace(/\r\n/g, "\n").trim();
+  /** Measures the available width for the HTML renderer. */
+  const { width } = useWindowDimensions();
+  /** Markdown parser configured to preserve HTML and render line breaks. */
+  const markdown = useState(() => new MarkdownIt({ html: true, breaks: true, linkify: true }))[0];
+  /** Markdown converted to HTML before signed image URLs are resolved. */
+  const renderedHtml = markdown.render(blocks);
+  /** Final HTML source passed to the renderer. */
+  const [htmlSource, setHtmlSource] = useState(renderedHtml);
+
+  /** Resolves org-owned storage-path images to signed URLs on the client. */
+  useEffect(() => {
+    /** Prevents stale async image lookups from updating unmounted state. */
+    let cancelled = false;
+
+    void resolveTaskRichTextHtml(orgId, renderedHtml)
+      .then((nextHtml) => {
+        if (!cancelled) {
+          setHtmlSource(nextHtml);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHtmlSource(renderedHtml);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, renderedHtml]);
 
   if (!blocks) {
     return null;
   }
 
-  return <View style={styles.container}>{renderBlocks(blocks)}</View>;
+  return (
+    <RenderHTML
+      contentWidth={width}
+      source={{ html: htmlSource }}
+      tagsStyles={htmlStyles}
+      baseStyle={htmlBaseStyle}
+    />
+  );
 }
 
-function renderBlocks(source: string): ReactNode[] {
-  const blocks = source.split(/\n{2,}/);
-
-  return blocks.map((block, blockIndex) => {
-    const lines = block
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    const listItems = lines.filter((line) => /^([*-]|\d+\.)\s+/.test(line));
-    const isListBlock = lines.length > 0 && listItems.length === lines.length;
-
-    if (isListBlock) {
-      const ordered = /^\d+\./.test(listItems[0]);
-
-      return (
-        <View key={`block-${blockIndex}`} style={styles.listBlock}>
-          {listItems.map((line, itemIndex) => {
-            const content = line.replace(/^([*-]|\d+\.)\s+/, "");
-            return (
-              <View key={`item-${blockIndex}-${itemIndex}`} style={styles.listRow}>
-                <RNText style={styles.listBullet}>{ordered ? `${itemIndex + 1}.` : "•"}</RNText>
-                <View style={styles.listContent}>{renderInline(content, `list-${blockIndex}-${itemIndex}`)}</View>
-              </View>
-            );
-          })}
-        </View>
-      );
-    }
-
-    if (block.trim().startsWith(">")) {
-      const quote = block
-        .split("\n")
-        .map((line) => line.replace(/^>\s?/, ""))
-        .join("\n");
-
-      return (
-        <View key={`block-${blockIndex}`} style={styles.quoteBlock}>
-          {quote.split("\n").map((line, lineIndex) => (
-            <RNText key={`quote-${blockIndex}-${lineIndex}`} style={styles.paragraph}>
-              {renderInline(line, `quote-${blockIndex}-${lineIndex}`)}
-            </RNText>
-          ))}
-        </View>
-      );
-    }
-
-    return (
-      <RNText key={`block-${blockIndex}`} style={styles.paragraph}>
-        {renderInline(block, `paragraph-${blockIndex}`)}
-      </RNText>
-    );
-  });
-}
-
-function renderInline(source: string, keyPrefix: string): ReactNode[] {
-  const tokens = tokenizeInline(source);
-
-  return tokens.map((token, index) => {
-    if (token.type === "text") {
-      return <RNText key={`${keyPrefix}-text-${index}`}>{token.value}</RNText>;
-    }
-
-    if (token.type === "bold") {
-      return (
-        <RNText key={`${keyPrefix}-bold-${index}`} style={styles.bold}>
-          {token.value}
-        </RNText>
-      );
-    }
-
-    if (token.type === "italic") {
-      return (
-        <RNText key={`${keyPrefix}-italic-${index}`} style={styles.italic}>
-          {token.value}
-        </RNText>
-      );
-    }
-
-    if (token.type === "code") {
-      return (
-        <RNText key={`${keyPrefix}-code-${index}`} style={styles.code}>
-          {token.value}
-        </RNText>
-      );
-    }
-
-    if (token.type === "link") {
-      return (
-        <RNText
-          key={`${keyPrefix}-link-${index}`}
-          style={styles.link}
-          onPress={() => {
-            void Linking.openURL(token.href);
-          }}
-          accessibilityRole="link"
-          suppressHighlighting
-        >
-          {token.value}
-        </RNText>
-      );
-    }
-
-    return <Image key={`${keyPrefix}-image-${index}`} source={{ uri: token.src }} accessibilityLabel={token.alt} style={styles.image} />;
-  });
-}
-
-function tokenizeInline(source: string): RichToken[] {
-  const tokens: RichToken[] = [];
-  const pattern = /(!\[[^\]]*\]\([^\)]+\)|\[[^\]]+\]\([^\)]+\)|\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*|_[^_]+_)/g;
-  let lastIndex = 0;
-
-  for (const match of source.matchAll(pattern)) {
-    const index = match.index ?? 0;
-
-    if (index > lastIndex) {
-      tokens.push({ type: "text", value: source.slice(lastIndex, index) });
-    }
-
-    const fragment = match[0];
-    if (fragment.startsWith("![")) {
-      const alt = fragment.slice(2, fragment.indexOf("]"));
-      const src = fragment.slice(fragment.indexOf("(") + 1, -1);
-      tokens.push({ type: "image", alt, src });
-    } else if (fragment.startsWith("[")) {
-      const value = fragment.slice(1, fragment.indexOf("]"));
-      const href = fragment.slice(fragment.indexOf("(") + 1, -1);
-      tokens.push({ type: "link", value, href });
-    } else if (fragment.startsWith("**") || fragment.startsWith("__")) {
-      tokens.push({ type: "bold", value: fragment.slice(2, -2) });
-    } else if (fragment.startsWith("`")) {
-      tokens.push({ type: "code", value: fragment.slice(1, -1) });
-    } else if (fragment.startsWith("*") || fragment.startsWith("_")) {
-      tokens.push({ type: "italic", value: fragment.slice(1, -1) });
-    }
-
-    lastIndex = index + fragment.length;
+/**
+ * Prepares rendered task HTML for display by rewriting org-owned image URLs.
+ */
+async function resolveTaskRichTextHtml(orgId: string | undefined, renderedHtml: string) {
+  if (!renderedHtml || !orgId) {
+    return renderedHtml;
   }
 
-  if (lastIndex < source.length) {
-    tokens.push({ type: "text", value: source.slice(lastIndex) });
+  /** Collects the unique org storage paths embedded in rendered image tags. */
+  const paths = Array.from(
+    new Set(
+      [...renderedHtml.matchAll(/<img\b[^>]*src=["']([^"']+)["'][^>]*>/gi)]
+        .map((match) => match[1])
+        .filter((src) => src.startsWith(`orgs/${orgId}/`)),
+    ),
+  );
+
+  if (paths.length === 0) {
+    return renderedHtml;
   }
 
-  return tokens;
+  return resolveHtmlWithSignedImageUrls(orgId, renderedHtml, paths);
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.sm,
-  },
-  paragraph: {
+/**
+ * Rewrites org-owned image paths in rendered HTML to signed read URLs.
+ */
+async function resolveHtmlWithSignedImageUrls(orgId: string, renderedHtml: string, paths: string[]) {
+  /** Resolves each storage path and swaps in the signed read URL. */
+  const entries = await Promise.all(paths.map(async (path) => [path, await getRichTextImageReadUrl(orgId, path)] as const));
+
+  /** HTML string updated with signed image URLs. */
+  let nextHtml = renderedHtml;
+  for (const [path, signedUrl] of entries) {
+    if (!signedUrl) continue;
+    nextHtml = nextHtml.replaceAll(`src="${path}"`, `src="${signedUrl}"`);
+    nextHtml = nextHtml.replaceAll(`src='${path}'`, `src='${signedUrl}'`);
+  }
+
+  return nextHtml;
+}
+
+/** Shared base text style used by the HTML renderer. */
+const htmlBaseStyle = {
+  color: colors.textSecondary,
+  fontSize: 14,
+  lineHeight: 20,
+};
+
+/** Tag-specific HTML styles applied to rendered markdown output. */
+const htmlStyles = {
+  p: {
     color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
+    marginTop: 0,
+    marginBottom: spacing.sm,
   },
-  bold: {
+  strong: {
     color: colors.textPrimary,
-    fontWeight: "700",
+    fontWeight: "700" as const,
   },
-  italic: {
-    fontStyle: "italic",
+  em: {
+    fontStyle: "italic" as const,
   },
-  code: {
-    backgroundColor: colors.surfaceMuted,
-    color: colors.textPrimary,
-    borderRadius: radius.sm,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    fontFamily: "monospace",
+  u: {
+    textDecorationLine: "underline" as const,
   },
-  link: {
-    color: colors.accent,
-    textDecorationLine: "underline",
+  ul: {
+    marginBottom: spacing.sm,
+    paddingLeft: spacing.lg,
   },
-  image: {
-    width: "100%",
-    minHeight: 160,
-    borderRadius: radius.md,
-    marginVertical: spacing.xs,
-    backgroundColor: colors.surfaceMuted,
+  ol: {
+    marginBottom: spacing.sm,
+    paddingLeft: spacing.lg,
   },
-  listBlock: {
-    gap: spacing.xs,
-  },
-  listRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  listBullet: {
+  li: {
     color: colors.textSecondary,
+    fontSize: 14,
     lineHeight: 20,
-    width: 16,
+    marginBottom: 4,
   },
-  listContent: {
-    flex: 1,
-    minWidth: 0,
-  },
-  quoteBlock: {
-    borderLeftWidth: 2,
-    borderLeftColor: colors.border,
-    paddingLeft: spacing.sm,
-    gap: spacing.xs,
-  },
-});
+} as const;

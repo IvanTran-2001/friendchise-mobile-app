@@ -94,7 +94,7 @@ export function TaskListView({
 
               <View style={styles.feedDescription}>
                 {item.description ? (
-                  <TaskRichText source={item.description} />
+                  <TaskRichText source={item.description} orgId={item.orgId} />
                 ) : (
                   <Text variant="body" tone="secondary">
                     {item.durationMin} min · {item.minPeople}+ people
@@ -113,7 +113,7 @@ export function TaskListView({
                 </Text>
                 {item.description ? (
                   <View style={styles.cardModeDescription}>
-                    <TaskRichText source={item.description} />
+                    <TaskRichText source={item.description} orgId={item.orgId} />
                   </View>
                 ) : null}
                 <View style={styles.cardModeMetaRow}>

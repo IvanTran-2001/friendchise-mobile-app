@@ -97,7 +97,7 @@ export default function TaskOverviewScreen() {
           <Text variant="captionStrong" tone="secondary" style={styles.sectionLabel}>
             Description
           </Text>
-          <TaskRichText source={task.description} />
+          <TaskRichText source={task.description} orgId={orgId} />
         </Card>
       ) : null}
 
@@ -144,7 +144,7 @@ export default function TaskOverviewScreen() {
                 <Text variant="caption" tone="secondary">
                   {new Date(comment.createdAt).toLocaleString()}
                 </Text>
-                <TaskRichText source={comment.content} />
+                <TaskRichText source={comment.content} orgId={orgId} />
               </View>
             ))}
           </View>

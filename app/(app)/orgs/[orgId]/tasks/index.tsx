@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getTasks } from "../../../../../src/features/tasks/task-api";
 import { colors, radius, shadows, spacing } from "../../../../../src/lib/theme";
@@ -17,6 +18,7 @@ function TaskNavContent() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
   const resolvedOrgId = orgId && !orgId.startsWith("[") ? orgId : undefined;
+  const router = useRouter();
   const {
     isHydrated,
     preferences,
@@ -65,6 +67,7 @@ function TaskNavContent() {
           onViewModeChange={setViewMode}
           onSortModeChange={setSortMode}
           onResetPreferences={resetPreferences}
+          onAddTaskPress={() => router.push(`/(app)/orgs/${resolvedOrgId}/tasks/new`)}
         />
       ) : null,
     [
@@ -76,6 +79,7 @@ function TaskNavContent() {
       setMode,
       setSortMode,
       setViewMode,
+      router,
     ],
   );
 
