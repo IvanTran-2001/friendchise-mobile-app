@@ -53,46 +53,53 @@ type SaveImageResponse = {
  */
 export async function uploadRichTextImage(orgId: string, asset: ImagePicker.ImagePickerAsset) {
   const mimeType = asset.mimeType ?? "image/jpeg";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  const uploadResponse = await authenticatedFetch(`/api/orgs/${orgId}/images/upload-url`, {
-    method: "POST",
-    body: JSON.stringify({ mimeType }),
-  });
+  try {
+    const uploadResponse = await authenticatedFetch(`/api/orgs/${orgId}/images/upload-url`, {
+      method: "POST",
+      body: JSON.stringify({ mimeType }),
+    });
 
-  const uploadPayload = (await uploadResponse.json().catch(() => null)) as SignedUploadResponse | { error?: string } | null;
-  if (!uploadResponse.ok || !uploadPayload || typeof uploadPayload !== "object" || !("signedUrl" in uploadPayload)) {
-    const message = uploadPayload && typeof uploadPayload === "object" && "error" in uploadPayload ? uploadPayload.error : null;
-    throw new Error(typeof message === "string" ? message : "Failed to prepare image upload.");
+    const uploadPayload = (await uploadResponse.json().catch(() => null)) as SignedUploadResponse | { error?: string } | null;
+    if (!uploadResponse.ok || !uploadPayload || typeof uploadPayload !== "object" || !("signedUrl" in uploadPayload)) {
+      const message = uploadPayload && typeof uploadPayload === "object" && "error" in uploadPayload ? uploadPayload.error : null;
+      throw new Error(typeof message === "string" ? message : "Failed to prepare image upload.");
+    }
+
+    const assetResponse = await fetch(asset.uri, { signal: controller.signal });
+    const blob = await assetResponse.blob();
+
+    const putResponse = await fetch(uploadPayload.signedUrl, {
+      method: "PUT",
+      body: blob,
+      headers: { "Content-Type": mimeType },
+      signal: controller.signal,
+    });
+
+    if (!putResponse.ok) {
+      throw new Error("Upload failed. Please try again.");
+    }
+
+    const saveResponse = await authenticatedFetch(`/api/orgs/${orgId}/images`, {
+      method: "POST",
+      body: JSON.stringify({
+        storagePath: uploadPayload.path,
+        name: asset.fileName ?? "image",
+      }),
+    });
+
+    const savePayload = (await saveResponse.json().catch(() => null)) as SaveImageResponse | { error?: string } | null;
+    if (!saveResponse.ok || !savePayload || typeof savePayload !== "object" || !("image" in savePayload)) {
+      const message = savePayload && typeof savePayload === "object" && "error" in savePayload ? savePayload.error : null;
+      throw new Error(typeof message === "string" ? message : "Failed to save image.");
+    }
+
+    return savePayload.image;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const assetResponse = await fetch(asset.uri);
-  const blob = await assetResponse.blob();
-
-  const putResponse = await fetch(uploadPayload.signedUrl, {
-    method: "PUT",
-    body: blob,
-    headers: { "Content-Type": mimeType },
-  });
-
-  if (!putResponse.ok) {
-    throw new Error("Upload failed. Please try again.");
-  }
-
-  const saveResponse = await authenticatedFetch(`/api/orgs/${orgId}/images`, {
-    method: "POST",
-    body: JSON.stringify({
-      storagePath: uploadPayload.path,
-      name: asset.fileName ?? "image",
-    }),
-  });
-
-  const savePayload = (await saveResponse.json().catch(() => null)) as SaveImageResponse | { error?: string } | null;
-  if (!saveResponse.ok || !savePayload || typeof savePayload !== "object" || !("image" in savePayload)) {
-    const message = savePayload && typeof savePayload === "object" && "error" in savePayload ? savePayload.error : null;
-    throw new Error(typeof message === "string" ? message : "Failed to save image.");
-  }
-
-  return savePayload.image;
 }
 
 /**

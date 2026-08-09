@@ -42,15 +42,17 @@ export function CollapsibleSearchDock({
 }: CollapsibleSearchDockProps) {
   const [searchTranslateY] = useState(() => new Animated.Value(0));
   const [searchOpacity] = useState(() => new Animated.Value(1));
+  const [searchVisible, setSearchVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const searchVisible = useRef(true);
+  const searchVisibleRef = useRef(true);
 
   const showSearchBar = useCallback(() => {
-    if (searchVisible.current) {
+    if (searchVisibleRef.current) {
       return;
     }
 
-    searchVisible.current = true;
+    searchVisibleRef.current = true;
+    setSearchVisible(true);
     Animated.parallel([
       Animated.timing(searchTranslateY, {
         toValue: 0,
@@ -66,11 +68,12 @@ export function CollapsibleSearchDock({
   }, [animationDuration, searchOpacity, searchTranslateY]);
 
   const hideSearchBar = useCallback(() => {
-    if (!searchVisible.current) {
+    if (!searchVisibleRef.current) {
       return;
     }
 
-    searchVisible.current = false;
+    searchVisibleRef.current = false;
+    setSearchVisible(false);
     Animated.parallel([
       Animated.timing(searchTranslateY, {
         toValue: -hideOffset,
@@ -112,6 +115,7 @@ export function CollapsibleSearchDock({
               opacity: searchOpacity,
             },
           ]}
+          pointerEvents={searchVisible ? "auto" : "none"}
         >
           <SearchField value={search} onChangeText={onChangeSearch} placeholder={placeholder} disabled={disabled} />
         </Animated.View>

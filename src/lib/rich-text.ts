@@ -1,4 +1,16 @@
 /**
+ * Escapes raw text so it can be safely embedded inside HTML.
+ */
+export function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
  * Normalizes a value into HTML rich text for shared UI inputs.
  */
 export function toRichTextHtml(value: string) {
@@ -13,16 +25,4 @@ export function toRichTextHtml(value: string) {
   }
 
   return `<p>${escapeHtml(trimmed)}</p>`;
-}
-
-/**
- * Escapes raw text so it can be safely embedded inside HTML.
- */
-export function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }

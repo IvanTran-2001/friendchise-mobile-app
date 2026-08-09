@@ -1,3 +1,5 @@
+import { escapeHtml, toRichTextHtml as sharedToRichTextHtml } from "../../lib/rich-text";
+
 const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i;
 
 const ALLOWED_TAGS = new Set([
@@ -21,9 +23,6 @@ const ALLOWED_TAGS = new Set([
   "video",
   "audio",
   "source",
-  "iframe",
-  "embed",
-  "object",
   "div",
   "span",
   "code",
@@ -38,18 +37,6 @@ const SAFE_URI_PATTERN = /^(https?:|mailto:|tel:|#|\/|orgs\/)/i;
  */
 export function isHtmlRichText(value: string) {
   return HTML_TAG_PATTERN.test(value);
-}
-
-/**
- * Escapes raw text so it can be safely embedded inside HTML.
- */
-export function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -84,9 +71,6 @@ function parseAllowedAttributes(tagName: string, rawAttributes: string) {
     video: ["src", "controls", "autoplay", "loop", "muted", "playsinline", "poster"],
     audio: ["src", "controls", "autoplay", "loop", "muted"],
     source: ["src", "type"],
-    iframe: ["src", "title", "allow", "allowfullscreen", "loading", "referrerpolicy"],
-    embed: ["src", "type", "width", "height"],
-    object: ["data", "type", "width", "height"],
   };
 
   const allowed = allowedAttributes[tagName] ?? [];
@@ -144,17 +128,8 @@ function isSafeUri(rawValue: string, tagName: string, attributeName: string) {
  * value is escaped and wrapped in a paragraph tag.
  */
 export function toRichTextHtml(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return "<p></p>";
-  }
-
-  if (isHtmlRichText(trimmed)) {
-    return sanitizeRichTextHtml(trimmed);
-  }
-
-  return sanitizeRichTextHtml(`<p>${escapeHtml(trimmed)}</p>`);
+  const html = sharedToRichTextHtml(value);
+  return isHtmlRichText(html) ? sanitizeRichTextHtml(html) : html;
 }
 
 /**
@@ -165,7 +140,7 @@ export function isEmptyRichTextHtml(value: string) {
     .replace(/&nbsp;/gi, " ")
     .replace(/<br\s*\/?\s*>/gi, "")
     .replace(/<\/?(p|div|span|strong|em|u|ul|ol|li|blockquote|h[1-6])[^>]*>/gi, " ")
-    .replace(/<(img|video|audio|source|iframe|embed|object)\b[^>]*>/gi, " media ")
+    .replace(/<(img|video|audio|source)\b[^>]*>/gi, " media ")
     .replace(/<[^>]+>/g, "")
     .trim();
 

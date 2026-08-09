@@ -44,16 +44,16 @@ export default function TaskCreateScreen() {
   const queryClient = useQueryClient();
 
   const createTaskMutation = useMutation({
-    mutationFn: async () => createTask(resolvedOrgId!, {
-      title,
-      description,
-      imageStoragePath: selectedImage?.storagePath,
-      color,
-      durationMin: toPositiveInt(durationMin, 30),
-      peopleRequired: toPositiveInt(peopleRequired, 1),
-      minWaitDays: toPositiveInt(minWaitDays, 1),
-      maxWaitDays: toPositiveInt(maxWaitDays, 1),
-    }),
+    mutationFn: async (input: {
+      title: string;
+      description: string;
+      imageStoragePath?: string;
+      color: string;
+      durationMin: number;
+      peopleRequired: number;
+      minWaitDays: number;
+      maxWaitDays: number;
+    }) => createTask(resolvedOrgId!, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tasks", resolvedOrgId] });
     },
@@ -66,8 +66,8 @@ export default function TaskCreateScreen() {
       return;
     }
 
-    const parsedMinWaitDays = toNonNegativeInt(minWaitDays, 0);
-    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays, 0);
+    const parsedMinWaitDays = toNonNegativeInt(minWaitDays, 1);
+    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays, 1);
     if (parsedMaxWaitDays < parsedMinWaitDays) {
       setFormError("Max wait days must be at least min wait days.");
       return;
@@ -75,7 +75,16 @@ export default function TaskCreateScreen() {
 
     setFormError(null);
     try {
-      const result = await createTaskMutation.mutateAsync();
+      const result = await createTaskMutation.mutateAsync({
+        title,
+        description,
+        imageStoragePath: selectedImage?.storagePath,
+        color,
+        durationMin: toPositiveInt(durationMin, 30),
+        peopleRequired: toPositiveInt(peopleRequired, 1),
+        minWaitDays: parsedMinWaitDays,
+        maxWaitDays: parsedMaxWaitDays,
+      });
 
       if (!result.ok) {
         Alert.alert("Failed to create task", result.error);

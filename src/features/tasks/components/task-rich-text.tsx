@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { LayoutChangeEvent, View } from "react-native";
 import RenderHTML from "react-native-render-html";
 import MarkdownIt from "markdown-it";
 import { colors, spacing } from "../../../lib/theme";
@@ -27,8 +27,6 @@ type TaskRichTextProps = {
 export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   /** Normalized source text used by the renderer and image resolver. */
   const blocks = useMemo(() => source.replace(/\r\n/g, "\n").trim(), [source]);
-  /** Measures the available width for the HTML renderer. */
-  const { width } = useWindowDimensions();
   /** Markdown converted to HTML before signed image URLs are resolved. */
   const renderedHtml = useMemo(() => markdownParser.render(blocks), [blocks]);
   /** Sanitized HTML that strips unsafe tags and URI schemes before rendering. */
@@ -36,6 +34,8 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   const needsResolution = useMemo(() => !!orgId && renderedHtml.includes(`orgs/${orgId}/`), [orgId, renderedHtml]);
   /** Final HTML source passed to the renderer. */
   const [htmlSource, setHtmlSource] = useState<string | null>(() => (needsResolution ? null : sanitizedHtml));
+  /** Width of the actual content column inside the surrounding card/list layout. */
+  const [contentWidth, setContentWidth] = useState(0);
 
   /** Resolves org-owned storage-path images to signed URLs on the client. */
   useEffect(() => {
@@ -73,12 +73,21 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   }
 
   return (
-    <RenderHTML
-      contentWidth={width}
-      source={{ html: htmlSource }}
-      tagsStyles={htmlStyles}
-      baseStyle={htmlBaseStyle}
-    />
+    <View
+      onLayout={(event: LayoutChangeEvent) => {
+        const nextWidth = event.nativeEvent.layout.width;
+        if (nextWidth > 0) {
+          setContentWidth(nextWidth);
+        }
+      }}
+    >
+      <RenderHTML
+        contentWidth={contentWidth || 1}
+        source={{ html: htmlSource }}
+        tagsStyles={htmlStyles}
+        baseStyle={htmlBaseStyle}
+      />
+    </View>
   );
 }
 
