@@ -54,8 +54,17 @@ export default function TaskCreateScreen() {
       minWaitDays: number;
       maxWaitDays: number;
     }) => createTask(resolvedOrgId!, input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tasks", resolvedOrgId] });
+    onSuccess: async (result) => {
+      if (!result.ok || !resolvedOrgId) {
+        return;
+      }
+
+      const destination = result.taskId
+        ? `/(app)/orgs/${resolvedOrgId}/tasks/${result.taskId}`
+        : `/(app)/orgs/${resolvedOrgId}/tasks`;
+
+      router.replace(destination);
+      void queryClient.invalidateQueries({ queryKey: ["tasks", resolvedOrgId] });
     },
   });
 
@@ -90,21 +99,6 @@ export default function TaskCreateScreen() {
         Alert.alert("Failed to create task", result.error);
         return;
       }
-
-      Alert.alert("Task created", "Your new task is ready.", [
-        {
-          text: "View tasks",
-          onPress: () => router.replace(`/(app)/orgs/${resolvedOrgId}/tasks`),
-        },
-        ...(result.taskId
-          ? [
-              {
-                text: "Open task",
-                onPress: () => router.replace(`/(app)/orgs/${resolvedOrgId}/tasks/${result.taskId}`),
-              },
-            ]
-          : []),
-      ]);
     } catch (error) {
       Alert.alert("Failed to create task", error instanceof Error ? error.message : "Please try again.");
     }

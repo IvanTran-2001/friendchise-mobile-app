@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "rea
 import { List, ListOrdered } from "lucide-react-native";
 import { actions, RichEditor } from "react-native-pell-rich-editor";
 import { colors, radius, spacing } from "../../src/lib/theme";
-import { toRichTextHtml } from "../../src/lib/rich-text";
+import { toRichTextHtml } from "../../src/features/tasks/rich-text-utils";
 import { Text } from "./text";
 
 type RichTextFieldProps = {
@@ -30,8 +30,8 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
   const [activeActions, setActiveActions] = useState<string[]>([]);
   /** Converts the current value into the HTML format required by the editor. */
   const initialHtml = useMemo(() => toRichTextHtml(value), [value]);
-  /** Remembers the last HTML emitted by the editor so external updates can stay in sync. */
-  const lastHtmlRef = useRef(initialHtml);
+  /** Remembers the last raw HTML emitted by the editor so external updates can stay in sync. */
+  const lastHtmlRef = useRef(value);
   /** Keeps the editor tall enough for a comfortable multi-line writing area. */
   const initialHeight = 280;
 
@@ -47,13 +47,13 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
   }, []);
 
   useEffect(() => {
-    if (initialHtml === lastHtmlRef.current) {
+    if (value === lastHtmlRef.current) {
       return;
     }
 
-    lastHtmlRef.current = initialHtml;
-    editorRef.current?.setContentHTML(initialHtml);
-  }, [initialHtml]);
+    lastHtmlRef.current = value;
+    editorRef.current?.setContentHTML(toRichTextHtml(value));
+  }, [value]);
 
   return (
     <View style={containerStyle}>

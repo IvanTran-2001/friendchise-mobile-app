@@ -69,7 +69,14 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     }
 
     const assetResponse = await fetch(asset.uri, { signal: controller.signal });
+    if (!assetResponse.ok) {
+      throw new Error("Failed to read the selected image.");
+    }
+
     const blob = await assetResponse.blob();
+    if (!blob.size) {
+      throw new Error("Selected image is empty.");
+    }
 
     const putResponse = await fetch(uploadPayload.signedUrl, {
       method: "PUT",
