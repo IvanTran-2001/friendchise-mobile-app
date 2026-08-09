@@ -72,9 +72,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
       }
       setError(loadError instanceof Error ? loadError.message : "Failed to load images.");
     } finally {
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [debouncedSearch, orgId]);
 

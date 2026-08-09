@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Sparkles } from "lucide-react-native";
 import { Screen } from "../../../../../../components/ui/screen";
 import { ScreenHeader } from "../../../../../../components/ui/screen-header";
@@ -39,10 +40,26 @@ export default function TaskCreateScreen() {
   const [peopleRequired, setPeopleRequired] = useState("1");
   const [minWaitDays, setMinWaitDays] = useState("1");
   const [maxWaitDays, setMaxWaitDays] = useState("1");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const canSubmit = !!resolvedOrgId && !!title.trim() && !isSubmitting;
+  const createTaskMutation = useMutation({
+    mutationFn: async () => createTask(resolvedOrgId!, {
+      title,
+      description,
+      imageStoragePath: selectedImage?.storagePath,
+      color,
+      durationMin: toPositiveInt(durationMin, 30),
+      peopleRequired: toPositiveInt(peopleRequired, 1),
+      minWaitDays: toPositiveInt(minWaitDays, 1),
+      maxWaitDays: toPositiveInt(maxWaitDays, 1),
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks", resolvedOrgId] });
+    },
+  });
+
+  const canSubmit = !!resolvedOrgId && !!title.trim() && !createTaskMutation.isPending;
 
   const handleSubmit = async () => {
     if (!resolvedOrgId || !title.trim()) {
@@ -57,18 +74,8 @@ export default function TaskCreateScreen() {
     }
 
     setFormError(null);
-    setIsSubmitting(true);
     try {
-      const result = await createTask(resolvedOrgId, {
-        title,
-        description,
-        imageStoragePath: selectedImage?.storagePath,
-        color,
-        durationMin: toPositiveInt(durationMin, 30),
-        peopleRequired: toPositiveInt(peopleRequired, 1),
-        minWaitDays: parsedMinWaitDays,
-        maxWaitDays: parsedMaxWaitDays,
-      });
+      const result = await createTaskMutation.mutateAsync();
 
       if (!result.ok) {
         Alert.alert("Failed to create task", result.error);
@@ -91,8 +98,6 @@ export default function TaskCreateScreen() {
       ]);
     } catch (error) {
       Alert.alert("Failed to create task", error instanceof Error ? error.message : "Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -217,9 +222,9 @@ export default function TaskCreateScreen() {
           onPress={() => router.back()}
         />
         <Button
-          label={isSubmitting ? "Posting…" : "Post task"}
+          label={createTaskMutation.isPending ? "Posting…" : "Post task"}
           fullWidth
-          loading={isSubmitting}
+          loading={createTaskMutation.isPending}
           loadingLabel="Posting…"
           leftIcon={<Sparkles size={16} color={colors.textInverse} />}
           onPress={handleSubmit}

@@ -1,9 +1,9 @@
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { List, ListOrdered } from "lucide-react-native";
 import { actions, RichEditor } from "react-native-pell-rich-editor";
 import { colors, radius, spacing } from "../../src/lib/theme";
-import { toRichTextHtml } from "../../src/features/tasks/rich-text-utils";
+import { toRichTextHtml } from "./rich-text-utils";
 import { Text } from "./text";
 
 type RichTextFieldProps = {
@@ -30,6 +30,8 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
   const [activeActions, setActiveActions] = useState<string[]>([]);
   /** Converts the current value into the HTML format required by the editor. */
   const initialHtml = useMemo(() => toRichTextHtml(value), [value]);
+  /** Remembers the last HTML emitted by the editor so external updates can stay in sync. */
+  const lastHtmlRef = useRef(initialHtml);
   /** Keeps the editor tall enough for a comfortable multi-line writing area. */
   const initialHeight = 280;
 
@@ -43,6 +45,15 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
       setActiveActions(nextActive);
     });
   }, []);
+
+  useEffect(() => {
+    if (initialHtml === lastHtmlRef.current) {
+      return;
+    }
+
+    lastHtmlRef.current = initialHtml;
+    editorRef.current?.setContentHTML(initialHtml);
+  }, [initialHtml]);
 
   return (
     <View style={containerStyle}>
@@ -71,6 +82,7 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
           style={styles.editor}
           editorInitializedCallback={bindToolbar}
           onChange={(nextHtml) => {
+            lastHtmlRef.current = nextHtml;
             onChangeText?.(nextHtml);
           }}
         />

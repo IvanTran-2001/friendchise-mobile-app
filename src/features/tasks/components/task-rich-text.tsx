@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import RenderHTML from "react-native-render-html";
 import MarkdownIt from "markdown-it";
 import { colors, spacing } from "../../../lib/theme";
 import { getRichTextImageReadUrl } from "../task-image-api";
+import { sanitizeRichTextHtml } from "../rich-text-utils";
+
+const markdownParser = new MarkdownIt({ html: true, breaks: true, linkify: true });
 
 /**
  * Renders task descriptions as web-style markdown rich text.
@@ -23,22 +26,32 @@ type TaskRichTextProps = {
  */
 export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   /** Normalized source text used by the renderer and image resolver. */
-  const blocks = source.replace(/\r\n/g, "\n").trim();
+  const blocks = useMemo(() => source.replace(/\r\n/g, "\n").trim(), [source]);
   /** Measures the available width for the HTML renderer. */
   const { width } = useWindowDimensions();
-  /** Markdown parser configured to preserve HTML and render line breaks. */
-  const markdown = useState(() => new MarkdownIt({ html: true, breaks: true, linkify: true }))[0];
   /** Markdown converted to HTML before signed image URLs are resolved. */
-  const renderedHtml = markdown.render(blocks);
+  const renderedHtml = useMemo(() => markdownParser.render(blocks), [blocks]);
+  /** Sanitized HTML that strips unsafe tags and URI schemes before rendering. */
+  const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(renderedHtml), [renderedHtml]);
+  const needsResolution = useMemo(() => !!orgId && renderedHtml.includes(`orgs/${orgId}/`), [orgId, renderedHtml]);
   /** Final HTML source passed to the renderer. */
-  const [htmlSource, setHtmlSource] = useState(renderedHtml);
+  const [htmlSource, setHtmlSource] = useState<string | null>(() => (needsResolution ? null : sanitizedHtml));
 
   /** Resolves org-owned storage-path images to signed URLs on the client. */
   useEffect(() => {
     /** Prevents stale async image lookups from updating unmounted state. */
     let cancelled = false;
 
-    void resolveTaskRichTextHtml(orgId, renderedHtml)
+    if (!needsResolution) {
+      setHtmlSource(sanitizedHtml);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setHtmlSource(null);
+
+    void resolveTaskRichTextHtml(orgId, sanitizedHtml)
       .then((nextHtml) => {
         if (!cancelled) {
           setHtmlSource(nextHtml);
@@ -46,16 +59,16 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
       })
       .catch(() => {
         if (!cancelled) {
-          setHtmlSource(renderedHtml);
+          setHtmlSource(sanitizedHtml);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [orgId, renderedHtml]);
+  }, [needsResolution, orgId, sanitizedHtml]);
 
-  if (!blocks) {
+  if (!blocks || htmlSource == null) {
     return null;
   }
 

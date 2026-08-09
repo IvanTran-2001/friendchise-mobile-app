@@ -17,9 +17,6 @@ export type OrgImagePage = {
 };
 
 /**
- * Performs an authenticated API request against the mobile app's backend.
- */
-/**
  * Loads a paginated slice of org images with signed read URLs.
  */
 export async function getOrgImagesPage(orgId: string, options: { page?: number; pageSize?: number; search?: string } = {}) {
