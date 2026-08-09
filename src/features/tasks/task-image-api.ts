@@ -1,6 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { getApiUrl } from "../../lib/config";
-import { getAuthToken } from "../auth/token-store";
+import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
 
 export type OrgImage = {
   id: string;
@@ -20,25 +19,6 @@ export type OrgImagePage = {
 /**
  * Performs an authenticated API request against the mobile app's backend.
  */
-async function apiRequest(path: string, init: RequestInit = {}) {
-  const token = await getAuthToken();
-  const headers = new Headers(init.headers);
-  headers.set("Accept", "application/json");
-
-  if (!(init.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  return fetch(`${getApiUrl()}${path}`, {
-    ...init,
-    headers,
-  });
-}
-
 /**
  * Loads a paginated slice of org images with signed read URLs.
  */
@@ -48,7 +28,7 @@ export async function getOrgImagesPage(orgId: string, options: { page?: number; 
   if (options.pageSize) params.set("pageSize", String(options.pageSize));
   if (options.search?.trim()) params.set("search", options.search.trim());
 
-  const response = await apiRequest(`/api/orgs/${orgId}/images?${params.toString()}`, { method: "GET" });
+  const response = await authenticatedFetch(`/api/orgs/${orgId}/images?${params.toString()}`, { method: "GET" });
   const payload = (await response.json().catch(() => null)) as OrgImagePage | { error?: string } | null;
 
   if (!response.ok || !payload || typeof payload !== "object" || !("images" in payload)) {
@@ -77,7 +57,7 @@ type SaveImageResponse = {
 export async function uploadRichTextImage(orgId: string, asset: ImagePicker.ImagePickerAsset) {
   const mimeType = asset.mimeType ?? "image/jpeg";
 
-  const uploadResponse = await apiRequest(`/api/orgs/${orgId}/images/upload-url`, {
+  const uploadResponse = await authenticatedFetch(`/api/orgs/${orgId}/images/upload-url`, {
     method: "POST",
     body: JSON.stringify({ mimeType }),
   });
@@ -101,7 +81,7 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     throw new Error("Upload failed. Please try again.");
   }
 
-  const saveResponse = await apiRequest(`/api/orgs/${orgId}/images`, {
+  const saveResponse = await authenticatedFetch(`/api/orgs/${orgId}/images`, {
     method: "POST",
     body: JSON.stringify({
       storagePath: uploadPayload.path,
@@ -122,7 +102,7 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
  * Deletes an org image from the library.
  */
 export async function deleteOrgImage(orgId: string, imageId: string) {
-  const response = await apiRequest(`/api/orgs/${orgId}/images/${imageId}`, {
+  const response = await authenticatedFetch(`/api/orgs/${orgId}/images/${imageId}`, {
     method: "DELETE",
   });
 
@@ -137,7 +117,7 @@ export async function deleteOrgImage(orgId: string, imageId: string) {
  * Resolves an org-owned storage path into a signed read URL.
  */
 export async function getRichTextImageReadUrl(orgId: string, storagePath: string) {
-  const response = await apiRequest(`/api/orgs/${orgId}/storage/read-url`, {
+  const response = await authenticatedFetch(`/api/orgs/${orgId}/storage/read-url`, {
     method: "POST",
     body: JSON.stringify({ storagePath }),
   });

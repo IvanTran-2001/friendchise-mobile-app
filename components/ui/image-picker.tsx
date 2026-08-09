@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, FlatList, Image, Pressable, StyleSheet, View } from "react-native";
 import * as ExpoImagePicker from "expo-image-picker";
-import { Camera, Check, ImagePlus, Search, Trash2, Upload } from "lucide-react-native";
+import { Camera, Check, ImagePlus, Trash2, Upload } from "lucide-react-native";
 import { SheetModal } from "./sheet-modal";
 import { Text } from "./text";
 import { Button } from "./button";
 import { TextField } from "./text-field";
 import { colors, radius, spacing } from "../../src/lib/theme";
 import { deleteOrgImage, getOrgImagesPage, uploadRichTextImage, type OrgImage } from "../../src/features/tasks/task-image-api";
+import { useDebouncedValue } from "../../hooks/use-debounced-value";
 
 type ImagePickerProps = {
   orgId: string;
@@ -46,25 +47,36 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   /** Normalized search input used to query and filter the image library. */
   const trimmedSearch = search.trim();
+  const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
 
   /** Loads a page of org images for the current search term. */
   const loadImages = useCallback(async (nextPage: number, append: boolean) => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchOrgImagesPage(orgId, trimmedSearch, nextPage);
+      const result = await fetchOrgImagesPage(orgId, debouncedSearch, nextPage);
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setPage(result.page);
       setPageCount(result.totalPages);
       setImages((current) => (append ? [...current, ...result.images] : result.images));
     } catch (loadError) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setError(loadError instanceof Error ? loadError.message : "Failed to load images.");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, [orgId, trimmedSearch]);
+  }, [debouncedSearch, orgId]);
 
   /** Refreshes the library tab whenever the modal opens or the tab changes. */
   useEffect(() => {
@@ -76,7 +88,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
     setPage(1);
     setPageCount(1);
     void loadImages(1, false);
-  }, [loadImages, open, tab]);
+  }, [debouncedSearch, loadImages, open, tab]);
 
   /** Clears transient state when the picker closes. */
   useEffect(() => {
@@ -84,6 +96,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
       setSearch("");
       setError(null);
       setUploading(false);
+      requestIdRef.current += 1;
     }
   }, [open]);
 
@@ -119,18 +132,18 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
   const handleUpload = useCallback(async (source: PickerSource) => {
     setError(null);
 
-    const result = await pickOrgImage(source);
-
-    if (!result.asset) {
-      if (result.errorMessage) {
-        setError(result.errorMessage);
-      }
-
-      return;
-    }
-
     setUploading(true);
     try {
+      const result = await pickOrgImage(source);
+
+      if (!result.asset) {
+        if (result.errorMessage) {
+          setError(result.errorMessage);
+        }
+
+        return;
+      }
+
       const uploaded = await uploadRichTextImage(orgId, result.asset);
       onChange(uploaded);
       setOpen(false);
@@ -316,7 +329,14 @@ function DeleteableImageTile({
           <Pressable
             onPress={(event) => {
               event.stopPropagation();
-              onDelete(item);
+              Alert.alert(
+                "Delete image?",
+                "This will remove the image from the org library.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Delete", style: "destructive", onPress: () => onDelete(item) },
+                ],
+              );
             }}
             accessibilityRole="button"
             accessibilityLabel={`Delete ${item.name ?? "image"}`}

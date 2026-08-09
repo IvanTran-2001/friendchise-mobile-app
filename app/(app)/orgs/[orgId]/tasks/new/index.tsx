@@ -10,7 +10,7 @@ import { TextField } from "../../../../../../components/ui/text-field";
 import { RichTextField } from "../../../../../../components/ui/rich-text-field";
 import { ImagePicker } from "../../../../../../components/ui/image-picker";
 import { Text } from "../../../../../../components/ui/text";
-import { colors, radius, shadows, spacing } from "../../../../../../src/lib/theme";
+import { colors, spacing } from "../../../../../../src/lib/theme";
 import { createTask } from "../../../../../../src/features/tasks/task-api";
 
 const COLOR_OPTIONS = [colors.accent, colors.success, colors.warning, colors.danger, colors.textSecondary, colors.textPrimary];
@@ -18,6 +18,11 @@ const COLOR_OPTIONS = [colors.accent, colors.success, colors.warning, colors.dan
 function toPositiveInt(value: string, fallback: number) {
   const parsed = Number.parseInt(value.trim(), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function toNonNegativeInt(value: string, fallback: number) {
+  const parsed = Number.parseInt(value.trim(), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 export default function TaskCreateScreen() {
@@ -35,6 +40,7 @@ export default function TaskCreateScreen() {
   const [minWaitDays, setMinWaitDays] = useState("1");
   const [maxWaitDays, setMaxWaitDays] = useState("1");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const canSubmit = !!resolvedOrgId && !!title.trim() && !isSubmitting;
 
@@ -43,6 +49,14 @@ export default function TaskCreateScreen() {
       return;
     }
 
+    const parsedMinWaitDays = toNonNegativeInt(minWaitDays, 0);
+    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays, 0);
+    if (parsedMaxWaitDays < parsedMinWaitDays) {
+      setFormError("Max wait days must be at least min wait days.");
+      return;
+    }
+
+    setFormError(null);
     setIsSubmitting(true);
     try {
       const result = await createTask(resolvedOrgId, {
@@ -52,8 +66,8 @@ export default function TaskCreateScreen() {
         color,
         durationMin: toPositiveInt(durationMin, 30),
         peopleRequired: toPositiveInt(peopleRequired, 1),
-        minWaitDays: Math.max(0, toPositiveInt(minWaitDays, 1)),
-        maxWaitDays: Math.max(0, toPositiveInt(maxWaitDays, 1)),
+        minWaitDays: parsedMinWaitDays,
+        maxWaitDays: parsedMaxWaitDays,
       });
 
       if (!result.ok) {
@@ -120,7 +134,11 @@ export default function TaskCreateScreen() {
               onChange={setSelectedImage}
               helperText="Choose an existing org image or upload one for this task."
             />
-          ) : null}
+          ) : (
+            <Text variant="caption" tone="secondary">
+              We could not resolve this organization, so image selection and submission are unavailable.
+            </Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -183,6 +201,11 @@ export default function TaskCreateScreen() {
             placeholder="1"
           />
         </View>
+        {formError ? (
+          <Text variant="caption" tone="danger">
+            {formError}
+          </Text>
+        ) : null}
       </Card>
 
       <View style={styles.actions}>
@@ -212,32 +235,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  hero: {
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    gap: spacing.md,
-    ...shadows.xs,
-  },
-  preview: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewMark: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  heroText: {
-    gap: spacing.xs,
-  },
   card: {
     gap: spacing.lg,
   },
@@ -246,10 +243,6 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 0,
-  },
-  multiline: {
-    minHeight: 120,
-    paddingTop: spacing.md,
   },
   colorRow: {
     flexDirection: "row",

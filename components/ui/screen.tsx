@@ -39,7 +39,7 @@ type ScreenProps = {
 export function Screen({
   children,
   scroll = false,
-  edges = ["bottom"],
+  edges = ["top", "bottom"],
   padded = true,
   centered = false,
   keyboardAvoiding = false,

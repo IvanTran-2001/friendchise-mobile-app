@@ -15,7 +15,7 @@ export function escapeHtml(value: string) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -47,6 +47,7 @@ export function isEmptyRichTextHtml(value: string) {
     .replace(/&nbsp;/gi, " ")
     .replace(/<br\s*\/?\s*>/gi, "")
     .replace(/<\/?(p|div|span|strong|em|u|ul|ol|li|blockquote|h[1-6])[^>]*>/gi, " ")
+    .replace(/<(img|video|audio|source|iframe|embed|object)\b[^>]*>/gi, " media ")
     .replace(/<[^>]+>/g, "")
     .trim();
 

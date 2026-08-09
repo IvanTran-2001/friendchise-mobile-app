@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
-import { useLocalSearchParams, useFocusEffect } from "expo-router";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getTasks } from "../../../../../src/features/tasks/task-api";
 import { colors, radius, shadows, spacing } from "../../../../../src/lib/theme";
@@ -37,8 +36,6 @@ function TaskNavContent() {
   const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
   const effectiveSearch = search;
   const debouncedSearch = useDebouncedValue(effectiveSearch, 150);
-  const previousSearchRef = useRef(effectiveSearch);
-
   const { data, isLoading, error } = useQuery({
     queryKey: [
       "tasks",

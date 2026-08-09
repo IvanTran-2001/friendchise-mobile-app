@@ -20,6 +20,7 @@ export * from "./screen";
 export * from "./screen-header";
 export * from "./search-field";
 export * from "./searchable-combobox";
+export * from "./image-picker";
 export * from "./rich-text-field";
 export * from "./sheet-modal";
 export * from "./state-views";

@@ -1,6 +1,5 @@
 import { apiFetch } from "../../lib/api/client";
-import { getApiUrl } from "../../lib/config";
-import { getAuthToken } from "../auth/token-store";
+import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
 import { normalizeRichText } from "./rich-text-utils";
 import type { TaskMode, TaskSortMode } from "./task-ui";
 
@@ -20,41 +19,22 @@ export type CreateTaskResult =
   | { ok: true; taskId: string | null }
   | { ok: false; error: string };
 
-async function createTaskRequest(path: string, init: RequestInit = {}) {
-  const token = await getAuthToken();
-  const headers = new Headers(init.headers);
-  headers.set("Accept", "application/json");
-
-  if (!(init.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  return fetch(`${getApiUrl()}${path}`, {
-    ...init,
-    headers,
-  });
-}
-
 export async function createTask(orgId: string, input: CreateTaskInput): Promise<CreateTaskResult> {
   const formData = new FormData();
-  formData.set("title", input.title.trim());
-  formData.set("description", normalizeRichText(input.description));
-  formData.set("color", input.color);
-  formData.set("durationMin", String(input.durationMin));
-  formData.set("peopleRequired", String(input.peopleRequired));
-  formData.set("minWaitDays", String(input.minWaitDays));
-  formData.set("maxWaitDays", String(input.maxWaitDays));
-  formData.set("preferredStartTimeMin", input.preferredStartTimeMin == null ? "" : String(input.preferredStartTimeMin));
+  formData.append("title", input.title.trim());
+  formData.append("description", normalizeRichText(input.description));
+  formData.append("color", input.color);
+  formData.append("durationMin", String(input.durationMin));
+  formData.append("peopleRequired", String(input.peopleRequired));
+  formData.append("minWaitDays", String(input.minWaitDays));
+  formData.append("maxWaitDays", String(input.maxWaitDays));
+  formData.append("preferredStartTimeMin", input.preferredStartTimeMin == null ? "" : String(input.preferredStartTimeMin));
 
   if (input.imageStoragePath?.trim()) {
-    formData.set("imageStoragePath", input.imageStoragePath.trim());
+    formData.append("imageStoragePath", input.imageStoragePath.trim());
   }
 
-  const response = await createTaskRequest(`/api/orgs/${orgId}/tasks`, {
+  const response = await authenticatedFetch(`/api/orgs/${orgId}/tasks`, {
     method: "POST",
     body: formData,
   });
