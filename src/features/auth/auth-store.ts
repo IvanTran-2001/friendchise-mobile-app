@@ -21,14 +21,16 @@ export const useAuthStore = create<AuthState>()(
       name: "friendchise.auth.state",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ isAuthenticated: state.isAuthenticated }),
-      onRehydrateStorage: () => (state, error) => {
+      onRehydrateStorage: () => (_state, error) => {
+        const { setAuthenticated, setHasHydrated } = useAuthStore.getState();
+
         if (error) {
-          state?.setAuthenticated(false);
-          state?.setHasHydrated(true);
+          setAuthenticated(false);
+          setHasHydrated(true);
           return;
         }
 
-        state?.setHasHydrated(true);
+        setHasHydrated(true);
       },
     },
   ),
