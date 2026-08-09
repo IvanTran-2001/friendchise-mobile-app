@@ -27,9 +27,14 @@ function RouteTracker() {
 function SessionWatcher() {
   const router = useRouter();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     let alive = true;
 
     getAuthToken().then((token) => {
@@ -66,7 +71,7 @@ function SessionWatcher() {
         expiryTimerRef.current = null;
       }
     };
-  }, [router, setAuthenticated]);
+  }, [hasHydrated, router, setAuthenticated]);
 
   return null;
 }

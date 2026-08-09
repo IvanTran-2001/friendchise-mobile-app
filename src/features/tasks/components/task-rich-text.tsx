@@ -119,8 +119,15 @@ async function resolveTaskRichTextHtml(orgId: string | undefined, renderedHtml: 
  * Rewrites org-owned image paths in rendered HTML to signed read URLs.
  */
 async function resolveHtmlWithSignedImageUrls(orgId: string, renderedHtml: string, paths: string[]) {
-  /** Resolves each storage path and swaps in the signed read URL. */
-  const entries = await Promise.all(paths.map(async (path) => [path, await getRichTextImageReadUrl(orgId, path)] as const));
+  const entries = await Promise.all(
+    paths.map(async (path) => {
+      try {
+        return [path, await getRichTextImageReadUrl(orgId, path)] as const;
+      } catch {
+        return [path, path] as const;
+      }
+    }),
+  );
 
   /** HTML string updated with signed image URLs. */
   let nextHtml = renderedHtml;

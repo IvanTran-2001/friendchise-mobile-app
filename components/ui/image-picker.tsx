@@ -221,6 +221,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
               renderItem={({ item }) => (
                 <DeleteableImageTile
                   item={item}
+                  selected={value?.storagePath === item.storagePath}
                   deleting={deletingId === item.id}
                   onSelect={handleSelect}
                   onDelete={handleDelete}
@@ -298,11 +299,13 @@ async function pickOrgImage(source: PickerSource): Promise<{ asset: ExpoImagePic
  */
 function DeleteableImageTile({
   item,
+  selected,
   deleting,
   onSelect,
   onDelete,
 }: {
   item: OrgImage;
+  selected: boolean;
   deleting: boolean;
   onSelect: (image: OrgImage) => void;
   onDelete: (image: OrgImage) => void;
@@ -324,9 +327,11 @@ function DeleteableImageTile({
       ) : (
         <>
           <Image source={{ uri: item.signedUrl }} style={styles.image} />
-          <View style={styles.imageOverlay}>
-            <Check size={14} color={colors.textInverse} strokeWidth={2.6} />
-          </View>
+          {selected ? (
+            <View style={styles.imageOverlay}>
+              <Check size={14} color={colors.textInverse} strokeWidth={2.6} />
+            </View>
+          ) : null}
           <Pressable
             onPress={(event) => {
               event.stopPropagation();

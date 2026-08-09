@@ -116,6 +116,8 @@ export function CollapsibleSearchDock({
             },
           ]}
           pointerEvents={searchVisible ? "auto" : "none"}
+          accessibilityElementsHidden={!searchVisible}
+          importantForAccessibility={searchVisible ? "auto" : "no-hide-descendants"}
         >
           <SearchField value={search} onChangeText={onChangeSearch} placeholder={placeholder} disabled={disabled} />
         </Animated.View>
