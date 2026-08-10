@@ -48,7 +48,7 @@ export default function AuthCallbackScreen() {
   }, [error, router, setAuthenticated, token]);
 
   return (
-    <Screen centered>
+    <Screen edges={["top", "bottom"]} centered>
       <Text variant="title" align="center" style={styles.title}>
         Friendchise
       </Text>

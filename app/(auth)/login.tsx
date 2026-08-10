@@ -34,7 +34,7 @@ export default function LoginScreen() {
   if (apiUrlResult.error) {
     return (
       <View style={styles.root}>
-        <Screen centered>
+        <Screen edges={["top", "bottom"]} centered>
           <AuthCard style={styles.card}>
             <ErrorState title="Backend URL missing" message={apiUrlResult.error} compact />
           </AuthCard>
@@ -45,7 +45,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <Screen scroll centered keyboardAvoiding>
+      <Screen edges={["top", "bottom"]} scroll centered keyboardAvoiding>
         <AuthCard style={styles.card}>
           <View style={styles.hero}>
             <View style={styles.logoFrame}>
