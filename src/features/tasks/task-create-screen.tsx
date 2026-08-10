@@ -21,14 +21,24 @@ type TaskCreateScreenProps = {
   onCreated: (taskId: string | null) => void;
 };
 
-function toPositiveInt(value: string, fallback: number) {
-  const parsed = Number.parseInt(value.trim(), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+function toPositiveInt(value: string) {
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-function toNonNegativeInt(value: string, fallback: number) {
-  const parsed = Number.parseInt(value.trim(), 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+function toNonNegativeInt(value: string) {
+  const trimmed = value.trim();
+  if (!/^(0|[1-9]\d*)$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScreenProps) {
@@ -68,8 +78,30 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
       return;
     }
 
-    const parsedMinWaitDays = toNonNegativeInt(minWaitDays, 1);
-    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays, 1);
+    const parsedDurationMin = toPositiveInt(durationMin);
+    if (parsedDurationMin === null) {
+      setFormError("Duration must be a whole number greater than 0.");
+      return;
+    }
+
+    const parsedPeopleRequired = toPositiveInt(peopleRequired);
+    if (parsedPeopleRequired === null) {
+      setFormError("People must be a whole number greater than 0.");
+      return;
+    }
+
+    const parsedMinWaitDays = toNonNegativeInt(minWaitDays);
+    if (parsedMinWaitDays === null) {
+      setFormError("Min wait days must be a whole number of 0 or more.");
+      return;
+    }
+
+    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays);
+    if (parsedMaxWaitDays === null) {
+      setFormError("Max wait days must be a whole number of 0 or more.");
+      return;
+    }
+
     if (parsedMaxWaitDays < parsedMinWaitDays) {
       setFormError("Max wait days must be at least min wait days.");
       return;
@@ -82,8 +114,8 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
         description,
         imageStoragePath: selectedImage?.storagePath,
         color,
-        durationMin: toPositiveInt(durationMin, 30),
-        peopleRequired: toPositiveInt(peopleRequired, 1),
+        durationMin: parsedDurationMin,
+        peopleRequired: parsedPeopleRequired,
         minWaitDays: parsedMinWaitDays,
         maxWaitDays: parsedMaxWaitDays,
       });

@@ -59,10 +59,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
   });
 
   const images = useMemo(() => imagesQuery.data?.pages.flatMap((page) => page.images) ?? [], [imagesQuery.data]);
-  const pageCount = imagesQuery.data?.pages.at(-1)?.totalPages ?? 1;
-  const page = imagesQuery.data?.pages.at(-1)?.page ?? 0;
   const loading = imagesQuery.isLoading || imagesQuery.isFetchingNextPage;
-  const errorMessage = imagesQuery.error instanceof Error ? imagesQuery.error.message : null;
 
   /** Clears transient state when the picker closes. */
   useEffect(() => {

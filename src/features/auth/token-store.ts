@@ -17,11 +17,6 @@ async function setToken(token: string) {
   if (Platform.OS === "web") {
     webToken = token;
 
-    const storage = getWebStorage();
-    if (storage) {
-      storage.setItem(TOKEN_KEY, token);
-    }
-
     return;
   }
 
@@ -30,12 +25,30 @@ async function setToken(token: string) {
 
 async function getToken() {
   if (Platform.OS === "web") {
-    const storage = getWebStorage();
-    const storedToken = storage?.getItem(TOKEN_KEY) ?? null;
+    if (webToken) {
+      return webToken;
+    }
 
-    if (storedToken) {
-      webToken = storedToken;
-      return storedToken;
+    const storage = getWebStorage();
+    if (!storage) {
+      return webToken;
+    }
+
+    try {
+      const storedToken = storage.getItem(TOKEN_KEY);
+      if (storedToken) {
+        webToken = storedToken;
+
+        try {
+          storage.removeItem(TOKEN_KEY);
+        } catch {
+          // If cleanup fails, keep the in-memory token and continue.
+        }
+
+        return storedToken;
+      }
+    } catch {
+      return webToken;
     }
 
     return webToken;
@@ -46,10 +59,17 @@ async function getToken() {
 
 async function deleteToken() {
   if (Platform.OS === "web") {
-    webToken = null;
-
     const storage = getWebStorage();
-    storage?.removeItem(TOKEN_KEY);
+    if (storage) {
+      try {
+        storage.removeItem(TOKEN_KEY);
+        webToken = null;
+      } catch {
+        return;
+      }
+    } else {
+      webToken = null;
+    }
 
     return;
   }
