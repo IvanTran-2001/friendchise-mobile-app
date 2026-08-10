@@ -107,13 +107,14 @@ type MobileOrganizationResponse = {
 
 export async function getTasks(
   orgId?: string,
-  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string } = {},
+  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string; limit?: number } = {},
 ) {
   const activeOrg = orgId
     ? { orgId }
     : await apiFetch<MobileOrganizationResponse>("/api/mobile/me/organization");
 
   const tasks: TaskItem[] = [];
+  const singlePage = options.limit != null;
   let cursor: string | null = null;
 
   do {
@@ -125,12 +126,12 @@ export async function getTasks(
       params.set("sort", options.sort);
     }
     if (options.search?.trim()) {
-      params.set("search", options.search.trim().toLowerCase());
+      params.set("search", options.search.trim());
     }
     if (cursor) {
       params.set("cursor", cursor);
     }
-    params.set("limit", "100");
+    params.set("limit", String(options.limit ?? 100));
 
     const response = await apiFetch<{ tasks: MobileTaskResponse[]; nextCursor: string | null }>(
       `/api/orgs/${activeOrg.orgId}/tasks/paginated?${params.toString()}`,
@@ -151,7 +152,7 @@ export async function getTasks(
       })),
     );
     cursor = response.nextCursor;
-  } while (cursor);
+  } while (cursor && !singlePage);
 
   return tasks;
 }

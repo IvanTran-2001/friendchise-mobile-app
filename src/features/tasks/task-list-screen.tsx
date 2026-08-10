@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getTasks } from "./task-api";
 import { colors, radius, shadows, spacing } from "../../lib/theme";
 import { useNavbarSetters } from "../../../components/layout/navbar-context";
@@ -50,7 +50,9 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         mode: effectivePreferences.mode,
         sort: effectivePreferences.sortMode,
         search: debouncedSearch,
+        limit: debouncedSearch.trim() ? 100 : undefined,
       }),
+    placeholderData: keepPreviousData,
   });
 
   const navbarActions = useMemo(
@@ -106,7 +108,6 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
       placeholder="Search tasks"
       disabled={!isSearchHydrated}
       containerStyle={styles.container}
-      searchDockStyle={styles.searchDock}
       searchShellStyle={styles.searchShell}
     >
       {({ onScroll }) => (
@@ -132,14 +133,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm + 2,
     paddingBottom: spacing.lg,
     backgroundColor: colors.background,
-  },
-  searchDock: {
-    position: "absolute",
-    top: spacing.sm + 2,
-    left: spacing.lg,
-    right: spacing.lg,
-    zIndex: 10,
-    elevation: 3,
   },
   searchShell: {
     borderRadius: radius.lg,

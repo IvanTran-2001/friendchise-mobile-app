@@ -80,12 +80,14 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
         }
       }}
     >
-      <RenderHTML
-        contentWidth={contentWidth || 1}
-        source={{ html: htmlSource }}
-        tagsStyles={htmlStyles}
-        baseStyle={htmlBaseStyle}
-      />
+      {contentWidth > 0 ? (
+        <RenderHTML
+          contentWidth={contentWidth}
+          source={{ html: htmlSource }}
+          tagsStyles={htmlStyles}
+          baseStyle={htmlBaseStyle}
+        />
+      ) : null}
     </View>
   );
 }
@@ -132,8 +134,9 @@ async function resolveHtmlWithSignedImageUrls(orgId: string, renderedHtml: strin
   let nextHtml = renderedHtml;
   for (const [path, signedUrl] of entries) {
     if (!signedUrl) continue;
-    nextHtml = nextHtml.replaceAll(`src="${path}"`, `src="${signedUrl}"`);
-    nextHtml = nextHtml.replaceAll(`src='${path}'`, `src='${signedUrl}'`);
+    const escapedSignedUrl = signedUrl.replace(/&/g, "&amp;");
+    nextHtml = nextHtml.replaceAll(`src="${path}"`, `src="${escapedSignedUrl}"`);
+    nextHtml = nextHtml.replaceAll(`src='${path}'`, `src='${escapedSignedUrl}'`);
   }
 
   return nextHtml;

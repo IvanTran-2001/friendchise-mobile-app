@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { List, ListOrdered } from "lucide-react-native";
 import { actions, RichEditor } from "react-native-pell-rich-editor";
@@ -35,8 +35,15 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
   /** Keeps the editor tall enough for a comfortable multi-line writing area. */
   const initialHeight = 280;
 
-  /** Exposes the underlying editor instance to parent components. */
-  useImperativeHandle(ref, () => editorRef.current as RichEditor, []);
+  /** Merges the internal editor ref with the forwarded ref so it never goes stale. */
+  const setEditorRef = useCallback((node: RichEditor | null) => {
+    editorRef.current = node;
+    if (typeof ref === "function") {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref]);
 
   /** Mirrors the editor toolbar state into local React state for button styling. */
   const bindToolbar = useCallback(() => {
@@ -72,7 +79,7 @@ export const RichTextField = forwardRef<RichEditor, RichTextFieldProps>(function
           onNumberedListPress={() => editorRef.current?.sendAction(actions.insertOrderedList, "result")}
         />
         <RichEditor
-          ref={editorRef}
+          ref={setEditorRef}
           useContainer={false}
                 initialHeight={initialHeight}
           initialContentHTML={initialHtml}

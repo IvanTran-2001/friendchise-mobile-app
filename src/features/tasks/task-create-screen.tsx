@@ -11,7 +11,7 @@ import { RichTextField } from "../../../components/ui/rich-text-field";
 import { ImagePicker } from "../../../components/ui/image-picker";
 import { Text } from "../../../components/ui/text";
 import { colors, spacing } from "../../lib/theme";
-import { createTask } from "./task-api";
+import { createTask, type CreateTaskInput } from "./task-api";
 
 const COLOR_OPTIONS = [colors.accent, colors.success, colors.warning, colors.danger, colors.textSecondary, colors.textPrimary];
 
@@ -52,16 +52,7 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
   const [maxWaitDays, setMaxWaitDays] = useState("1");
   const [formError, setFormError] = useState<string | null>(null);
   const createTaskMutation = useMutation({
-    mutationFn: async (input: {
-      title: string;
-      description: string;
-      imageStoragePath?: string;
-      color: string;
-      durationMin: number;
-      peopleRequired: number;
-      minWaitDays: number;
-      maxWaitDays: number;
-    }) => createTask(orgId!, input),
+    mutationFn: async (input: CreateTaskInput) => createTask(orgId!, input),
     onSuccess: (result) => {
       if (!result.ok || !orgId) {
         return;

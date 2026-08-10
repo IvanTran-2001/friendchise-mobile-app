@@ -61,26 +61,22 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
   const images = useMemo(() => imagesQuery.data?.pages.flatMap((page) => page.images) ?? [], [imagesQuery.data]);
   const loading = imagesQuery.isLoading || imagesQuery.isFetchingNextPage;
 
-  /** Clears transient state when the picker closes. */
+  /** Clears transient state and cached pages when the picker closes. */
   useEffect(() => {
     if (!open) {
       setSearch("");
       setError(null);
       setUploading(false);
       setDeletingId(null);
+      void queryClient.removeQueries({ queryKey: ["org-images", orgId] });
     }
-  }, [open]);
+  }, [open, orgId, queryClient]);
 
   const selectedPreview = value ?? null;
 
   const closePicker = useCallback(() => {
     setOpen(false);
-    setSearch("");
-    setError(null);
-    setUploading(false);
-    setDeletingId(null);
-    void queryClient.removeQueries({ queryKey: ["org-images", orgId, debouncedSearch], exact: true });
-  }, [debouncedSearch, orgId, queryClient]);
+  }, []);
 
   /** Selects the chosen org image and closes the picker. */
   const handleSelect = useCallback((image: OrgImage) => {
@@ -98,7 +94,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
       if (value?.storagePath === image.storagePath) {
         onChange(null);
       }
-      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId, debouncedSearch] });
+      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId] });
     } catch (deleteError) {
       const message = deleteError instanceof Error ? deleteError.message : "Failed to delete image.";
       setError(message);
@@ -106,7 +102,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
     } finally {
       setDeletingId(null);
     }
-  }, [debouncedSearch, onChange, orgId, queryClient, value?.storagePath]);
+  }, [onChange, orgId, queryClient, value?.storagePath]);
 
   /** Uploads a new image from the camera roll or camera capture. */
   const handleUpload = useCallback(async (source: PickerSource) => {
@@ -126,14 +122,14 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
 
       const uploaded = await uploadRichTextImage(orgId, result.asset);
       onChange(uploaded);
+      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId] });
       closePicker();
-      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId, debouncedSearch] });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
     } finally {
       setUploading(false);
     }
-  }, [closePicker, debouncedSearch, onChange, orgId, queryClient]);
+  }, [closePicker, onChange, orgId, queryClient]);
 
   return (
     <>
@@ -227,7 +223,12 @@ async function fetchOrgImagesPage(orgId: string, search: string, page: number) {
  */
 function TabButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.tab, active ? styles.tabActive : null, pressed ? styles.tabPressed : null]}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => [styles.tab, active ? styles.tabActive : null, pressed ? styles.tabPressed : null]}
+    >
       <Text variant="bodyStrong" style={[styles.tabLabel, active ? styles.tabLabelActive : null]}>{label}</Text>
     </Pressable>
   );

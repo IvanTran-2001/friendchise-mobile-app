@@ -18,11 +18,18 @@ export default function OrgTaskCreateScreen() {
           return;
         }
 
-        const destination = taskId
-          ? `/(app)/orgs/${resolvedOrgId}/tasks/${taskId}`
-          : `/(app)/orgs/${resolvedOrgId}/tasks`;
+        if (taskId) {
+          router.replace({
+            pathname: "/(app)/orgs/[orgId]/tasks/[taskId]",
+            params: { orgId: resolvedOrgId, taskId },
+          });
+        } else {
+          router.replace({
+            pathname: "/(app)/orgs/[orgId]/tasks",
+            params: { orgId: resolvedOrgId },
+          });
+        }
 
-        router.replace(destination);
         void queryClient.invalidateQueries({ queryKey: ["tasks", resolvedOrgId] });
       }}
     />
