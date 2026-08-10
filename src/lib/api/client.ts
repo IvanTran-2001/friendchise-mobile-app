@@ -11,7 +11,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (Platform.OS !== "web" && token) {
+  if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 

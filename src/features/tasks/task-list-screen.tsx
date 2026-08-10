@@ -115,7 +115,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         <TaskListView
           orgId={orgId}
           tasks={data ?? []}
-          isLoading={isLoading}
+            isLoading={isLoading || !isHydrated || !isSearchHydrated}
           error={error}
           search={effectiveSearch}
           viewMode={effectivePreferences.viewMode}
