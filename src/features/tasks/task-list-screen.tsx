@@ -99,7 +99,6 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
   const hasActiveFilters =
     effectiveSearch.trim().length > 0 ||
     effectivePreferences.mode !== "shared" ||
-    effectivePreferences.viewMode !== "feed" ||
     effectivePreferences.sortMode !== "name-asc";
 
   return (

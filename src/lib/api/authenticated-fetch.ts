@@ -18,22 +18,31 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}, t
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const abortListener = () => controller.abort();
+  const timeoutReason = new DOMException("Request timed out.", "TimeoutError");
+  const callerAbortReason = new DOMException("Request was aborted by the caller.", "AbortError");
+  const timeout = setTimeout(() => controller.abort(timeoutReason), timeoutMs);
+  const abortListener = () => controller.abort(init.signal?.reason ?? callerAbortReason);
 
   if (init.signal) {
     if (init.signal.aborted) {
-      controller.abort();
+      controller.abort(init.signal.reason ?? callerAbortReason);
     } else {
       init.signal.addEventListener("abort", abortListener, { once: true });
     }
   }
 
   try {
-    return await fetch(`${getApiUrl()}${path}`, {
+    const response = await fetch(`${getApiUrl()}${path}`, {
       ...init,
       headers,
       signal: controller.signal,
+    });
+
+    const body = await response.clone().arrayBuffer();
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
     });
   } finally {
     clearTimeout(timeout);

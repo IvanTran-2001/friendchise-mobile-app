@@ -78,8 +78,8 @@ type SaveImageResponse = {
 export async function uploadRichTextImage(orgId: string, asset: ImagePicker.ImagePickerAsset) {
   const encodedOrgId = encodeURIComponent(orgId);
   const mimeType = asset.mimeType ?? "image/jpeg";
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  let controller: AbortController | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   try {
     const uploadResponse = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images/upload-url`, {
@@ -106,6 +106,9 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
       const message = uploadPayload && typeof uploadPayload === "object" && "error" in uploadPayload ? uploadPayload.error : null;
       throw new Error(typeof message === "string" ? message : "Failed to prepare image upload.");
     }
+
+    controller = new AbortController();
+    timeoutId = setTimeout(() => controller?.abort(), 30000);
 
     const assetResponse = await fetch(asset.uri, { signal: controller.signal });
     if (!assetResponse.ok) {
@@ -157,7 +160,9 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
 
     return savedImage;
   } finally {
-    clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

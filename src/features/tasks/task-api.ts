@@ -20,6 +20,7 @@ export type CreateTaskResult =
   | { ok: false; error: string };
 
 export async function createTask(orgId: string, input: CreateTaskInput): Promise<CreateTaskResult> {
+  const encodedOrgId = encodeURIComponent(orgId);
   const formData = new FormData();
   formData.append("title", input.title.trim());
   formData.append("description", normalizeRichText(input.description));
@@ -34,7 +35,7 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
     formData.append("imageStoragePath", input.imageStoragePath.trim());
   }
 
-  const response = await authenticatedFetch(`/api/orgs/${orgId}/tasks`, {
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/tasks`, {
     method: "POST",
     body: formData,
   });
