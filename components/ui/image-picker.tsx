@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, Image, Pressable, StyleSheet, View } from "react-native";
 import * as ExpoImagePicker from "expo-image-picker";
 import { Camera, Check, ImagePlus, Trash2, Upload } from "lucide-react-native";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { SheetModal } from "./sheet-modal";
 import { Text } from "./text";
 import { Button } from "./button";
@@ -36,59 +37,32 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("library");
 
-  /** Library search and pagination state. */
+  /** Library search state feeds the infinite query key. */
   const [search, setSearch] = useState("");
-  const [images, setImages] = useState<OrgImage[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageCount, setPageCount] = useState(1);
-  const [loading, setLoading] = useState(false);
 
   /** Upload, delete, and error state. */
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const requestIdRef = useRef(0);
+  const queryClient = useQueryClient();
 
   /** Normalized search input used to query and filter the image library. */
   const trimmedSearch = search.trim();
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
 
-  /** Loads a page of org images for the current search term. */
-  const loadImages = useCallback(async (nextPage: number, append: boolean) => {
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchOrgImagesPage(orgId, debouncedSearch, nextPage);
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-      setPage(result.page);
-      setPageCount(result.totalPages);
-      setImages((current) => (append ? [...current, ...result.images] : result.images));
-    } catch (loadError) {
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-      setError(loadError instanceof Error ? loadError.message : "Failed to load images.");
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [debouncedSearch, orgId]);
+  const imagesQuery = useInfiniteQuery({
+    queryKey: ["org-images", orgId, debouncedSearch],
+    queryFn: ({ pageParam = 1 }) => fetchOrgImagesPage(orgId, debouncedSearch, pageParam),
+    enabled: open && tab === "library",
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined),
+  });
 
-  /** Refreshes the library tab whenever the modal opens or the tab changes. */
-  useEffect(() => {
-    if (!open || tab !== "library") {
-      return;
-    }
-
-    setImages([]);
-    setPage(1);
-    setPageCount(1);
-    void loadImages(1, false);
-  }, [debouncedSearch, loadImages, open, tab]);
+  const images = useMemo(() => imagesQuery.data?.pages.flatMap((page) => page.images) ?? [], [imagesQuery.data]);
+  const pageCount = imagesQuery.data?.pages.at(-1)?.totalPages ?? 1;
+  const page = imagesQuery.data?.pages.at(-1)?.page ?? 0;
+  const loading = imagesQuery.isLoading || imagesQuery.isFetchingNextPage;
+  const errorMessage = imagesQuery.error instanceof Error ? imagesQuery.error.message : null;
 
   /** Clears transient state when the picker closes. */
   useEffect(() => {
@@ -96,18 +70,26 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
       setSearch("");
       setError(null);
       setUploading(false);
-      setLoading(false);
-      requestIdRef.current += 1;
+      setDeletingId(null);
     }
   }, [open]);
 
   const selectedPreview = value ?? null;
 
+  const closePicker = useCallback(() => {
+    setOpen(false);
+    setSearch("");
+    setError(null);
+    setUploading(false);
+    setDeletingId(null);
+    void queryClient.removeQueries({ queryKey: ["org-images", orgId, debouncedSearch], exact: true });
+  }, [debouncedSearch, orgId, queryClient]);
+
   /** Selects the chosen org image and closes the picker. */
   const handleSelect = useCallback((image: OrgImage) => {
     onChange({ storagePath: image.storagePath, signedUrl: image.signedUrl, name: image.name });
-    setOpen(false);
-  }, [onChange]);
+    closePicker();
+  }, [closePicker, onChange]);
 
   /** Deletes an image from the org library and clears the selection if needed. */
   const handleDelete = useCallback(async (image: OrgImage) => {
@@ -116,10 +98,10 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
 
     try {
       await deleteOrgImage(orgId, image.id);
-      setImages((current) => current.filter((item) => item.id !== image.id));
       if (value?.storagePath === image.storagePath) {
         onChange(null);
       }
+      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId, debouncedSearch] });
     } catch (deleteError) {
       const message = deleteError instanceof Error ? deleteError.message : "Failed to delete image.";
       setError(message);
@@ -127,7 +109,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
     } finally {
       setDeletingId(null);
     }
-  }, [onChange, orgId, value?.storagePath]);
+  }, [debouncedSearch, onChange, orgId, queryClient, value?.storagePath]);
 
   /** Uploads a new image from the camera roll or camera capture. */
   const handleUpload = useCallback(async (source: PickerSource) => {
@@ -147,13 +129,14 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
 
       const uploaded = await uploadRichTextImage(orgId, result.asset);
       onChange(uploaded);
-      setOpen(false);
+      closePicker();
+      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId, debouncedSearch] });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
     } finally {
       setUploading(false);
     }
-  }, [orgId, onChange]);
+  }, [closePicker, debouncedSearch, onChange, orgId, queryClient]);
 
   return (
     <>
@@ -178,7 +161,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
         )}
       </Pressable>
 
-      <SheetModal visible={open} onClose={() => setOpen(false)} title={label} subtitle="Choose a library image or upload one">
+      <SheetModal visible={open} onClose={closePicker} title={label} subtitle="Choose a library image or upload one">
         <View style={styles.tabsRow}>
           <TabButton active={tab === "library"} label="Library" onPress={() => setTab("library")} />
           <TabButton active={tab === "upload"} label="Upload" onPress={() => setTab("upload")} />
@@ -202,8 +185,8 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
               contentContainerStyle={styles.grid}
               onEndReachedThreshold={0.4}
               onEndReached={() => {
-                if (!loading && page < pageCount) {
-                  void loadImages(page + 1, true);
+                if (!loading && imagesQuery.hasNextPage && !imagesQuery.isFetchingNextPage) {
+                  void imagesQuery.fetchNextPage();
                 }
               }}
               ListEmptyComponent={

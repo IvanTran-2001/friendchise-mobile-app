@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "rea
 import { List, ListOrdered } from "lucide-react-native";
 import { actions, RichEditor } from "react-native-pell-rich-editor";
 import { colors, radius, spacing } from "../../src/lib/theme";
-import { toRichTextHtml } from "../../src/features/tasks/rich-text-utils";
+import { toRichTextHtml } from "../../src/lib/rich-text";
 import { Text } from "./text";
 
 type RichTextFieldProps = {

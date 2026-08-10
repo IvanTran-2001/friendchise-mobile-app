@@ -33,7 +33,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(renderedHtml), [renderedHtml]);
   const needsResolution = useMemo(() => !!orgId && renderedHtml.includes(`orgs/${orgId}/`), [orgId, renderedHtml]);
   /** Final HTML source passed to the renderer. */
-  const [htmlSource, setHtmlSource] = useState<string | null>(() => (needsResolution ? null : sanitizedHtml));
+  const [htmlSource, setHtmlSource] = useState(sanitizedHtml);
   /** Width of the actual content column inside the surrounding card/list layout. */
   const [contentWidth, setContentWidth] = useState(0);
 
@@ -42,14 +42,13 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
     /** Prevents stale async image lookups from updating unmounted state. */
     let cancelled = false;
 
+    setHtmlSource(sanitizedHtml);
+
     if (!needsResolution) {
-      setHtmlSource(sanitizedHtml);
       return () => {
         cancelled = true;
       };
     }
-
-    setHtmlSource(null);
 
     void resolveTaskRichTextHtml(orgId, sanitizedHtml)
       .then((nextHtml) => {
@@ -68,7 +67,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
     };
   }, [needsResolution, orgId, sanitizedHtml]);
 
-  if (!blocks || htmlSource == null) {
+  if (!blocks) {
     return null;
   }
 

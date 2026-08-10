@@ -63,7 +63,21 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     });
 
     const uploadPayload = (await uploadResponse.json().catch(() => null)) as SignedUploadResponse | { error?: string } | null;
-    if (!uploadResponse.ok || !uploadPayload || typeof uploadPayload !== "object" || !("signedUrl" in uploadPayload)) {
+    const uploadData = uploadPayload && typeof uploadPayload === "object" ? uploadPayload : null;
+    const signedUrl = uploadData && typeof (uploadData as { signedUrl?: unknown }).signedUrl === "string"
+      ? (uploadData as { signedUrl: string }).signedUrl
+      : null;
+    const path = uploadData && typeof (uploadData as { path?: unknown }).path === "string"
+      ? (uploadData as { path: string }).path
+      : null;
+
+    if (
+      !uploadResponse.ok ||
+      typeof signedUrl !== "string" ||
+      !signedUrl.trim() ||
+      typeof path !== "string" ||
+      !path.trim()
+    ) {
       const message = uploadPayload && typeof uploadPayload === "object" && "error" in uploadPayload ? uploadPayload.error : null;
       throw new Error(typeof message === "string" ? message : "Failed to prepare image upload.");
     }
@@ -78,7 +92,7 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
       throw new Error("Selected image is empty.");
     }
 
-    const putResponse = await fetch(uploadPayload.signedUrl, {
+    const putResponse = await fetch(signedUrl, {
       method: "PUT",
       body: blob,
       headers: { "Content-Type": mimeType },
@@ -92,7 +106,7 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     const saveResponse = await authenticatedFetch(`/api/orgs/${orgId}/images`, {
       method: "POST",
       body: JSON.stringify({
-        storagePath: uploadPayload.path,
+        storagePath: path,
         name: asset.fileName ?? "image",
       }),
     });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Animated, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CollapsibleSearchDock } from "../../../../../components/ui/collapsible-search-dock";
@@ -7,52 +7,15 @@ import { Card } from "../../../../../components/ui/card";
 import { ListRow } from "../../../../../components/ui/list-row";
 import { EmptyState } from "../../../../../components/ui/empty-state";
 import { colors, spacing } from "../../../../../src/lib/theme";
-import { ScanLine, Search } from "lucide-react-native";
-
-type ToolItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  keywords: string[];
-  icon: typeof ScanLine;
-  href: string;
-};
+import { Search } from "lucide-react-native";
+import { useOrgTools } from "../../../../../src/features/tools/org-tools";
 
 export default function OrgToolsScreen() {
   const [search, setSearch] = useState("");
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const router = useRouter();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
-
-  const tools = useMemo<ToolItem[]>(
-    () =>
-      orgId
-        ? [
-            {
-              id: "scan-to-task",
-              title: "Scan to Task",
-              subtitle: "Convert PDF or PNG scans into tasks.",
-              keywords: ["scan", "task", "pdf", "png", "image"],
-              icon: ScanLine,
-              href: `/(app)/orgs/${orgId}/tools/scan-to-task`,
-            },
-          ]
-        : [],
-    [orgId],
-  );
-
-  const filteredTools = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return tools;
-    }
-
-    return tools.filter((tool) => {
-      const searchableText = [tool.title, tool.subtitle, ...tool.keywords].join(" ").toLowerCase();
-      return searchableText.includes(query);
-    });
-  }, [search, tools]);
+  const { filteredTools } = useOrgTools(orgId, search);
 
   return (
     <Screen padded={false}>
@@ -66,34 +29,34 @@ export default function OrgToolsScreen() {
       >
         {({ onScroll }) => (
           <Animated.FlatList
-          data={filteredTools}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          scrollEventThrottle={16}
-          onScroll={onScroll}
-          renderItem={({ item }) => (
-            <Card padding="sm">
-              <ListRow
-                title={item.title}
-                subtitle={item.subtitle}
-                leading={<item.icon size={20} strokeWidth={2.1} color={colors.textPrimary} />}
-                trailing="chevron"
-                onPress={() => router.push(item.href)}
+            data={filteredTools}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            scrollEventThrottle={16}
+            onScroll={onScroll}
+            renderItem={({ item }) => (
+              <Card padding="sm">
+                <ListRow
+                  title={item.title}
+                  subtitle={item.subtitle}
+                  leading={<item.icon size={20} strokeWidth={2.1} color={colors.textPrimary} />}
+                  trailing="chevron"
+                  onPress={() => router.push(item.href)}
+                />
+              </Card>
+            )}
+            ListEmptyComponent={
+              <EmptyState
+                icon={<Search size={24} strokeWidth={2} color={colors.textTertiary} />}
+                title="No tools found"
+                message="Try a different search term."
               />
-            </Card>
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              icon={<Search size={24} strokeWidth={2} color={colors.textTertiary} />}
-              title="No tools found"
-              message="Try a different search term."
-            />
-          }
-            />
-          )}
-        </CollapsibleSearchDock>
+            }
+          />
+        )}
+      </CollapsibleSearchDock>
     </Screen>
   );
 }
