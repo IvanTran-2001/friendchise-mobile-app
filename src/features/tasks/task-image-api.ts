@@ -121,12 +121,25 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     });
 
     const savePayload = (await saveResponse.json().catch(() => null)) as SaveImageResponse | { error?: string } | null;
-    if (!saveResponse.ok || !savePayload || typeof savePayload !== "object" || !("image" in savePayload)) {
+    const savedImage =
+      savePayload &&
+      typeof savePayload === "object" &&
+      "image" in savePayload &&
+      savePayload.image &&
+      typeof savePayload.image === "object" &&
+      typeof (savePayload.image as { storagePath?: unknown }).storagePath === "string" &&
+      (savePayload.image as { storagePath: string }).storagePath.trim() &&
+      typeof (savePayload.image as { signedUrl?: unknown }).signedUrl === "string" &&
+      (savePayload.image as { signedUrl: string }).signedUrl.trim()
+        ? (savePayload.image as SaveImageResponse["image"])
+        : null;
+
+    if (!saveResponse.ok || !savedImage) {
       const message = savePayload && typeof savePayload === "object" && "error" in savePayload ? savePayload.error : null;
       throw new Error(typeof message === "string" ? message : "Failed to save image.");
     }
 
-    return savePayload.image;
+    return savedImage;
   } finally {
     clearTimeout(timeoutId);
   }

@@ -1,10 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
 import { TaskCreateScreen } from "../../../../../../src/features/tasks/task-create-screen";
 
 export default function OrgTaskCreateScreen() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
   const resolvedOrgId = orgId && !orgId.startsWith("[") ? orgId : undefined;
@@ -29,8 +27,6 @@ export default function OrgTaskCreateScreen() {
             params: { orgId: resolvedOrgId },
           });
         }
-
-        void queryClient.invalidateQueries({ queryKey: ["tasks", resolvedOrgId] });
       }}
     />
   );

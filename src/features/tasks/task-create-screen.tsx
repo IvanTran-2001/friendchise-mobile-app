@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Sparkles } from "lucide-react-native";
 import { Screen } from "../../../components/ui/screen";
 import { ScreenHeader } from "../../../components/ui/screen-header";
@@ -42,6 +42,7 @@ function toNonNegativeInt(value: string) {
 }
 
 export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScreenProps) {
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedImage, setSelectedImage] = useState<{ storagePath: string; signedUrl: string; name?: string | null } | null>(null);
@@ -53,10 +54,12 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
   const [formError, setFormError] = useState<string | null>(null);
   const createTaskMutation = useMutation({
     mutationFn: async (input: CreateTaskInput) => createTask(orgId!, input),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       if (!result.ok || !orgId) {
         return;
       }
+
+      await queryClient.invalidateQueries({ queryKey: ["tasks", orgId] });
 
       onCreated(result.taskId);
     },
