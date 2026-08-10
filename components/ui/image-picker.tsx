@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, FlatList, Image, Pressable, StyleSheet, View } from "react-native";
-import * as ExpoImagePicker from "expo-image-picker";
 import { Camera, Check, ImagePlus, Trash2, Upload } from "lucide-react-native";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { SheetModal } from "./sheet-modal";
 import { Text } from "./text";
 import { Button } from "./button";
 import { TextField } from "./text-field";
 import { colors, radius, spacing } from "../../src/lib/theme";
-import { deleteOrgImage, getOrgImagesPage, uploadRichTextImage, type OrgImage } from "../../src/features/tasks/task-image-api";
+import { type OrgImage } from "../../src/features/tasks/task-image-api";
+import { useOrgImageLibrary } from "../../src/features/tasks/use-org-image-library";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
 
 type ImagePickerProps = {
@@ -27,7 +26,6 @@ type SelectedImage = {
 };
 
 type Tab = "library" | "upload";
-type PickerSource = "library" | "camera";
 
 /**
  * Lets the user pick an org-owned image from the library or upload a new one.
@@ -40,37 +38,35 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
   /** Library search state feeds the infinite query key. */
   const [search, setSearch] = useState("");
 
-  /** Upload, delete, and error state. */
-  const [uploading, setUploading] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-
   /** Normalized search input used to query and filter the image library. */
   const trimmedSearch = search.trim();
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
 
-  const imagesQuery = useInfiniteQuery({
-    queryKey: ["org-images", orgId, debouncedSearch],
-    queryFn: ({ pageParam = 1 }) => fetchOrgImagesPage(orgId, debouncedSearch, pageParam),
-    enabled: open && tab === "library",
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => (lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined),
-  });
-
-  const images = useMemo(() => imagesQuery.data?.pages.flatMap((page) => page.images) ?? [], [imagesQuery.data]);
-  const loading = imagesQuery.isLoading || imagesQuery.isFetchingNextPage;
+  const {
+    images,
+    loading,
+    queryError,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    uploading,
+    deletingId,
+    actionError,
+    resetActionError,
+    resetCache,
+    deleteImage,
+    uploadImage,
+  } = useOrgImageLibrary({ orgId, search: debouncedSearch, enabled: open && tab === "library" });
 
   /** Clears transient state and cached pages when the picker closes. */
   useEffect(() => {
     if (!open) {
       setSearch("");
-      setError(null);
-      setUploading(false);
-      setDeletingId(null);
-      void queryClient.removeQueries({ queryKey: ["org-images", orgId] });
+      resetActionError();
+      resetCache();
     }
-  }, [open, orgId, queryClient]);
+  }, [open, resetActionError, resetCache]);
 
   const selectedPreview = value ?? null;
 
@@ -86,50 +82,24 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
 
   /** Deletes an image from the org library and clears the selection if needed. */
   const handleDelete = useCallback(async (image: OrgImage) => {
-    setError(null);
-    setDeletingId(image.id);
-
-    try {
-      await deleteOrgImage(orgId, image.id);
+    const result = await deleteImage(image);
+    if (result.ok) {
       if (value?.storagePath === image.storagePath) {
         onChange(null);
       }
-      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId] });
-    } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete image.";
-      setError(message);
-      Alert.alert("Delete failed", message);
-    } finally {
-      setDeletingId(null);
+    } else {
+      Alert.alert("Delete failed", result.error);
     }
-  }, [onChange, orgId, queryClient, value?.storagePath]);
+  }, [deleteImage, onChange, value?.storagePath]);
 
   /** Uploads a new image from the camera roll or camera capture. */
-  const handleUpload = useCallback(async (source: PickerSource) => {
-    setError(null);
-
-    setUploading(true);
-    try {
-      const result = await pickOrgImage(source);
-
-      if (!result.asset) {
-        if (result.errorMessage) {
-          setError(result.errorMessage);
-        }
-
-        return;
-      }
-
-      const uploaded = await uploadRichTextImage(orgId, result.asset);
+  const handleUpload = useCallback(async (source: "library" | "camera") => {
+    const uploaded = await uploadImage(source);
+    if (uploaded) {
       onChange(uploaded);
-      await queryClient.invalidateQueries({ queryKey: ["org-images", orgId] });
       closePicker();
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
-    } finally {
-      setUploading(false);
     }
-  }, [closePicker, onChange, orgId, queryClient]);
+  }, [closePicker, onChange, uploadImage]);
 
   return (
     <>
@@ -164,12 +134,12 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
           <View style={styles.uploadPane}>
             <Button label={uploading ? "Uploading…" : "Choose file"} onPress={() => void handleUpload("library")} loading={uploading} leftIcon={<Upload size={16} color={colors.textInverse} />} />
             <Button label={uploading ? "Uploading…" : "Take photo"} variant="outline" onPress={() => void handleUpload("camera")} disabled={uploading} leftIcon={<Camera size={16} color={colors.textPrimary} />} />
-            {error ? <Text variant="caption" tone="danger" align="center">{error}</Text> : null}
+            {actionError ? <Text variant="caption" tone="danger" align="center">{actionError}</Text> : null}
           </View>
         ) : (
           <View style={styles.libraryPane}>
             <TextField value={search} onChangeText={setSearch} placeholder="Search images…" autoCapitalize="none" autoCorrect={false} />
-            {error ? <Text variant="caption" tone="danger" align="center">{error}</Text> : null}
+            {actionError ? <Text variant="caption" tone="danger" align="center">{actionError}</Text> : null}
             <FlatList
               data={images}
               numColumns={3}
@@ -178,13 +148,21 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
               contentContainerStyle={styles.grid}
               onEndReachedThreshold={0.4}
               onEndReached={() => {
-                if (!loading && imagesQuery.hasNextPage && !imagesQuery.isFetchingNextPage) {
-                  void imagesQuery.fetchNextPage();
+                if (!loading && hasNextPage && !isFetchingNextPage) {
+                  void fetchNextPage();
                 }
               }}
               ListEmptyComponent={
                 loading ? (
                   <Text variant="caption" tone="secondary" align="center">Loading images…</Text>
+                ) : queryError ? (
+                  <View style={styles.emptyState}>
+                    <ImagePlus size={24} strokeWidth={2.2} color={colors.textTertiary} />
+                    <Text variant="caption" tone="danger" align="center">
+                      {queryError instanceof Error ? queryError.message : "Failed to load images."}
+                    </Text>
+                    <Button label="Retry" variant="outline" onPress={() => void refetch()} />
+                  </View>
                 ) : (
                   <View style={styles.emptyState}>
                     <ImagePlus size={24} strokeWidth={2.2} color={colors.textTertiary} />
@@ -212,13 +190,6 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
 }
 
 /**
- * Fetches one page of org images for the picker.
- */
-async function fetchOrgImagesPage(orgId: string, search: string, page: number) {
-  return getOrgImagesPage(orgId, { page, pageSize: 24, search });
-}
-
-/**
  * Renders one of the picker tabs with active-state styling.
  */
 function TabButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
@@ -243,36 +214,6 @@ function getSelectedImageLabel(image: SelectedImage | null) {
   }
 
   return image.name ?? image.storagePath.split("/").pop() ?? "Selected image";
-}
-
-/**
- * Opens the requested image source and returns the picked asset, if any.
- */
-async function pickOrgImage(source: PickerSource): Promise<{ asset: ExpoImagePicker.ImagePickerAsset | null; errorMessage?: string }> {
-  const permissions =
-    source === "camera"
-      ? await ExpoImagePicker.requestCameraPermissionsAsync()
-      : await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
-
-  if (!permissions.granted) {
-    return {
-      asset: null,
-      errorMessage: source === "camera" ? "Camera permission is required." : "Media library permission is required.",
-    };
-  }
-
-  const picker = source === "camera" ? ExpoImagePicker.launchCameraAsync : ExpoImagePicker.launchImageLibraryAsync;
-  const result = await picker({
-    mediaTypes: ["images"],
-    quality: 0.88,
-    allowsEditing: false,
-  });
-
-  if (result.canceled || result.assets.length === 0) {
-    return { asset: null };
-  }
-
-  return { asset: result.assets[0] };
 }
 
 /**

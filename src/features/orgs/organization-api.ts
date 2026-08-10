@@ -1,4 +1,4 @@
-import { apiFetch } from "../../../src/lib/api/client";
+import { apiFetch } from "../../lib/api/client";
 
 export type Org = {
   id: string;

@@ -2,7 +2,7 @@ import { FlatList, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2 } from "lucide-react-native";
-import { fetchOrganizations } from "../../components/layout/profile-panel/organizations-shared";
+import { fetchOrganizations } from "../../src/features/orgs/organization-api";
 import { Avatar, getInitials } from "../../components/ui/avatar";
 import { Card } from "../../components/ui/card";
 import { ListRow } from "../../components/ui/list-row";

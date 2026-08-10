@@ -12,7 +12,7 @@ import { EmptyState } from "../../ui/empty-state";
 import { ErrorState, LoadingState } from "../../ui/state-views";
 import { Text } from "../../ui/text";
 import { colors, radius, spacing } from "../../../src/lib/theme";
-import { fetchOrganizations } from "./organizations-shared";
+import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;

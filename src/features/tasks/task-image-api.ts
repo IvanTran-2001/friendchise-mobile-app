@@ -28,12 +28,21 @@ export async function getOrgImagesPage(orgId: string, options: { page?: number; 
   const response = await authenticatedFetch(`/api/orgs/${orgId}/images?${params.toString()}`, { method: "GET" });
   const payload = (await response.json().catch(() => null)) as OrgImagePage | { error?: string } | null;
 
-  if (!response.ok || !payload || typeof payload !== "object" || !("images" in payload)) {
+  const isValidPage =
+    payload !== null &&
+    typeof payload === "object" &&
+    Array.isArray((payload as OrgImagePage).images) &&
+    typeof (payload as OrgImagePage).totalCount === "number" &&
+    typeof (payload as OrgImagePage).totalPages === "number" &&
+    typeof (payload as OrgImagePage).page === "number" &&
+    typeof (payload as OrgImagePage).pageSize === "number";
+
+  if (!response.ok || !isValidPage) {
     const message = payload && typeof payload === "object" && "error" in payload ? payload.error : null;
     throw new Error(typeof message === "string" ? message : "Failed to load images.");
   }
 
-  return payload;
+  return payload as OrgImagePage;
 }
 
 type SignedUploadResponse = {
@@ -148,11 +157,12 @@ export async function getRichTextImageReadUrl(orgId: string, storagePath: string
   });
 
   const payload = (await response.json().catch(() => null)) as ReadUrlResponse | { error?: string } | null;
-  if (!response.ok || !payload || typeof payload !== "object" || !("signedUrl" in payload)) {
+  const signedUrl = payload && typeof payload === "object" && "signedUrl" in payload ? payload.signedUrl : null;
+  if (!response.ok || typeof signedUrl !== "string" || !signedUrl.trim()) {
     return null;
   }
 
-  return payload.signedUrl;
+  return signedUrl;
 }
 
 type ReadUrlResponse = {

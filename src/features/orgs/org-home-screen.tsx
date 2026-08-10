@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ListTodo } from "lucide-react-native";
-import { fetchOrganizations } from "../../../components/layout/profile-panel/organizations-shared";
+import { fetchOrganizations } from "./organization-api";
 import { Avatar, getInitials } from "../../../components/ui/avatar";
 import { Badge } from "../../../components/ui/badge";
 import { Card } from "../../../components/ui/card";

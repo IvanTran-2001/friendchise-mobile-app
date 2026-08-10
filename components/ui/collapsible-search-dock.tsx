@@ -1,14 +1,16 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
+  Keyboard,
   StyleSheet,
+  TextInput,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { spacing } from "../../src/lib/theme";
+import { radius, spacing } from "../../src/lib/theme";
 import { SearchField } from "./search-field";
 
 type CollapsibleSearchDockProps = {
@@ -45,6 +47,7 @@ export function CollapsibleSearchDock({
   const [searchVisible, setSearchVisible] = useState(true);
   const lastScrollY = useRef(0);
   const searchVisibleRef = useRef(true);
+  const inputRef = useRef<TextInput>(null);
 
   const showSearchBar = useCallback(() => {
     if (searchVisibleRef.current) {
@@ -72,6 +75,8 @@ export function CollapsibleSearchDock({
       return;
     }
 
+    inputRef.current?.blur();
+    Keyboard.dismiss();
     searchVisibleRef.current = false;
     setSearchVisible(false);
     Animated.parallel([
@@ -119,7 +124,7 @@ export function CollapsibleSearchDock({
           accessibilityElementsHidden={!searchVisible}
           importantForAccessibility={searchVisible ? "auto" : "no-hide-descendants"}
         >
-          <SearchField value={search} onChangeText={onChangeSearch} placeholder={placeholder} disabled={disabled} />
+          <SearchField ref={inputRef} value={search} onChangeText={onChangeSearch} placeholder={placeholder} disabled={disabled} />
         </Animated.View>
       </View>
 
@@ -141,6 +146,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   searchShell: {
-    borderRadius: 12,
+    borderRadius: radius.lg,
   },
 });

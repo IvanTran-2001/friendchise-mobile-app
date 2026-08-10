@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { StyleSheet, TextInput, View, type TextInputProps } from "react-native";
 import { Search } from "lucide-react-native";
 import { colors, radius, spacing } from "../../src/lib/theme";
@@ -12,12 +13,16 @@ type SearchFieldProps = Omit<TextInputProps, "style"> & {
  *
  * @example <SearchField placeholder="Search tasks" value={search} onChangeText={setSearch} />
  */
-export function SearchField({ autoFocusOnMount, disabled, ...rest }: SearchFieldProps) {
+export const SearchField = forwardRef<TextInput, SearchFieldProps>(function SearchField(
+  { autoFocusOnMount, disabled, ...rest },
+  ref,
+) {
   return (
     <View style={styles.container}>
       <Search size={16} strokeWidth={2.2} color={colors.textTertiary} />
       <TextInput
         {...rest}
+        ref={ref}
         autoFocus={autoFocusOnMount}
         editable={!disabled}
         placeholderTextColor={colors.textTertiary}
@@ -29,7 +34,7 @@ export function SearchField({ autoFocusOnMount, disabled, ...rest }: SearchField
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

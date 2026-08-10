@@ -52,6 +52,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         search: debouncedSearch,
         limit: debouncedSearch.trim() ? 100 : undefined,
       }),
+    enabled: isHydrated && isSearchHydrated,
     placeholderData: keepPreviousData,
   });
 
