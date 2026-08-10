@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as ExpoImagePicker from "expo-image-picker";
 import { deleteOrgImage, getOrgImagesPage, uploadRichTextImage, type OrgImage } from "./task-image-api";
 
@@ -17,13 +17,11 @@ type UseOrgImageLibraryOptions = {
  */
 export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibraryOptions) {
   const queryClient = useQueryClient();
-  const [uploading, setUploading] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const imagesQuery = useInfiniteQuery({
     queryKey: ["org-images", orgId, search],
-    queryFn: ({ pageParam = 1 }) => getOrgImagesPage(orgId, { page: pageParam, pageSize: 24, search }),
+    queryFn: ({ pageParam = 1, signal }) => getOrgImagesPage(orgId, { page: pageParam, pageSize: 24, search, signal }),
     enabled,
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined),
@@ -40,48 +38,78 @@ export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibrar
     return queryClient.invalidateQueries({ queryKey: ["org-images", orgId] });
   }, [orgId, queryClient]);
 
-  const resetActionError = useCallback(() => setActionError(null), []);
+  const deleteMutation = useMutation({
+    mutationFn: async (image: OrgImage) => {
+      await deleteOrgImage(orgId, image.id);
+      return image;
+    },
+    onSuccess: async () => {
+      await invalidateCache();
+    },
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Failed to delete image.");
+    },
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (source: PickerSource) => {
+      const result = await pickOrgImage(source);
+      if (!result.asset) {
+        if (result.errorMessage) {
+          setActionError(result.errorMessage);
+        }
+        return null;
+      }
+
+      return uploadRichTextImage(orgId, result.asset);
+    },
+    onSuccess: async (uploaded) => {
+      if (uploaded) {
+        await invalidateCache();
+      }
+    },
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Upload failed.");
+    },
+  });
+
+  const resetActionError = useCallback(() => {
+    setActionError(null);
+    deleteMutation.reset();
+    uploadMutation.reset();
+  }, [deleteMutation, uploadMutation]);
 
   /** Deletes an image from the org library, returns whether it succeeded. */
   const deleteImage = useCallback(async (image: OrgImage) => {
     setActionError(null);
-    setDeletingId(image.id);
 
     try {
-      await deleteOrgImage(orgId, image.id);
-      await invalidateCache();
+      await deleteMutation.mutateAsync(image);
       return { ok: true as const };
     } catch (deleteError) {
       const message = deleteError instanceof Error ? deleteError.message : "Failed to delete image.";
       setActionError(message);
       return { ok: false as const, error: message };
-    } finally {
-      setDeletingId(null);
     }
-  }, [invalidateCache, orgId]);
+  }, [deleteMutation]);
 
   /** Picks and uploads a new image, returning the saved image or null on failure/cancel. */
   const uploadImage = useCallback(async (source: PickerSource) => {
     setActionError(null);
-    setUploading(true);
 
     try {
-      const result = await pickOrgImage(source);
-      if (!result.asset) {
-        if (result.errorMessage) setActionError(result.errorMessage);
-        return null;
-      }
-
-      const uploaded = await uploadRichTextImage(orgId, result.asset);
-      await invalidateCache();
+      const uploaded = await uploadMutation.mutateAsync(source);
       return uploaded;
     } catch (uploadError) {
-      setActionError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
+      const message = uploadError instanceof Error ? uploadError.message : "Upload failed.";
+      setActionError(message);
       return null;
-    } finally {
-      setUploading(false);
     }
-  }, [invalidateCache, orgId]);
+  }, [uploadMutation]);
+
+  const uploading = uploadMutation.isPending;
+  const deletingId = deleteMutation.variables?.id ?? null;
+  const actionErrorMessage = actionError ?? deleteMutation.error?.message ?? uploadMutation.error?.message ?? null;
 
   return {
     images,
@@ -93,7 +121,7 @@ export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibrar
     fetchNextPage: imagesQuery.fetchNextPage,
     uploading,
     deletingId,
-    actionError,
+    actionError: actionErrorMessage,
     resetActionError,
     resetCache,
     deleteImage,

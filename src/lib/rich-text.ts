@@ -133,7 +133,7 @@ function buildAttributes(tagName: string, attribs: Record<string, string>) {
       continue;
     }
 
-    if (["href", "src", "data"].includes(name) && !isSafeUri(rawValue, tagName, name)) {
+    if (["href", "src", "poster"].includes(name) && !isSafeUri(rawValue, tagName, name)) {
       continue;
     }
 

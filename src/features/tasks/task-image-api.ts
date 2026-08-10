@@ -16,6 +16,13 @@ export type OrgImagePage = {
   pageSize: number;
 };
 
+type GetOrgImagesPageOptions = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  signal?: AbortSignal;
+};
+
 function isValidOrgImage(value: unknown): value is OrgImage {
   return (
     value !== null &&
@@ -32,14 +39,17 @@ function isValidOrgImage(value: unknown): value is OrgImage {
 /**
  * Loads a paginated slice of org images with signed read URLs.
  */
-export async function getOrgImagesPage(orgId: string, options: { page?: number; pageSize?: number; search?: string } = {}) {
+export async function getOrgImagesPage(orgId: string, options: GetOrgImagesPageOptions = {}) {
   const encodedOrgId = encodeURIComponent(orgId);
   const params = new URLSearchParams();
   if (options.page) params.set("page", String(options.page));
   if (options.pageSize) params.set("pageSize", String(options.pageSize));
   if (options.search?.trim()) params.set("search", options.search.trim());
 
-  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images?${params.toString()}`, { method: "GET" });
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images?${params.toString()}`, {
+    method: "GET",
+    signal: options.signal,
+  });
   const payload = (await response.json().catch(() => null)) as OrgImagePage | { error?: string } | null;
 
   const isValidPage =
@@ -77,7 +87,7 @@ type SaveImageResponse = {
  */
 export async function uploadRichTextImage(orgId: string, asset: ImagePicker.ImagePickerAsset) {
   const encodedOrgId = encodeURIComponent(orgId);
-  const mimeType = asset.mimeType ?? "image/jpeg";
+  const mimeType = asset.mimeType ?? inferMimeTypeFromUri(asset.uri) ?? "image/jpeg";
   let controller: AbortController | null = null;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -163,6 +173,23 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
+  }
+}
+
+function inferMimeTypeFromUri(uri: string) {
+  const cleanUri = uri.split("?")[0]?.split("#")[0] ?? uri;
+  const extension = cleanUri.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    default:
+      return null;
   }
 }
 

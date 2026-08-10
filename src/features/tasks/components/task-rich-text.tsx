@@ -31,7 +31,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   const renderedHtml = useMemo(() => markdownParser.render(blocks), [blocks]);
   /** Sanitized HTML that strips unsafe tags and URI schemes before rendering. */
   const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(renderedHtml), [renderedHtml]);
-  const needsResolution = useMemo(() => !!orgId && renderedHtml.includes(`orgs/${orgId}/`), [orgId, renderedHtml]);
+  const needsResolution = useMemo(() => !!orgId && sanitizedHtml.includes(`orgs/${orgId}/`), [orgId, sanitizedHtml]);
   /** Final HTML source passed to the renderer. */
   const [htmlSource, setHtmlSource] = useState(sanitizedHtml);
   /** Width of the actual content column inside the surrounding card/list layout. */
@@ -134,9 +134,14 @@ async function resolveHtmlWithSignedImageUrls(orgId: string, renderedHtml: strin
   let nextHtml = renderedHtml;
   for (const [path, signedUrl] of entries) {
     if (!signedUrl) continue;
-    const escapedSignedUrl = signedUrl.replace(/&/g, "&amp;");
-    nextHtml = nextHtml.replaceAll(`src="${path}"`, `src="${escapedSignedUrl}"`);
-    nextHtml = nextHtml.replaceAll(`src='${path}'`, `src='${escapedSignedUrl}'`);
+    const escapedDoubleQuotedSignedUrl = signedUrl
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;");
+    const escapedSingleQuotedSignedUrl = signedUrl
+      .replace(/&/g, "&amp;")
+      .replace(/'/g, "&#39;");
+    nextHtml = nextHtml.replaceAll(`src="${path}"`, () => `src="${escapedDoubleQuotedSignedUrl}"`);
+    nextHtml = nextHtml.replaceAll(`src='${path}'`, () => `src='${escapedSingleQuotedSignedUrl}'`);
   }
 
   return nextHtml;
