@@ -16,22 +16,37 @@ export type OrgImagePage = {
   pageSize: number;
 };
 
+function isValidOrgImage(value: unknown): value is OrgImage {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof (value as { id?: unknown }).id === "string" &&
+    (value as { id: string }).id.trim().length > 0 &&
+    typeof (value as { storagePath?: unknown }).storagePath === "string" &&
+    (value as { storagePath: string }).storagePath.trim().length > 0 &&
+    typeof (value as { signedUrl?: unknown }).signedUrl === "string" &&
+    (value as { signedUrl: string }).signedUrl.trim().length > 0
+  );
+}
+
 /**
  * Loads a paginated slice of org images with signed read URLs.
  */
 export async function getOrgImagesPage(orgId: string, options: { page?: number; pageSize?: number; search?: string } = {}) {
+  const encodedOrgId = encodeURIComponent(orgId);
   const params = new URLSearchParams();
   if (options.page) params.set("page", String(options.page));
   if (options.pageSize) params.set("pageSize", String(options.pageSize));
   if (options.search?.trim()) params.set("search", options.search.trim());
 
-  const response = await authenticatedFetch(`/api/orgs/${orgId}/images?${params.toString()}`, { method: "GET" });
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images?${params.toString()}`, { method: "GET" });
   const payload = (await response.json().catch(() => null)) as OrgImagePage | { error?: string } | null;
 
   const isValidPage =
     payload !== null &&
     typeof payload === "object" &&
     Array.isArray((payload as OrgImagePage).images) &&
+    (payload as OrgImagePage).images.every(isValidOrgImage) &&
     typeof (payload as OrgImagePage).totalCount === "number" &&
     typeof (payload as OrgImagePage).totalPages === "number" &&
     typeof (payload as OrgImagePage).page === "number" &&
@@ -61,12 +76,13 @@ type SaveImageResponse = {
  * Uploads a picked image to the org library and returns the saved image row.
  */
 export async function uploadRichTextImage(orgId: string, asset: ImagePicker.ImagePickerAsset) {
+  const encodedOrgId = encodeURIComponent(orgId);
   const mimeType = asset.mimeType ?? "image/jpeg";
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const uploadResponse = await authenticatedFetch(`/api/orgs/${orgId}/images/upload-url`, {
+    const uploadResponse = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images/upload-url`, {
       method: "POST",
       body: JSON.stringify({ mimeType }),
     });
@@ -112,7 +128,7 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
       throw new Error("Upload failed. Please try again.");
     }
 
-    const saveResponse = await authenticatedFetch(`/api/orgs/${orgId}/images`, {
+    const saveResponse = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images`, {
       method: "POST",
       body: JSON.stringify({
         storagePath: path,
@@ -149,7 +165,9 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
  * Deletes an org image from the library.
  */
 export async function deleteOrgImage(orgId: string, imageId: string) {
-  const response = await authenticatedFetch(`/api/orgs/${orgId}/images/${imageId}`, {
+  const encodedOrgId = encodeURIComponent(orgId);
+  const encodedImageId = encodeURIComponent(imageId);
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images/${encodedImageId}`, {
     method: "DELETE",
   });
 
@@ -164,7 +182,8 @@ export async function deleteOrgImage(orgId: string, imageId: string) {
  * Resolves an org-owned storage path into a signed read URL.
  */
 export async function getRichTextImageReadUrl(orgId: string, storagePath: string) {
-  const response = await authenticatedFetch(`/api/orgs/${orgId}/storage/read-url`, {
+  const encodedOrgId = encodeURIComponent(orgId);
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/storage/read-url`, {
     method: "POST",
     body: JSON.stringify({ storagePath }),
   });

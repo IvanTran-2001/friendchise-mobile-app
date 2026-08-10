@@ -155,7 +155,18 @@ function isSafeUri(rawValue: string, tagName: string, attributeName: string) {
     return false;
   }
 
-  if (attributeName === "src" && tagName === "img" && trimmed.startsWith("data:image/")) {
+  const allowedImageDataMimeTypes = [
+    "data:image/png",
+    "data:image/jpeg",
+    "data:image/jpg",
+    "data:image/gif",
+    "data:image/webp",
+    "data:image/avif",
+    "data:image/heic",
+    "data:image/heif",
+  ];
+
+  if (attributeName === "src" && tagName === "img" && allowedImageDataMimeTypes.some((prefix) => trimmed.startsWith(prefix))) {
     return true;
   }
 

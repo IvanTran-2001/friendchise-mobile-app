@@ -125,7 +125,7 @@ async function resolveHtmlWithSignedImageUrls(orgId: string, renderedHtml: strin
       try {
         return [path, await getRichTextImageReadUrl(orgId, path)] as const;
       } catch {
-        return [path, path] as const;
+        return [path, null] as const;
       }
     }),
   );

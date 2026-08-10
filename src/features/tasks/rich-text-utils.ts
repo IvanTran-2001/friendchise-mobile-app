@@ -18,8 +18,7 @@ export function isHtmlRichText(value: string) {
  * value is escaped and wrapped in a paragraph tag.
  */
 export function toRichTextHtml(value: string) {
-  const html = sharedToRichTextHtml(value);
-  return isHtmlRichText(html) ? sanitizeRichTextHtml(html) : html;
+  return sharedToRichTextHtml(value);
 }
 
 /**
