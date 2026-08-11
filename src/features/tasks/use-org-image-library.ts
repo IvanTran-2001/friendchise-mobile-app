@@ -51,6 +51,9 @@ export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibrar
     },
   });
 
+  const resetDeleteMutation = deleteMutation.reset;
+  const deleteImageMutation = deleteMutation.mutateAsync;
+
   const uploadMutation = useMutation({
     mutationFn: async (source: PickerSource) => {
       const result = await pickOrgImage(source);
@@ -73,42 +76,45 @@ export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibrar
     },
   });
 
+  const resetUploadMutation = uploadMutation.reset;
+  const uploadImageMutation = uploadMutation.mutateAsync;
+
   const resetActionError = useCallback(() => {
     setActionError(null);
-    deleteMutation.reset();
-    uploadMutation.reset();
-  }, [deleteMutation, uploadMutation]);
+    resetDeleteMutation();
+    resetUploadMutation();
+  }, [resetDeleteMutation, resetUploadMutation]);
 
   /** Deletes an image from the org library, returns whether it succeeded. */
   const deleteImage = useCallback(async (image: OrgImage) => {
     setActionError(null);
 
     try {
-      await deleteMutation.mutateAsync(image);
+      await deleteImageMutation(image);
       return { ok: true as const };
     } catch (deleteError) {
       const message = deleteError instanceof Error ? deleteError.message : "Failed to delete image.";
       setActionError(message);
       return { ok: false as const, error: message };
     }
-  }, [deleteMutation]);
+  }, [deleteImageMutation]);
 
   /** Picks and uploads a new image, returning the saved image or null on failure/cancel. */
   const uploadImage = useCallback(async (source: PickerSource) => {
     setActionError(null);
 
     try {
-      const uploaded = await uploadMutation.mutateAsync(source);
+      const uploaded = await uploadImageMutation(source);
       return uploaded;
     } catch (uploadError) {
       const message = uploadError instanceof Error ? uploadError.message : "Upload failed.";
       setActionError(message);
       return null;
     }
-  }, [uploadMutation]);
+  }, [uploadImageMutation]);
 
   const uploading = uploadMutation.isPending;
-  const deletingId = deleteMutation.variables?.id ?? null;
+  const deletingId = deleteMutation.isPending ? deleteMutation.variables?.id ?? null : null;
   const actionErrorMessage = actionError ?? deleteMutation.error?.message ?? uploadMutation.error?.message ?? null;
 
   return {

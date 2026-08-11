@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(15, 23, 42, 0.08)",
+    borderBottomColor: colors.border,
   },
   toolbarGroup: {
     flexDirection: "row",
@@ -228,13 +228,13 @@ const styles = StyleSheet.create({
   toolbarSeparator: {
     width: 1,
     height: 16,
-    backgroundColor: "rgba(15, 23, 42, 0.14)",
+    backgroundColor: colors.border,
   },
   shell: {
     overflow: "hidden",
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "rgba(15, 23, 42, 0.10)",
+    borderColor: colors.border,
     backgroundColor: colors.surface,
     shadowColor: "#0f172a",
     shadowOpacity: 0.04,

@@ -166,7 +166,11 @@ function isSafeUri(rawValue: string, tagName: string, attributeName: string) {
     "data:image/heif",
   ];
 
-  if (attributeName === "src" && tagName === "img" && allowedImageDataMimeTypes.some((prefix) => trimmed.startsWith(prefix))) {
+  if (
+    attributeName === "src" &&
+    tagName === "img" &&
+    allowedImageDataMimeTypes.some((prefix) => trimmed === prefix || trimmed.startsWith(`${prefix};`) || trimmed.startsWith(`${prefix},`))
+  ) {
     return true;
   }
 

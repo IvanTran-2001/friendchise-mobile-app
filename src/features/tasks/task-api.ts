@@ -108,14 +108,14 @@ type MobileOrganizationResponse = {
 
 export async function getTasks(
   orgId?: string,
-  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string; limit?: number } = {},
+  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string; limit?: number; singlePage?: boolean } = {},
 ) {
   const activeOrg = orgId
     ? { orgId }
     : await apiFetch<MobileOrganizationResponse>("/api/mobile/me/organization");
 
   const tasks: TaskItem[] = [];
-  const singlePage = options.limit != null;
+  const singlePage = options.singlePage ?? false;
   let cursor: string | null = null;
 
   do {

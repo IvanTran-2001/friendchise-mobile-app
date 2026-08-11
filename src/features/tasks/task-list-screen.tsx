@@ -68,7 +68,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
           onViewModeChange={setViewMode}
           onSortModeChange={setSortMode}
           onResetPreferences={resetPreferences}
-          onAddTaskPress={() => router.push(`/(app)/orgs/${orgId}/tasks/new`)}
+          onAddTaskPress={() => router.push({ pathname: "/(app)/orgs/[orgId]/tasks/new", params: { orgId } })}
         />
       ) : null,
     [

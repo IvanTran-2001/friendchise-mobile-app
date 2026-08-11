@@ -14,7 +14,7 @@ export default function ScanToTaskScreen() {
 
       <Card padding="lg">
         <Text variant="body" tone="secondary">
-          This tool route is ready for the scan-to-task workflow.
+          Scan to Task is not available yet. We’ll add the workflow here once it’s ready.
         </Text>
       </Card>
     </Screen>
