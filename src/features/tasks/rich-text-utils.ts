@@ -1,16 +1,6 @@
-import { isHtmlRichText, sanitizeRichTextHtml, toRichTextHtml as sharedToRichTextHtml } from "../../lib/rich-text";
+import { isHtmlRichText, sanitizeRichTextHtml, toRichTextHtml } from "../../lib/rich-text";
 
-export { sanitizeRichTextHtml, isHtmlRichText };
-
-/**
- * Normalizes a plain value into HTML rich text.
- *
- * If the string already contains HTML, it is returned as-is. Otherwise the
- * value is escaped and wrapped in a paragraph tag.
- */
-export function toRichTextHtml(value: string) {
-  return sharedToRichTextHtml(value);
-}
+export { sanitizeRichTextHtml, isHtmlRichText, toRichTextHtml };
 
 /**
  * Returns true when the HTML contains no visible text after stripping tags.

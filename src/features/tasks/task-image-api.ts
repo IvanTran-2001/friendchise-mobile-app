@@ -164,6 +164,15 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
         : null;
 
     if (!saveResponse.ok || !savedImage) {
+      try {
+        await authenticatedFetch(`/api/orgs/${encodedOrgId}/images`, {
+          method: "DELETE",
+          body: JSON.stringify({ storagePath: path }),
+        });
+      } catch {
+        // Best effort cleanup; preserve the existing save error either way.
+      }
+
       const message = savePayload && typeof savePayload === "object" && "error" in savePayload ? savePayload.error : null;
       throw new Error(typeof message === "string" ? message : "Failed to save image.");
     }

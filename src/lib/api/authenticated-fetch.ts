@@ -40,7 +40,9 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}, t
       signal: controller.signal,
     });
 
-    const body = await response.arrayBuffer();
+    const body = response.status === 101 || response.status === 204 || response.status === 205 || response.status === 304
+      ? null
+      : await response.arrayBuffer();
     const bufferedResponse = new Response(body, {
       status: response.status,
       statusText: response.statusText,
