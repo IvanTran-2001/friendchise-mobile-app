@@ -51,6 +51,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         sort: effectivePreferences.sortMode,
         search: debouncedSearch,
         limit: debouncedSearch.trim() ? 100 : undefined,
+        singlePage: Boolean(debouncedSearch.trim()),
       }),
     enabled: isHydrated && isSearchHydrated,
     placeholderData: keepPreviousData,

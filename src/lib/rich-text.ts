@@ -52,6 +52,8 @@ const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
   source: ["src", "type"],
 };
 
+const HTML_TAG_PATTERN = new RegExp(`</?(?:${Array.from(ALLOWED_TAGS).join("|")})(?=[\s>/])`, "i");
+
 /**
  * Removes unsafe tags, event handlers, and disallowed URI schemes from HTML.
  *
@@ -117,6 +119,13 @@ export function sanitizeRichTextHtml(value: string) {
   parser.end(value);
 
   return output;
+}
+
+/**
+ * Returns true when the value already looks like allowlisted HTML rich text.
+ */
+export function isHtmlRichText(value: string) {
+  return HTML_TAG_PATTERN.test(value);
 }
 
 /**
@@ -191,7 +200,7 @@ export function toRichTextHtml(value: string) {
     return "<p></p>";
   }
 
-  if (/<\/?[a-z][\s\S]*>/i.test(trimmed)) {
+  if (isHtmlRichText(trimmed)) {
     return sanitizeRichTextHtml(trimmed);
   }
 

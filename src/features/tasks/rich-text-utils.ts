@@ -1,15 +1,6 @@
-import { sanitizeRichTextHtml, toRichTextHtml as sharedToRichTextHtml } from "../../lib/rich-text";
+import { isHtmlRichText, sanitizeRichTextHtml, toRichTextHtml as sharedToRichTextHtml } from "../../lib/rich-text";
 
-export { sanitizeRichTextHtml };
-
-const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i;
-
-/**
- * Returns true when the value already looks like HTML rich text.
- */
-export function isHtmlRichText(value: string) {
-  return HTML_TAG_PATTERN.test(value);
-}
+export { sanitizeRichTextHtml, isHtmlRichText };
 
 /**
  * Normalizes a plain value into HTML rich text.

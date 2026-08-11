@@ -181,6 +181,12 @@ function inferMimeTypeFromUri(uri: string) {
   const extension = cleanUri.split(".").pop()?.toLowerCase();
 
   switch (extension) {
+    case "gif":
+      return "image/gif";
+    case "heic":
+      return "image/heic";
+    case "heif":
+      return "image/heif";
     case "png":
       return "image/png";
     case "webp":

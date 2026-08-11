@@ -26,7 +26,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}, t
 
   if (init.signal) {
     if (init.signal.aborted) {
-      controller.abort(init.signal.reason ?? callerAbortReason);
+      abortWithReason(controller, init.signal.reason ?? callerAbortReason);
     } else {
       init.signal.addEventListener("abort", abortListener, { once: true });
     }

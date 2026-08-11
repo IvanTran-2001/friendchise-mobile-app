@@ -4,7 +4,7 @@ import RenderHTML from "react-native-render-html";
 import MarkdownIt from "markdown-it";
 import { colors, spacing } from "../../../lib/theme";
 import { getRichTextImageReadUrl } from "../task-image-api";
-import { sanitizeRichTextHtml } from "../rich-text-utils";
+import { isHtmlRichText, sanitizeRichTextHtml } from "../rich-text-utils";
 
 const markdownParser = new MarkdownIt({ html: true, breaks: true, linkify: true });
 
@@ -27,8 +27,8 @@ type TaskRichTextProps = {
 export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   /** Normalized source text used by the renderer and image resolver. */
   const blocks = useMemo(() => source.replace(/\r\n/g, "\n").trim(), [source]);
-  /** Markdown converted to HTML before signed image URLs are resolved. */
-  const renderedHtml = useMemo(() => markdownParser.render(blocks), [blocks]);
+  /** HTML source before signed image URLs are resolved. */
+  const renderedHtml = useMemo(() => (isHtmlRichText(blocks) ? blocks : markdownParser.render(blocks)), [blocks]);
   /** Sanitized HTML that strips unsafe tags and URI schemes before rendering. */
   const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(renderedHtml), [renderedHtml]);
   const needsResolution = useMemo(() => !!orgId && sanitizedHtml.includes(`orgs/${orgId}/`), [orgId, sanitizedHtml]);
