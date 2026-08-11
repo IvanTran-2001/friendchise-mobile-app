@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { LayoutChangeEvent, View } from "react-native";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import RenderHTML from "react-native-render-html";
 import MarkdownIt from "markdown-it";
 import { colors, spacing } from "../../../lib/theme";
@@ -25,6 +26,7 @@ type TaskRichTextProps = {
  * Renders task descriptions as web-style markdown rich text.
  */
 export function TaskRichText({ source, orgId }: TaskRichTextProps) {
+  const queryClient = useQueryClient();
   /** Normalized source text used by the renderer and image resolver. */
   const blocks = useMemo(() => source.replace(/\r\n/g, "\n").trim(), [source]);
   /** HTML source before signed image URLs are resolved. */
@@ -50,7 +52,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
       };
     }
 
-    void resolveTaskRichTextHtml(orgId, sanitizedHtml)
+    void resolveTaskRichTextHtml(queryClient, orgId, sanitizedHtml)
       .then((nextHtml) => {
         if (!cancelled) {
           setHtmlSource(nextHtml);
@@ -95,7 +97,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
 /**
  * Prepares rendered task HTML for display by rewriting org-owned image URLs.
  */
-async function resolveTaskRichTextHtml(orgId: string | undefined, renderedHtml: string) {
+async function resolveTaskRichTextHtml(queryClient: QueryClient, orgId: string | undefined, renderedHtml: string) {
   if (!renderedHtml || !orgId) {
     return renderedHtml;
   }
@@ -113,17 +115,24 @@ async function resolveTaskRichTextHtml(orgId: string | undefined, renderedHtml: 
     return renderedHtml;
   }
 
-  return resolveHtmlWithSignedImageUrls(orgId, renderedHtml, paths);
+  return resolveHtmlWithSignedImageUrls(queryClient, orgId, renderedHtml, paths);
 }
 
 /**
  * Rewrites org-owned image paths in rendered HTML to signed read URLs.
  */
-async function resolveHtmlWithSignedImageUrls(orgId: string, renderedHtml: string, paths: string[]) {
+async function resolveHtmlWithSignedImageUrls(queryClient: QueryClient, orgId: string, renderedHtml: string, paths: string[]) {
   const entries = await Promise.all(
     paths.map(async (path) => {
       try {
-        return [path, await getRichTextImageReadUrl(orgId, path)] as const;
+        return [
+          path,
+          await queryClient.fetchQuery({
+            queryKey: ["task-rich-text-image-url", orgId, path],
+            queryFn: () => getRichTextImageReadUrl(orgId, path),
+            staleTime: 5 * 60 * 1000,
+          }),
+        ] as const;
       } catch {
         return [path, null] as const;
       }

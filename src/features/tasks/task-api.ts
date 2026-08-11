@@ -117,6 +117,7 @@ export async function getTasks(
   const tasks: TaskItem[] = [];
   const singlePage = options.singlePage ?? false;
   let cursor: string | null = null;
+  let nextCursor: string | null = null;
 
   do {
     const params = new URLSearchParams();
@@ -153,9 +154,10 @@ export async function getTasks(
       })),
     );
     cursor = response.nextCursor;
+    nextCursor = response.nextCursor;
   } while (cursor && !singlePage);
 
-  return tasks;
+  return { tasks, nextCursor };
 }
 
 export type TaskDetailItem = TaskItem & {

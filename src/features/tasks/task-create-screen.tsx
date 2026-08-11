@@ -13,7 +13,14 @@ import { Text } from "../../../components/ui/text";
 import { colors, spacing } from "../../lib/theme";
 import { createTask, type CreateTaskInput } from "./task-api";
 
-const COLOR_OPTIONS = [colors.accent, colors.success, colors.warning, colors.danger, colors.textSecondary, colors.textPrimary];
+const COLOR_OPTIONS = [
+  { name: "Accent", value: colors.accent },
+  { name: "Success", value: colors.success },
+  { name: "Warning", value: colors.warning },
+  { name: "Danger", value: colors.danger },
+  { name: "Muted", value: colors.textSecondary },
+  { name: "Primary", value: colors.textPrimary },
+];
 
 type TaskCreateScreenProps = {
   orgId?: string;
@@ -46,7 +53,7 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedImage, setSelectedImage] = useState<{ storagePath: string; signedUrl: string; name?: string | null } | null>(null);
-  const [color, setColor] = useState(COLOR_OPTIONS[0]);
+  const [color, setColor] = useState(COLOR_OPTIONS[0].value);
   const [durationMin, setDurationMin] = useState("30");
   const [peopleRequired, setPeopleRequired] = useState("1");
   const [minWaitDays, setMinWaitDays] = useState("1");
@@ -173,19 +180,19 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
           </Text>
           <View style={styles.colorRow}>
             {COLOR_OPTIONS.map((option) => {
-              const active = option === color;
+              const active = option.value === color;
               return (
                 <Pressable
-                  key={option}
-                  onPress={() => setColor(option)}
+                  key={option.value}
+                  onPress={() => setColor(option.value)}
                   style={({ pressed }) => [
                     styles.colorSwatch,
-                    { backgroundColor: option },
+                    { backgroundColor: option.value },
                     active ? styles.colorSwatchActive : null,
                     pressed ? styles.colorSwatchPressed : null,
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Select color ${option}`}
+                  accessibilityLabel={`Select ${option.name} color (${option.value})`}
                 >
                   {active ? <Check size={16} color={colors.textInverse} strokeWidth={2.6} /> : null}
                 </Pressable>

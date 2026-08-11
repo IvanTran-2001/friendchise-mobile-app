@@ -20,6 +20,7 @@ type TaskListViewProps = {
   viewMode: TaskViewMode;
   hasActiveFilters: boolean;
   header?: React.ReactElement | null;
+  footer?: React.ReactElement | null;
   onScroll?: (event: any) => void;
 };
 
@@ -32,6 +33,7 @@ export function TaskListView({
   viewMode,
   hasActiveFilters,
   header,
+  footer,
   onScroll,
 }: TaskListViewProps) {
   const router = useRouter();
@@ -46,6 +48,7 @@ export function TaskListView({
       scrollEventThrottle={16}
       onScroll={onScroll}
       ListHeaderComponent={header ?? null}
+      ListFooterComponent={footer ?? null}
       renderItem={({ item }) => (
         <Pressable
           onPress={() => {

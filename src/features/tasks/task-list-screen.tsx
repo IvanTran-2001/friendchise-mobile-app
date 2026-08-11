@@ -12,6 +12,7 @@ import { DEFAULT_TASK_UI_PREFERENCES } from "./task-persistence-store";
 import { useTaskSearch, useTaskUiPreferences } from "./task-ui";
 import { useDebouncedValue } from "../../../hooks/use-debounced-value";
 import { useDismissKeyboardOnIdle } from "../../../hooks/use-dismiss-keyboard-on-idle";
+import { Text } from "../../../components/ui/text";
 
 type TaskListScreenProps = {
   orgId?: string;
@@ -56,6 +57,11 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
     enabled: isHydrated && isSearchHydrated,
     placeholderData: keepPreviousData,
   });
+
+  const hasMoreMatches = !!effectiveSearch.trim() && !!data?.nextCursor;
+  const footer = hasMoreMatches ? (
+    <TaskListFooter message="Showing the first 100 matches. Narrow your search to see more results." />
+  ) : null;
 
   const navbarActions = useMemo(
     () =>
@@ -114,16 +120,25 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
       {({ onScroll }) => (
         <TaskListView
           orgId={orgId}
-          tasks={data ?? []}
-            isLoading={isLoading || !isHydrated || !isSearchHydrated}
+          tasks={data?.tasks ?? []}
+          isLoading={isLoading || !isHydrated || !isSearchHydrated}
           error={error}
           search={effectiveSearch}
           viewMode={effectivePreferences.viewMode}
           hasActiveFilters={hasActiveFilters}
+          footer={footer}
           onScroll={onScroll}
         />
       )}
     </CollapsibleSearchDock>
+  );
+}
+
+function TaskListFooter({ message }: { message: string }) {
+  return (
+    <Text variant="caption" tone="secondary" style={styles.footer}>
+      {message}
+    </Text>
   );
 }
 
@@ -138,5 +153,10 @@ const styles = StyleSheet.create({
   searchShell: {
     borderRadius: radius.lg,
     ...shadows.xs,
+  },
+  footer: {
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.md,
+    textAlign: "center",
   },
 });
