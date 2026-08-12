@@ -1,7 +1,7 @@
-import { Screen } from "../../../../../../components/ui/screen";
-import { ScreenHeader } from "../../../../../../components/ui/screen-header";
-import { Card } from "../../../../../../components/ui/card";
-import { Text } from "../../../../../../components/ui/text";
+import { Screen } from "@/components/ui/screen";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { Card } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 
 export default function ScanToTaskScreen() {
   return (

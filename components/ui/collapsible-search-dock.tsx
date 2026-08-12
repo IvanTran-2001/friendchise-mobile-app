@@ -29,6 +29,8 @@ type CollapsibleSearchDockProps = {
 /**
  * Floating search bar that hides on downward scroll and reappears on upward scroll.
  * Wrap it around the screen content and provide the scrollable child as a render prop.
+ * Consumers should add top padding to their scroll content for the absolutely positioned dock,
+ * such as `paddingTop: 72` in the current task and tools screens.
  */
 export function CollapsibleSearchDock({
   search,

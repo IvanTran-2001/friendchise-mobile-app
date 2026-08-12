@@ -115,7 +115,7 @@ export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibrar
 
   const uploading = uploadMutation.isPending;
   const deletingId = deleteMutation.isPending ? deleteMutation.variables?.id ?? null : null;
-  const actionErrorMessage = actionError ?? deleteMutation.error?.message ?? uploadMutation.error?.message ?? null;
+  const actionErrorMessage = actionError;
 
   return {
     images,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Animated, StyleSheet } from "react-native";
+import { FlatList, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { CollapsibleSearchDock } from "../../../components/ui/collapsible-search-dock";
@@ -14,6 +14,7 @@ export function OrgToolsScreen() {
   const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const router = useRouter();
   const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
+  const hasSearch = search.trim().length > 0;
   const { filteredTools } = useOrgTools(orgId, search);
 
   return (
@@ -25,7 +26,7 @@ export function OrgToolsScreen() {
       searchShellStyle={styles.searchShell}
     >
       {({ onScroll }) => (
-        <Animated.FlatList
+        <FlatList
           data={filteredTools}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
@@ -48,7 +49,13 @@ export function OrgToolsScreen() {
             <EmptyState
               icon={<Search size={24} strokeWidth={2} color={colors.textTertiary} />}
               title="No tools found"
-              message="Try a different search term."
+              message={
+                hasSearch
+                  ? "Try a different search term."
+                  : orgId
+                    ? "Tools created for this organization will appear here."
+                    : "Select an organization to view available tools."
+              }
             />
           }
         />

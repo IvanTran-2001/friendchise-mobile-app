@@ -18,26 +18,31 @@ type OrgHomeScreenProps = {
 export function OrgHomeScreen({ orgId }: OrgHomeScreenProps) {
   const router = useRouter();
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["mobile-orgs"],
     queryFn: fetchOrganizations,
   });
 
   const org = data?.organizations.find((item) => item.id === orgId) ?? null;
+  const isOrgLoading = isLoading && !org;
 
   return (
     <Screen scroll>
       <ScreenHeader
         kicker="Organization"
-        title={org?.name ?? "Organization home"}
-        subtitle="You are now in this organization."
+        title={isOrgLoading ? "Organization home" : org?.name ?? "Organization home"}
+        subtitle={isOrgLoading ? "Loading organization details..." : "You are now in this organization."}
       />
 
       <Card padding="lg" style={styles.orgCard}>
         <View style={styles.orgRow}>
           <Avatar imageUri={org?.image} label={getInitials(org?.name ?? orgId)} tintId={orgId} size="lg" />
           <View style={styles.orgTextWrap}>
-            <Badge label={org ? "Active organization" : "Unknown organization"} tone={org ? "success" : "neutral"} dotted />
+            <Badge
+              label={isOrgLoading ? "Loading organization" : org ? "Active organization" : "Unknown organization"}
+              tone={isOrgLoading ? "neutral" : org ? "success" : "neutral"}
+              dotted
+            />
           </View>
         </View>
       </Card>

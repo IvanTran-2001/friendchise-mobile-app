@@ -51,14 +51,13 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         mode: effectivePreferences.mode,
         sort: effectivePreferences.sortMode,
         search: debouncedSearch,
-        limit: debouncedSearch.trim() ? 100 : undefined,
         singlePage: Boolean(debouncedSearch.trim()),
       }),
     enabled: isHydrated && isSearchHydrated,
     placeholderData: keepPreviousData,
   });
 
-  const hasMoreMatches = !!effectiveSearch.trim() && !!data?.nextCursor;
+  const hasMoreMatches = !!debouncedSearch.trim() && !!data?.nextCursor;
   const footer = hasMoreMatches ? (
     <TaskListFooter message="Showing the first 100 matches. Narrow your search to see more results." />
   ) : null;

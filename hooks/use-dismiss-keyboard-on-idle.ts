@@ -6,6 +6,10 @@ type UseDismissKeyboardOnIdleOptions = {
   ignoreEmpty?: boolean;
 };
 
+/**
+ * Dismisses the keyboard after a period of inactivity.
+ * Keyboard.dismiss is global, so it may blur whichever input is currently focused.
+ */
 export function useDismissKeyboardOnIdle(
   value: string,
   delayMs: number,

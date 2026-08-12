@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { ScanLine } from "lucide-react-native";
+import { ScanLine, type LucideIcon } from "lucide-react-native";
 
 export type ToolItem = {
   id: string;
   title: string;
   subtitle: string;
   keywords: string[];
-  icon: typeof ScanLine;
+  icon: LucideIcon;
   href: string;
 };
 
