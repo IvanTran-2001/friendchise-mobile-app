@@ -67,7 +67,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
     return () => {
       cancelled = true;
     };
-  }, [needsResolution, orgId, sanitizedHtml]);
+  }, [needsResolution, orgId, sanitizedHtml, queryClient]);
 
   if (!blocks) {
     return null;

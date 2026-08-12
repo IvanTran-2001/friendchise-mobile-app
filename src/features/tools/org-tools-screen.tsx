@@ -22,7 +22,6 @@ export function OrgToolsScreen() {
       onChangeSearch={setSearch}
       placeholder="Search tools"
       containerStyle={styles.container}
-      searchDockStyle={styles.searchDock}
       searchShellStyle={styles.searchShell}
     >
       {({ onScroll }) => (
@@ -65,14 +64,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm + 2,
     paddingBottom: spacing.lg,
     backgroundColor: colors.background,
-  },
-  searchDock: {
-    position: "absolute",
-    top: spacing.sm + 2,
-    left: spacing.lg,
-    right: spacing.lg,
-    zIndex: 10,
-    elevation: 3,
   },
   searchShell: {
     borderRadius: radius.lg,
