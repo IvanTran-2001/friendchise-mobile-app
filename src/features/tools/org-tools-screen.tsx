@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FlatList, StyleSheet } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { CollapsibleSearchDock } from "../../../components/ui/collapsible-search-dock";
 import { Card } from "../../../components/ui/card";
@@ -8,12 +8,12 @@ import { ListRow } from "../../../components/ui/list-row";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { colors, radius, shadows, spacing } from "../../lib/theme";
 import { useOrgTools } from "./org-tools";
+import { useOrgIdParam } from "../../../hooks/use-org-id-param";
 
 export function OrgToolsScreen() {
   const [search, setSearch] = useState("");
-  const params = useLocalSearchParams<{ orgId?: string | string[] }>();
   const router = useRouter();
-  const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
+  const orgId = useOrgIdParam();
   const hasSearch = search.trim().length > 0;
   const { filteredTools } = useOrgTools(orgId, search);
 

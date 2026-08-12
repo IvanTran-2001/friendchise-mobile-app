@@ -172,6 +172,16 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
                   </View>
                 )
               }
+              ListFooterComponent={
+                images.length > 0 && queryError ? (
+                  <View style={styles.emptyState}>
+                    <Text variant="caption" tone="danger" align="center">
+                      {queryError instanceof Error ? queryError.message : "Failed to load images."}
+                    </Text>
+                    <Button label="Retry" variant="outline" onPress={() => void refetch()} />
+                  </View>
+                ) : null
+              }
               renderItem={({ item }) => (
                 <DeleteableImageTile
                   item={item}

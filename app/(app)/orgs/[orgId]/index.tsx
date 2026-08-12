@@ -1,9 +1,8 @@
-import { useLocalSearchParams } from "expo-router";
 import { OrgHomeScreen } from "../../../../src/features/orgs/org-home-screen";
+import { useOrgIdParam } from "../../../../hooks/use-org-id-param";
 
 export default function OrgHomeRoute() {
-  const params = useLocalSearchParams<{ orgId?: string | string[] }>();
-  const orgId = Array.isArray(params.orgId) ? params.orgId[0] : params.orgId;
+  const orgId = useOrgIdParam();
 
   return <OrgHomeScreen orgId={orgId} />;
 }

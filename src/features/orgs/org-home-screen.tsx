@@ -53,7 +53,7 @@ export function OrgHomeScreen({ orgId }: OrgHomeScreenProps) {
           subtitle="View and search organization tasks"
           leading={<ListTodo size={20} strokeWidth={2.1} color={colors.textPrimary} />}
           trailing="chevron"
-          onPress={() => orgId && router.push(`/(app)/orgs/${orgId}/tasks`)}
+          onPress={orgId ? () => router.push({ pathname: "/(app)/orgs/[orgId]/tasks", params: { orgId } }) : undefined}
         />
       </Card>
     </Screen>

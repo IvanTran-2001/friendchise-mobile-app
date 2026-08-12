@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
-  Keyboard,
   StyleSheet,
   TextInput,
   View,
@@ -78,7 +77,6 @@ export function CollapsibleSearchDock({
     }
 
     inputRef.current?.blur();
-    Keyboard.dismiss();
     searchVisibleRef.current = false;
     setSearchVisible(false);
     Animated.parallel([

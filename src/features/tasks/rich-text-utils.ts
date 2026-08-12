@@ -27,9 +27,11 @@ export function normalizeRichText(value?: string) {
     return "";
   }
 
-  if (isEmptyRichTextHtml(trimmed)) {
+  const sanitized = sanitizeRichTextHtml(trimmed);
+
+  if (isEmptyRichTextHtml(sanitized)) {
     return "";
   }
 
-  return sanitizeRichTextHtml(trimmed);
+  return sanitized;
 }
