@@ -164,6 +164,10 @@ function isSafeUri(rawValue: string, tagName: string, attributeName: string) {
     return false;
   }
 
+  if (trimmed.startsWith("//")) {
+    return false;
+  }
+
   const allowedImageDataMimeTypes = [
     "data:image/png",
     "data:image/jpeg",

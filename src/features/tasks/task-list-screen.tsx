@@ -18,6 +18,8 @@ type TaskListScreenProps = {
   orgId?: string;
 };
 
+const TASK_PAGE_SIZE = 100;
+
 export function TaskListScreen({ orgId }: TaskListScreenProps) {
   const router = useRouter();
   const {
@@ -51,6 +53,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         mode: effectivePreferences.mode,
         sort: effectivePreferences.sortMode,
         search: debouncedSearch,
+        limit: TASK_PAGE_SIZE,
         singlePage: Boolean(debouncedSearch.trim()),
       }),
     enabled: isHydrated && isSearchHydrated,
@@ -59,7 +62,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
 
   const hasMoreMatches = !!debouncedSearch.trim() && !!data?.nextCursor;
   const footer = hasMoreMatches ? (
-    <TaskListFooter message="Showing the first 100 matches. Narrow your search to see more results." />
+    <TaskListFooter message={`Showing the first ${TASK_PAGE_SIZE} matches. Narrow your search to see more results.`} />
   ) : null;
 
   const navbarActions = useMemo(

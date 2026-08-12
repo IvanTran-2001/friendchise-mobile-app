@@ -9,6 +9,7 @@ import { Card } from "../../../components/ui/card";
 import { ListRow } from "../../../components/ui/list-row";
 import { Screen } from "../../../components/ui/screen";
 import { ScreenHeader } from "../../../components/ui/screen-header";
+import { ErrorState, LoadingState } from "../../../components/ui/state-views";
 import { colors, spacing } from "../../lib/theme";
 
 type OrgHomeScreenProps = {
@@ -18,7 +19,7 @@ type OrgHomeScreenProps = {
 export function OrgHomeScreen({ orgId }: OrgHomeScreenProps) {
   const router = useRouter();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["mobile-orgs"],
     queryFn: fetchOrganizations,
   });
@@ -34,18 +35,28 @@ export function OrgHomeScreen({ orgId }: OrgHomeScreenProps) {
         subtitle={isOrgLoading ? "Loading organization details..." : "You are now in this organization."}
       />
 
-      <Card padding="lg" style={styles.orgCard}>
-        <View style={styles.orgRow}>
-          <Avatar imageUri={org?.image} label={getInitials(org?.name ?? orgId)} tintId={orgId} size="lg" />
-          <View style={styles.orgTextWrap}>
-            <Badge
-              label={isOrgLoading ? "Loading organization" : org ? "Active organization" : "Unknown organization"}
-              tone={isOrgLoading ? "neutral" : org ? "success" : "neutral"}
-              dotted
-            />
+      {isOrgLoading ? (
+        <Card padding="lg" style={styles.orgCard}>
+          <LoadingState message="Loading organization details." />
+        </Card>
+      ) : error && !org ? (
+        <Card padding="lg" style={styles.orgCard}>
+          <ErrorState onRetry={() => void refetch()} />
+        </Card>
+      ) : (
+        <Card padding="lg" style={styles.orgCard}>
+          <View style={styles.orgRow}>
+            <Avatar imageUri={org?.image} label={getInitials(org?.name ?? orgId)} tintId={orgId} size="lg" />
+            <View style={styles.orgTextWrap}>
+              <Badge
+                label={org ? "Active organization" : "Unknown organization"}
+                tone={org ? "success" : "neutral"}
+                dotted
+              />
+            </View>
           </View>
-        </View>
-      </Card>
+        </Card>
+      )}
 
       <Card padding="sm">
         <ListRow
