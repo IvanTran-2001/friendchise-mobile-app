@@ -83,32 +83,30 @@ function getNonOrgTabs(): BottomTab[] {
 }
 
 function getOrgTabs(currentOrgId: string, pathname: string): BottomTab[] {
-  const orgPath = `/orgs/${currentOrgId}`;
-  const isHomeRoute = pathname === orgPath;
-  const isTasksRoute = pathname === `${orgPath}/tasks` || pathname.startsWith(`${orgPath}/tasks/`);
-  const isToolsRoute = pathname === `${orgPath}/tools` || pathname.startsWith(`${orgPath}/tools/`);
-  const orgHomeHref = `/(app)/orgs/${currentOrgId}`;
-  const tasksHref = `/(app)/orgs/${currentOrgId}/tasks`;
-  const toolsHref = `/(app)/orgs/${currentOrgId}/tools`;
+  const orgRouteBase = `/orgs/${currentOrgId}`;
+  const appOrgRouteBase = `/(app)/orgs/${currentOrgId}`;
+  const isHomeRoute = pathname === orgRouteBase;
+  const isTasksRoute = pathname === `${orgRouteBase}/tasks` || pathname.startsWith(`${orgRouteBase}/tasks/`);
+  const isToolsRoute = pathname === `${orgRouteBase}/tools` || pathname.startsWith(`${orgRouteBase}/tools/`);
 
   return [
     {
       label: "Home",
       icon: Building2,
       active: isHomeRoute,
-      href: orgHomeHref,
+      href: appOrgRouteBase,
     },
     {
       label: "Tasks",
       icon: ListTodo,
       active: isTasksRoute,
-      href: tasksHref,
+      href: `${appOrgRouteBase}/tasks`,
     },
     {
       label: "Tools",
       icon: Wrench,
       active: isToolsRoute,
-      href: toolsHref,
+      href: `${appOrgRouteBase}/tools`,
     },
   ];
 }

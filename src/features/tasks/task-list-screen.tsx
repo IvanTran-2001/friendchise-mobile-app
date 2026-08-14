@@ -40,6 +40,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
   const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
   const effectiveSearch = search;
   const debouncedSearch = useDebouncedValue(effectiveSearch, 150);
+  const isSearchSettled = debouncedSearch === effectiveSearch;
   const { data, isLoading, error } = useQuery({
     queryKey: [
       "tasks",
@@ -56,9 +57,11 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         limit: TASK_PAGE_SIZE,
         singlePage: Boolean(debouncedSearch.trim()),
       }),
-    enabled: isHydrated && isSearchHydrated,
+    enabled: isHydrated && isSearchHydrated && isSearchSettled,
     placeholderData: keepPreviousData,
   });
+
+  const isTasksLoading = isLoading || !isHydrated || !isSearchHydrated || (!isSearchSettled && !data);
 
   const hasMoreMatches = !!debouncedSearch.trim() && !!data?.nextCursor;
   const footer = hasMoreMatches ? (
@@ -123,7 +126,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
         <TaskListView
           orgId={orgId}
           tasks={data?.tasks ?? []}
-          isLoading={isLoading || !isHydrated || !isSearchHydrated}
+          isLoading={isTasksLoading}
           error={error}
           search={effectiveSearch}
           viewMode={effectivePreferences.viewMode}

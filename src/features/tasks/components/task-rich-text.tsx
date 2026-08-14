@@ -34,8 +34,12 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
   /** Sanitized HTML that strips unsafe tags and URI schemes before rendering. */
   const sanitizedHtml = useMemo(() => sanitizeRichTextHtml(renderedHtml), [renderedHtml]);
   const needsResolution = useMemo(() => !!orgId && sanitizedHtml.includes(`orgs/${orgId}/`), [orgId, sanitizedHtml]);
+  const unresolvedHtml = useMemo(
+    () => (needsResolution && orgId ? stripOrgOwnedImages(sanitizedHtml, orgId) : sanitizedHtml),
+    [needsResolution, orgId, sanitizedHtml],
+  );
   /** Final HTML source passed to the renderer. */
-  const [htmlSource, setHtmlSource] = useState(sanitizedHtml);
+  const [htmlSource, setHtmlSource] = useState(unresolvedHtml);
   /** Width of the actual content column inside the surrounding card/list layout. */
   const [contentWidth, setContentWidth] = useState(0);
 
@@ -44,7 +48,7 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
     /** Prevents stale async image lookups from updating unmounted state. */
     let cancelled = false;
 
-    setHtmlSource(sanitizedHtml);
+    setHtmlSource(unresolvedHtml);
 
     if (!needsResolution) {
       return () => {
@@ -60,14 +64,14 @@ export function TaskRichText({ source, orgId }: TaskRichTextProps) {
       })
       .catch(() => {
         if (!cancelled) {
-          setHtmlSource(sanitizedHtml);
+          setHtmlSource(unresolvedHtml);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [needsResolution, orgId, sanitizedHtml, queryClient]);
+  }, [needsResolution, orgId, sanitizedHtml, queryClient, unresolvedHtml]);
 
   if (!blocks) {
     return null;
@@ -129,7 +133,14 @@ async function resolveHtmlWithSignedImageUrls(queryClient: QueryClient, orgId: s
           path,
           await queryClient.fetchQuery({
             queryKey: ["task-rich-text-image-url", orgId, path],
-            queryFn: () => getRichTextImageReadUrl(orgId, path),
+            queryFn: async () => {
+              const signedUrl = await getRichTextImageReadUrl(orgId, path);
+              if (!signedUrl) {
+                throw new Error("Failed to resolve image URL.");
+              }
+
+              return signedUrl;
+            },
             staleTime: 5 * 60 * 1000,
           }),
         ] as const;
@@ -154,6 +165,12 @@ async function resolveHtmlWithSignedImageUrls(queryClient: QueryClient, orgId: s
   }
 
   return nextHtml;
+}
+
+function stripOrgOwnedImages(html: string, orgId: string) {
+  return html.replace(/<img\b[^>]*src=["']orgs\/[^"']+["'][^>]*>/gi, (match) =>
+    match.includes(`src="orgs/${orgId}/"`) || match.includes(`src='orgs/${orgId}/'`) ? "" : match,
+  );
 }
 
 /** Shared base text style used by the HTML renderer. */

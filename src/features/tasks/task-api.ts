@@ -134,9 +134,10 @@ export async function getTasks(
       params.set("cursor", cursor);
     }
     params.set("limit", String(options.limit ?? 100));
+    const encodedOrgId = encodeURIComponent(activeOrg.orgId);
 
     const response = await apiFetch<{ tasks: MobileTaskResponse[]; nextCursor: string | null }>(
-      `/api/orgs/${activeOrg.orgId}/tasks/paginated?${params.toString()}`,
+      `/api/orgs/${encodedOrgId}/tasks/paginated?${params.toString()}`,
     );
 
     tasks.push(

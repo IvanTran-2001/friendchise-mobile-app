@@ -82,6 +82,24 @@ type SaveImageResponse = {
   };
 };
 
+function isSignedUpload(value: unknown): value is SignedUploadResponse {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof (value as { signedUrl?: unknown }).signedUrl === "string" &&
+    typeof (value as { path?: unknown }).path === "string"
+  );
+}
+
+function isSavedImage(value: unknown): value is SaveImageResponse["image"] {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof (value as { storagePath?: unknown }).storagePath === "string" &&
+    typeof (value as { signedUrl?: unknown }).signedUrl === "string"
+  );
+}
+
 /**
  * Uploads a picked image to the org library and returns the saved image row.
  */
@@ -98,13 +116,9 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     });
 
     const uploadPayload = (await uploadResponse.json().catch(() => null)) as SignedUploadResponse | { error?: string } | null;
-    const uploadData = uploadPayload && typeof uploadPayload === "object" ? uploadPayload : null;
-    const signedUrl = uploadData && typeof (uploadData as { signedUrl?: unknown }).signedUrl === "string"
-      ? (uploadData as { signedUrl: string }).signedUrl
-      : null;
-    const path = uploadData && typeof (uploadData as { path?: unknown }).path === "string"
-      ? (uploadData as { path: string }).path
-      : null;
+    const uploadData = isSignedUpload(uploadPayload) ? uploadPayload : null;
+    const signedUrl = uploadData?.signedUrl ?? null;
+    const path = uploadData?.path ?? null;
 
     if (
       !uploadResponse.ok ||
@@ -150,18 +164,9 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     });
 
     const savePayload = (await saveResponse.json().catch(() => null)) as SaveImageResponse | { error?: string } | null;
-    const savedImage =
-      savePayload &&
-      typeof savePayload === "object" &&
-      "image" in savePayload &&
-      savePayload.image &&
-      typeof savePayload.image === "object" &&
-      typeof (savePayload.image as { storagePath?: unknown }).storagePath === "string" &&
-      (savePayload.image as { storagePath: string }).storagePath.trim() &&
-      typeof (savePayload.image as { signedUrl?: unknown }).signedUrl === "string" &&
-      (savePayload.image as { signedUrl: string }).signedUrl.trim()
-        ? (savePayload.image as SaveImageResponse["image"])
-        : null;
+    const savedImage = savePayload && typeof savePayload === "object" && "image" in savePayload && isSavedImage(savePayload.image)
+      ? savePayload.image
+      : null;
 
     if (!saveResponse.ok || !savedImage) {
       try {

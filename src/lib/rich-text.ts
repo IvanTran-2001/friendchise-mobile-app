@@ -134,6 +134,8 @@ export function isHtmlRichText(value: string) {
 function buildAttributes(tagName: string, attribs: Record<string, string>) {
   const allowed = ALLOWED_ATTRIBUTES[tagName] ?? [];
   let result = "";
+  let hasTarget = false;
+  let relValue: string | null = null;
 
   for (const [rawName, rawValue] of Object.entries(attribs)) {
     const name = rawName.toLowerCase();
@@ -146,12 +148,34 @@ function buildAttributes(tagName: string, attribs: Record<string, string>) {
       continue;
     }
 
+    if (tagName === "a" && name === "target") {
+      hasTarget = true;
+    }
+
+    if (tagName === "a" && name === "rel") {
+      relValue = rawValue.trim();
+      continue;
+    }
+
     if (BOOLEAN_ATTRIBUTES.has(name)) {
       result += ` ${name}`;
       continue;
     }
 
     result += ` ${name}="${escapeHtml(rawValue)}"`;
+  }
+
+  if (tagName === "a" && hasTarget) {
+    const relTokens = relValue ? relValue.split(/\s+/).filter(Boolean) : [];
+    if (!relTokens.includes("noopener")) {
+      relTokens.push("noopener");
+    }
+    if (!relTokens.includes("noreferrer")) {
+      relTokens.push("noreferrer");
+    }
+    result += ` rel="${escapeHtml(relTokens.join(" "))}"`;
+  } else if (relValue !== null) {
+    result += ` rel="${escapeHtml(relValue)}"`;
   }
 
   return result;

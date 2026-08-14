@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { Alert, FlatList, Image, Pressable, StyleSheet, View } from "react-native";
 import { Camera, Check, ImagePlus, Trash2, Upload } from "lucide-react-native";
 import { SheetModal } from "./sheet-modal";
@@ -101,6 +101,19 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
     }
   }, [closePicker, onChange, uploadImage]);
 
+  const renderTile = useCallback(
+    ({ item }: { item: OrgImage }) => (
+      <DeleteableImageTile
+        item={item}
+        selected={value?.storagePath === item.storagePath}
+        deleting={deletingId === item.id}
+        onSelect={handleSelect}
+        onDelete={handleDelete}
+      />
+    ),
+    [deletingId, handleDelete, handleSelect, value?.storagePath],
+  );
+
   return (
     <>
       <Pressable
@@ -182,15 +195,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
                   </View>
                 ) : null
               }
-              renderItem={({ item }) => (
-                <DeleteableImageTile
-                  item={item}
-                  selected={value?.storagePath === item.storagePath}
-                  deleting={deletingId === item.id}
-                  onSelect={handleSelect}
-                  onDelete={handleDelete}
-                />
-              )}
+              renderItem={renderTile}
             />
           </View>
         )}
@@ -229,7 +234,7 @@ function getSelectedImageLabel(image: SelectedImage | null) {
 /**
  * Renders a normal image tile or a placeholder while deletion is in progress.
  */
-function DeleteableImageTile({
+const DeleteableImageTile = memo(function DeleteableImageTile({
   item,
   selected,
   deleting,
@@ -244,6 +249,8 @@ function DeleteableImageTile({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={() => onSelect(item)}
       disabled={deleting}
       style={({ pressed }) => [styles.imageTile, pressed ? styles.imageTilePressed : null, deleting ? styles.imageTileDeleting : null]}
@@ -258,7 +265,6 @@ function DeleteableImageTile({
         </View>
       ) : (
         <>
-          <Image source={{ uri: item.signedUrl }} style={styles.image} />
           {selected ? (
             <View style={styles.imageOverlay}>
               <Check size={14} color={colors.textInverse} strokeWidth={2.6} />
@@ -286,7 +292,7 @@ function DeleteableImageTile({
       )}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   trigger: {

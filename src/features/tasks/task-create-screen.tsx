@@ -193,6 +193,7 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Select ${option.name} color (${option.value})`}
+                  accessibilityState={{ selected: active }}
                 >
                   {active ? <Check size={16} color={colors.textInverse} strokeWidth={2.6} /> : null}
                 </Pressable>
