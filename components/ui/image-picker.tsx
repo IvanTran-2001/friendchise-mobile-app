@@ -4,7 +4,7 @@ import { Camera, Check, ImagePlus, Trash2, Upload } from "lucide-react-native";
 import { SheetModal } from "./sheet-modal";
 import { Text } from "./text";
 import { Button } from "./button";
-import { TextField } from "./text-field";
+import { SearchField } from "./index";
 import { colors, radius, spacing } from "../../src/lib/theme";
 import { type OrgImage } from "../../src/features/tasks/task-image-api";
 import { useOrgImageLibrary } from "../../src/features/tasks/use-org-image-library";
@@ -138,7 +138,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
           </View>
         ) : (
           <View style={styles.libraryPane}>
-            <TextField value={search} onChangeText={setSearch} placeholder="Search images…" autoCapitalize="none" autoCorrect={false} />
+            <SearchField value={search} onChangeText={setSearch} placeholder="Search images…" />
             {actionError ? <Text variant="caption" tone="danger" align="center">{actionError}</Text> : null}
             <FlatList
               data={images}

@@ -208,5 +208,5 @@ export function toRichTextHtml(value: string) {
     return sanitizeRichTextHtml(trimmed);
   }
 
-  return `<p>${escapeHtml(trimmed)}</p>`;
+  return `<p>${escapeHtml(trimmed).replace(/\r\n|\r|\n/g, "<br>")}</p>`;
 }
