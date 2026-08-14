@@ -125,6 +125,7 @@ function ToolbarButton({
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ selected: active }}
+      hitSlop={8}
       onPress={onPress}
       style={[styles.button, active ? styles.buttonActive : null]}
     >

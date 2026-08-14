@@ -100,6 +100,13 @@ function isSavedImage(value: unknown): value is SaveImageResponse["image"] {
   );
 }
 
+async function removeOrphanedUpload(encodedOrgId: string, storagePath: string) {
+  await authenticatedFetch(`/api/orgs/${encodedOrgId}/images`, {
+    method: "DELETE",
+    body: JSON.stringify({ storagePath }),
+  });
+}
+
 /**
  * Uploads a picked image to the org library and returns the saved image row.
  */
@@ -155,13 +162,24 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
       throw new Error("Upload failed. Please try again.");
     }
 
-    const saveResponse = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images`, {
-      method: "POST",
-      body: JSON.stringify({
-        storagePath: path,
-        name: asset.fileName ?? "image",
-      }),
-    });
+    let saveResponse: Response;
+    try {
+      saveResponse = await authenticatedFetch(`/api/orgs/${encodedOrgId}/images`, {
+        method: "POST",
+        body: JSON.stringify({
+          storagePath: path,
+          name: asset.fileName ?? "image",
+        }),
+      });
+    } catch (error) {
+      try {
+        await removeOrphanedUpload(encodedOrgId, path);
+      } catch {
+        // Best effort cleanup; preserve the original save error either way.
+      }
+
+      throw error;
+    }
 
     const savePayload = (await saveResponse.json().catch(() => null)) as SaveImageResponse | { error?: string } | null;
     const savedImage = savePayload && typeof savePayload === "object" && "image" in savePayload && isSavedImage(savePayload.image)
@@ -170,10 +188,7 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
 
     if (!saveResponse.ok || !savedImage) {
       try {
-        await authenticatedFetch(`/api/orgs/${encodedOrgId}/images`, {
-          method: "DELETE",
-          body: JSON.stringify({ storagePath: path }),
-        });
+        await removeOrphanedUpload(encodedOrgId, path);
       } catch {
         // Best effort cleanup; preserve the existing save error either way.
       }

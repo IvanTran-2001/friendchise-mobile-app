@@ -247,10 +247,13 @@ const DeleteableImageTile = memo(function DeleteableImageTile({
   onSelect: (image: OrgImage) => void;
   onDelete: (image: OrgImage) => void;
 }) {
+  const label = item.name ?? item.storagePath.split("/").pop() ?? "image";
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      accessibilityLabel={`Select ${label}`}
       onPress={() => onSelect(item)}
       disabled={deleting}
       style={({ pressed }) => [styles.imageTile, pressed ? styles.imageTilePressed : null, deleting ? styles.imageTileDeleting : null]}
@@ -265,6 +268,7 @@ const DeleteableImageTile = memo(function DeleteableImageTile({
         </View>
       ) : (
         <>
+          <Image source={{ uri: item.signedUrl }} style={styles.image} />
           {selected ? (
             <View style={styles.imageOverlay}>
               <Check size={14} color={colors.textInverse} strokeWidth={2.6} />

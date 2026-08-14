@@ -41,7 +41,7 @@ const ALLOWED_TAGS = new Set([
 
 const VOID_TAGS = new Set(["br", "img", "source"]);
 /** Tags whose raw content (scripts, styles) must never reach the output. */
-const RAW_TEXT_TAGS = new Set(["script", "style"]);
+const RAW_TEXT_TAGS = new Set(["script", "style", "iframe"]);
 const SAFE_URI_PATTERN = /^(https?:|mailto:|tel:|#|\/|orgs\/)/i;
 const BOOLEAN_ATTRIBUTES = new Set(["controls", "autoplay", "loop", "muted", "playsinline", "allowfullscreen"]);
 const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
@@ -217,6 +217,8 @@ function isSafeUri(rawValue: string, tagName: string, attributeName: string) {
 
   return SAFE_URI_PATTERN.test(trimmed);
 }
+
+export { isSafeUri };
 
 /**
  * Normalizes a value into HTML rich text for shared UI inputs.

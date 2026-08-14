@@ -8,6 +8,8 @@ import { getRichTextImageReadUrl } from "../task-image-api";
 import { isHtmlRichText, sanitizeRichTextHtml } from "../rich-text-utils";
 
 const markdownParser = new MarkdownIt({ html: true, breaks: true, linkify: true });
+/** Cache signed rich-text image URLs for less than their 1-hour lifetime. */
+const SIGNED_URL_CACHE_STALE_TIME_MS = 45 * 60 * 1000;
 
 /**
  * Renders task descriptions as web-style markdown rich text.
@@ -135,13 +137,10 @@ async function resolveHtmlWithSignedImageUrls(queryClient: QueryClient, orgId: s
             queryKey: ["task-rich-text-image-url", orgId, path],
             queryFn: async () => {
               const signedUrl = await getRichTextImageReadUrl(orgId, path);
-              if (!signedUrl) {
-                throw new Error("Failed to resolve image URL.");
-              }
-
-              return signedUrl;
+              return signedUrl ?? null;
             },
-            staleTime: 5 * 60 * 1000,
+              retry: false,
+              staleTime: SIGNED_URL_CACHE_STALE_TIME_MS,
           }),
         ] as const;
       } catch {
@@ -168,9 +167,10 @@ async function resolveHtmlWithSignedImageUrls(queryClient: QueryClient, orgId: s
 }
 
 function stripOrgOwnedImages(html: string, orgId: string) {
-  return html.replace(/<img\b[^>]*src=["']orgs\/[^"']+["'][^>]*>/gi, (match) =>
-    match.includes(`src="orgs/${orgId}/"`) || match.includes(`src='orgs/${orgId}/'`) ? "" : match,
-  );
+  const escapedOrgId = orgId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const orgImagePattern = new RegExp(`<img\\b[^>]*src=(["'])orgs\\/${escapedOrgId}\\/[^"']*\\1[^>]*>`, "gi");
+
+  return html.replace(orgImagePattern, "");
 }
 
 /** Shared base text style used by the HTML renderer. */
