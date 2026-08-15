@@ -49,6 +49,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
     refetch,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     fetchNextPage,
     uploading,
     deletingId,
@@ -114,6 +115,10 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
     [deletingId, handleDelete, handleSelect, value?.storagePath],
   );
 
+  const handleRetry = useCallback(() => {
+    void (isFetchNextPageError ? fetchNextPage() : refetch());
+  }, [fetchNextPage, isFetchNextPageError, refetch]);
+
   return (
     <>
       <Pressable
@@ -174,7 +179,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
                     <Text variant="caption" tone="danger" align="center">
                       {queryError instanceof Error ? queryError.message : "Failed to load images."}
                     </Text>
-                    <Button label="Retry" variant="outline" onPress={() => void refetch()} />
+                    <Button label="Retry" variant="outline" onPress={handleRetry} />
                   </View>
                 ) : (
                   <View style={styles.emptyState}>
@@ -191,7 +196,7 @@ export function ImagePicker({ orgId, value, onChange, label = "Image", helperTex
                     <Text variant="caption" tone="danger" align="center">
                       {queryError instanceof Error ? queryError.message : "Failed to load images."}
                     </Text>
-                    <Button label="Retry" variant="outline" onPress={() => void refetch()} />
+                    <Button label="Retry" variant="outline" onPress={handleRetry} />
                   </View>
                 ) : null
               }

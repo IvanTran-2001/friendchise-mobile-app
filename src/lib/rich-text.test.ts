@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSafeUri, sanitizeRichTextHtml } from "./rich-text";
+import { isSafeUri, sanitizeRichTextHtml, toRichTextHtml } from "./rich-text";
 
 describe("sanitizeRichTextHtml", () => {
   it("removes raw-text content, iframe content, and keeps allowlisted void and boolean attributes", () => {
@@ -27,5 +27,11 @@ describe("isSafeUri", () => {
     expect(isSafeUri("//example.com/image.png", "img", "src")).toBe(false);
     expect(isSafeUri("data:image/svg+xml;base64,PHN2Zy8+", "img", "src")).toBe(false);
     expect(isSafeUri("data:image/png;base64,iVBORw0KGgo=", "img", "src")).toBe(true);
+  });
+});
+
+describe("toRichTextHtml", () => {
+  it("escapes literal closing-tag text instead of treating it as HTML", () => {
+    expect(toRichTextHtml("Look </p> here")).toBe("<p>Look &lt;/p&gt; here</p>");
   });
 });

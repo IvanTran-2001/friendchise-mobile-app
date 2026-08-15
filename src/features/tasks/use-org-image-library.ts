@@ -124,6 +124,7 @@ export function useOrgImageLibrary({ orgId, search, enabled }: UseOrgImageLibrar
     refetch: imagesQuery.refetch,
     hasNextPage: imagesQuery.hasNextPage,
     isFetchingNextPage: imagesQuery.isFetchingNextPage,
+    isFetchNextPageError: imagesQuery.isFetchNextPageError,
     fetchNextPage: imagesQuery.fetchNextPage,
     uploading,
     deletingId,

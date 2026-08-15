@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { ScanLine, type LucideIcon } from "lucide-react-native";
+import type { Href } from "expo-router";
 
 export type ToolItem = {
   id: string;
@@ -7,7 +8,7 @@ export type ToolItem = {
   subtitle: string;
   keywords: string[];
   icon: LucideIcon;
-  href: string;
+  href: Href;
 };
 
 export function getOrgTools(orgId?: string): ToolItem[] {
@@ -19,7 +20,10 @@ export function getOrgTools(orgId?: string): ToolItem[] {
           subtitle: "Convert PDF or PNG scans into tasks.",
           keywords: ["scan", "task", "pdf", "png", "image"],
           icon: ScanLine,
-          href: `/(app)/orgs/${orgId}/tools/scan-to-task`,
+          href: {
+            pathname: "/(app)/orgs/[orgId]/tools/scan-to-task",
+            params: { orgId },
+          },
         },
       ]
     : [];

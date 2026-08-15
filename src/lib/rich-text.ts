@@ -52,7 +52,7 @@ const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
   source: ["src", "type"],
 };
 
-const HTML_TAG_PATTERN = new RegExp(`</?(?:${Array.from(ALLOWED_TAGS).join("|")})(?=[\\s>/])`, "i");
+const HTML_TAG_PATTERN = new RegExp(`<(?:${Array.from(ALLOWED_TAGS).join("|")})(?=[\\s>/])`, "i");
 
 /**
  * Removes unsafe tags, event handlers, and disallowed URI schemes from HTML.
