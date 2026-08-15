@@ -4,7 +4,7 @@ import { Camera, Check, ImagePlus, Trash2, Upload } from "lucide-react-native";
 import { SheetModal } from "./sheet-modal";
 import { Text } from "./text";
 import { Button } from "./button";
-import { SearchField } from "./index";
+import { SearchField } from "./search-field";
 import { colors, radius, spacing } from "../../src/lib/theme";
 import { type OrgImage } from "../../src/features/tasks/task-image-api";
 import { useOrgImageLibrary } from "../../src/features/tasks/use-org-image-library";

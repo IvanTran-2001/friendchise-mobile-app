@@ -137,14 +137,15 @@ async function resolveHtmlWithSignedImageUrls(queryClient: QueryClient, orgId: s
             queryKey: ["task-rich-text-image-url", orgId, path],
             queryFn: async () => {
               const signedUrl = await getRichTextImageReadUrl(orgId, path);
-                if (!signedUrl) {
+              if (!signedUrl) {
                 throw new Error("Failed to resolve image URL.");
-                }
+              }
 
-                return signedUrl;
+              return signedUrl;
             },
-              retry: false,
-              staleTime: SIGNED_URL_CACHE_STALE_TIME_MS,
+            retry: false,
+            staleTime: SIGNED_URL_CACHE_STALE_TIME_MS,
+            gcTime: SIGNED_URL_CACHE_STALE_TIME_MS,
           }),
         ] as const;
       } catch {

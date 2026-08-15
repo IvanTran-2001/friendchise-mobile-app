@@ -108,57 +108,49 @@ type MobileOrganizationResponse = {
 
 export async function getTasks(
   orgId?: string,
-  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string; limit?: number; singlePage?: boolean } = {},
+  options: { mode?: TaskMode; sort?: TaskSortMode; search?: string; limit?: number; cursor?: string | null } = {},
 ) {
   const activeOrg = orgId
     ? { orgId }
     : await apiFetch<MobileOrganizationResponse>("/api/mobile/me/organization");
 
   const tasks: TaskItem[] = [];
-  const singlePage = options.singlePage ?? false;
-  let cursor: string | null = null;
-  let nextCursor: string | null = null;
+  const params = new URLSearchParams();
+  if (options.mode && options.mode !== "shared") {
+    params.set("mode", options.mode);
+  }
+  if (options.sort && options.sort !== "name-asc") {
+    params.set("sort", options.sort);
+  }
+  if (options.search?.trim()) {
+    params.set("search", options.search.trim());
+  }
+  if (options.cursor) {
+    params.set("cursor", options.cursor);
+  }
+  params.set("limit", String(options.limit ?? 100));
+  const encodedOrgId = encodeURIComponent(activeOrg.orgId);
 
-  do {
-    const params = new URLSearchParams();
-    if (options.mode && options.mode !== "shared") {
-      params.set("mode", options.mode);
-    }
-    if (options.sort && options.sort !== "name-asc") {
-      params.set("sort", options.sort);
-    }
-    if (options.search?.trim()) {
-      params.set("search", options.search.trim());
-    }
-    if (cursor) {
-      params.set("cursor", cursor);
-    }
-    params.set("limit", String(options.limit ?? 100));
-    const encodedOrgId = encodeURIComponent(activeOrg.orgId);
+  const response = await apiFetch<{ tasks: MobileTaskResponse[]; nextCursor: string | null }>(
+    `/api/orgs/${encodedOrgId}/tasks/paginated?${params.toString()}`,
+  );
 
-    const response = await apiFetch<{ tasks: MobileTaskResponse[]; nextCursor: string | null }>(
-      `/api/orgs/${encodedOrgId}/tasks/paginated?${params.toString()}`,
-    );
+  tasks.push(
+    ...response.tasks.map((task) => ({
+      id: task.id,
+      orgId: task.orgId,
+      name: task.name,
+      color: task.color,
+      description: task.description,
+      durationMin: task.durationMin,
+      minPeople: task.minPeople,
+      createdAt: task.createdAt,
+      imageSignedUrl: task.imageSignedUrl ?? null,
+      _available: task._available,
+    })),
+  );
 
-    tasks.push(
-      ...response.tasks.map((task) => ({
-        id: task.id,
-        orgId: task.orgId,
-        name: task.name,
-        color: task.color,
-        description: task.description,
-        durationMin: task.durationMin,
-        minPeople: task.minPeople,
-        createdAt: task.createdAt,
-        imageSignedUrl: task.imageSignedUrl ?? null,
-        _available: task._available,
-      })),
-    );
-    cursor = response.nextCursor;
-    nextCursor = response.nextCursor;
-  } while (cursor && !singlePage);
-
-  return { tasks, nextCursor };
+  return { tasks, nextCursor: response.nextCursor };
 }
 
 export type TaskDetailItem = TaskItem & {

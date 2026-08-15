@@ -10,7 +10,7 @@ export function isEmptyRichTextHtml(value: string) {
     .replace(/&nbsp;/gi, " ")
     .replace(/<br\s*\/?\s*>/gi, "")
     .replace(/<\/?(p|div|span|strong|em|u|ul|ol|li|blockquote|h[1-6])[^>]*>/gi, " ")
-    .replace(/<(img|video|audio|source)\b[^>]*>/gi, " media ")
+    .replace(/<(img|video|audio)\b[^>]*>/gi, " media ")
     .replace(/<[^>]+>/g, "")
     .trim();
 

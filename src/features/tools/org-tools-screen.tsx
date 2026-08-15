@@ -8,12 +8,14 @@ import { ListRow } from "../../../components/ui/list-row";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { colors, radius, shadows, spacing } from "../../lib/theme";
 import { useOrgTools } from "./org-tools";
-import { useOrgIdParam } from "../../../hooks/use-org-id-param";
 
-export function OrgToolsScreen() {
+type OrgToolsScreenProps = {
+  orgId?: string;
+};
+
+export function OrgToolsScreen({ orgId }: OrgToolsScreenProps) {
   const [search, setSearch] = useState("");
   const router = useRouter();
-  const orgId = useOrgIdParam();
   const hasSearch = search.trim().length > 0;
   const { filteredTools } = useOrgTools(orgId, search);
 

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIsFocused } from "@react-navigation/native";
 import { getTasks } from "./task-api";
 import { colors, radius, shadows, spacing } from "../../lib/theme";
@@ -43,7 +43,8 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
   const effectiveSearch = search;
   const debouncedSearch = useDebouncedValue(effectiveSearch, 150);
   const isSearchSettled = debouncedSearch === effectiveSearch;
-  const { data, isLoading, error } = useQuery({
+  const isSearching = debouncedSearch.trim().length > 0;
+  const tasksQuery = useInfiniteQuery({
     queryKey: [
       "tasks",
       orgId ?? "current",
@@ -51,24 +52,34 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
       effectivePreferences.sortMode,
       debouncedSearch,
     ],
-    queryFn: () =>
+    queryFn: ({ pageParam = null }) =>
       getTasks(orgId, {
         mode: effectivePreferences.mode,
         sort: effectivePreferences.sortMode,
         search: debouncedSearch,
         limit: TASK_PAGE_SIZE,
-        singlePage: Boolean(debouncedSearch.trim()),
+        cursor: pageParam,
       }),
     enabled: isHydrated && isSearchHydrated && isSearchSettled,
-    placeholderData: keepPreviousData,
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => (isSearching ? undefined : lastPage.nextCursor),
   });
 
-  const isTasksLoading = isLoading || !isHydrated || !isSearchHydrated || (!isSearchSettled && !data);
+  const tasks = useMemo(() => tasksQuery.data?.pages.flatMap((page) => page.tasks) ?? [], [tasksQuery.data]);
+  const isTasksLoading = tasksQuery.isLoading || !isHydrated || !isSearchHydrated || (!isSearchSettled && !tasksQuery.data);
 
-  const hasMoreMatches = !!debouncedSearch.trim() && !!data?.nextCursor;
+  const hasMoreMatches = isSearching && !!tasksQuery.data?.pages[0]?.nextCursor;
+  const hasMoreTasks = !isSearching && tasksQuery.hasNextPage;
   const footer = hasMoreMatches ? (
     <TaskListFooter message={`Showing the first ${TASK_PAGE_SIZE} matches. Narrow your search to see more results.`} />
   ) : null;
+  const handleEndReached = useCallback(() => {
+    if (!hasMoreTasks || tasksQuery.isFetchingNextPage) {
+      return;
+    }
+
+    void tasksQuery.fetchNextPage();
+  }, [hasMoreTasks, tasksQuery]);
 
   const navbarActions = useMemo(
     () =>
@@ -127,14 +138,15 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
       {({ onScroll }) => (
         <TaskListView
           orgId={orgId}
-          tasks={data?.tasks ?? []}
+          tasks={tasks}
           isLoading={isTasksLoading}
-          error={error}
+          error={tasksQuery.error}
           search={effectiveSearch}
           viewMode={effectivePreferences.viewMode}
           hasActiveFilters={hasActiveFilters}
           footer={footer}
           onScroll={onScroll}
+          onEndReached={handleEndReached}
         />
       )}
     </CollapsibleSearchDock>

@@ -22,6 +22,7 @@ type TaskListViewProps = {
   header?: React.ReactElement | null;
   footer?: React.ReactElement | null;
   onScroll?: (event: any) => void;
+  onEndReached?: () => void;
 };
 
 export function TaskListView({
@@ -35,6 +36,7 @@ export function TaskListView({
   header,
   footer,
   onScroll,
+  onEndReached,
 }: TaskListViewProps) {
   const router = useRouter();
 
@@ -47,6 +49,8 @@ export function TaskListView({
       keyboardDismissMode="on-drag"
       scrollEventThrottle={16}
       onScroll={onScroll}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.4}
       ListHeaderComponent={header ?? null}
       ListFooterComponent={footer ?? null}
       renderItem={({ item }) => (

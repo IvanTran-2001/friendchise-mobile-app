@@ -24,6 +24,7 @@ export function SessionWatcher() {
 
       if (!token) {
         setAuthenticated(false);
+        router.replace("/(auth)/login");
         return;
       }
 
