@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useIsFocused } from "@react-navigation/native";
 import { getTasks } from "./task-api";
 import { colors, radius, shadows, spacing } from "../../lib/theme";
 import { useNavbarSetters } from "../../../components/layout/navbar-context";
@@ -36,6 +37,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
     setSearch,
   } = useTaskSearch(orgId);
   const { setActions } = useNavbarSetters();
+  const isFocused = useIsFocused();
 
   const effectivePreferences = isHydrated ? preferences : DEFAULT_TASK_UI_PREFERENCES;
   const effectiveSearch = search;
@@ -106,7 +108,7 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
     }, [navbarActions, setActions]),
   );
 
-  useDismissKeyboardOnIdle(effectiveSearch, 1000, { enabled: isSearchHydrated });
+  useDismissKeyboardOnIdle(effectiveSearch, 1000, { enabled: isSearchHydrated && isFocused });
 
   const hasActiveFilters =
     effectiveSearch.trim().length > 0 ||
