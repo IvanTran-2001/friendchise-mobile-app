@@ -121,18 +121,18 @@ type TextToken = {
 };
 
 export const typography: Record<string, TextToken> = {
-  display: { fontSize: 32, fontWeight: "800", lineHeight: 38, letterSpacing: -0.4 },
-  title: { fontSize: 24, fontWeight: "800", lineHeight: 30, letterSpacing: -0.3 },
-  heading: { fontSize: 18, fontWeight: "700", lineHeight: 24, letterSpacing: -0.1 },
-  bodyLarge: { fontSize: 16, fontWeight: "500", lineHeight: 23 },
-  body: { fontSize: 15, fontWeight: "500", lineHeight: 21 },
-  bodyStrong: { fontSize: 15, fontWeight: "700", lineHeight: 21 },
-  caption: { fontSize: 13, fontWeight: "500", lineHeight: 18 },
-  captionStrong: { fontSize: 13, fontWeight: "700", lineHeight: 18 },
+  display: { fontSize: 30, fontWeight: "800", lineHeight: 36, letterSpacing: -0.4 },
+  title: { fontSize: 22, fontWeight: "800", lineHeight: 28, letterSpacing: -0.3 },
+  heading: { fontSize: 17, fontWeight: "700", lineHeight: 22, letterSpacing: -0.1 },
+  bodyLarge: { fontSize: 15, fontWeight: "500", lineHeight: 21 },
+  body: { fontSize: 14, fontWeight: "500", lineHeight: 20 },
+  bodyStrong: { fontSize: 14, fontWeight: "700", lineHeight: 20 },
+  caption: { fontSize: 12, fontWeight: "500", lineHeight: 16 },
+  captionStrong: { fontSize: 12, fontWeight: "700", lineHeight: 16 },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    lineHeight: 14,
+    lineHeight: 13,
     letterSpacing: 1,
     textTransform: "uppercase",
   },

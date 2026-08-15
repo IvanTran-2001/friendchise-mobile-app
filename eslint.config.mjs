@@ -4,6 +4,6 @@ import expoConfig from "eslint-config-expo/flat.js";
 export default defineConfig([
   expoConfig,
   {
-    ignores: ["**/node_modules/**", "**/.expo/**", "**/dist/**"],
+    ignores: ["eslint.config.mjs", "**/node_modules/**", "**/.expo/**", "**/dist/**"],
   },
 ]);

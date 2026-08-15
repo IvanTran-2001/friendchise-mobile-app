@@ -1,4 +1,4 @@
-import { FlatList, Image, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Image, Pressable, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { ListChecks } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { TaskItem } from "../task-api";
@@ -20,7 +20,9 @@ type TaskListViewProps = {
   viewMode: TaskViewMode;
   hasActiveFilters: boolean;
   header?: React.ReactElement | null;
-  onScroll?: (event: any) => void;
+  footer?: React.ReactElement | null;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onEndReached?: () => void;
 };
 
 export function TaskListView({
@@ -32,7 +34,9 @@ export function TaskListView({
   viewMode,
   hasActiveFilters,
   header,
+  footer,
   onScroll,
+  onEndReached,
 }: TaskListViewProps) {
   const router = useRouter();
 
@@ -45,7 +49,10 @@ export function TaskListView({
       keyboardDismissMode="on-drag"
       scrollEventThrottle={16}
       onScroll={onScroll}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.4}
       ListHeaderComponent={header ?? null}
+      ListFooterComponent={footer ?? null}
       renderItem={({ item }) => (
         <Pressable
           onPress={() => {
@@ -94,7 +101,7 @@ export function TaskListView({
 
               <View style={styles.feedDescription}>
                 {item.description ? (
-                  <TaskRichText source={item.description} />
+                  <TaskRichText source={item.description} orgId={item.orgId} />
                 ) : (
                   <Text variant="body" tone="secondary">
                     {item.durationMin} min · {item.minPeople}+ people
@@ -113,7 +120,7 @@ export function TaskListView({
                 </Text>
                 {item.description ? (
                   <View style={styles.cardModeDescription}>
-                    <TaskRichText source={item.description} />
+                    <TaskRichText source={item.description} orgId={item.orgId} />
                   </View>
                 ) : null}
                 <View style={styles.cardModeMetaRow}>

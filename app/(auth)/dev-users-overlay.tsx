@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentStrong,
   },
   toggleIcon: {
-    fontSize: 18,
+    fontSize: 16,
   },
   panel: {
     position: "absolute",

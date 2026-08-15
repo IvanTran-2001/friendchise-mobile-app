@@ -14,7 +14,7 @@ import { Button } from "../../ui/button";
 import { SheetModal } from "../../ui/sheet-modal";
 import { Text } from "../../ui/text";
 import { OrgSwitcher } from "./org-switcher";
-import { fetchOrganizations } from "./organizations-shared";
+import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
 
 type MeResponse = {
   user: {

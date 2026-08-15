@@ -1,5 +1,6 @@
 import { getApiUrl } from "../config";
 import { getAuthToken } from "../../features/auth/token-store";
+import { Platform } from "react-native";
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   const token = await getAuthToken();
@@ -17,6 +18,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
   const response = await fetch(`${getApiUrl()}${path}`, {
     ...init,
     headers,
+    credentials: Platform.OS === "web" ? "include" : init.credentials,
   });
 
   if (!response.ok) {
