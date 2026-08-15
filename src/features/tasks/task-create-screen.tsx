@@ -8,7 +8,7 @@ import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { TextField } from "../../../components/ui/text-field";
 import { RichTextField } from "../../../components/ui/rich-text-field";
-import { ImagePicker } from "../../../components/ui/image-picker";
+import { ImagePicker, type SelectedImage } from "../../../components/ui/image-picker";
 import { Text } from "../../../components/ui/text";
 import { colors, spacing } from "../../lib/theme";
 import { createTask, type CreateTaskInput } from "./task-api";
@@ -52,7 +52,7 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedImage, setSelectedImage] = useState<{ storagePath: string; signedUrl: string; name?: string | null } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [color, setColor] = useState(COLOR_OPTIONS[0].value);
   const [durationMin, setDurationMin] = useState("30");
   const [peopleRequired, setPeopleRequired] = useState("1");

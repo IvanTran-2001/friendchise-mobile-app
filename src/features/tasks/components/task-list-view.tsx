@@ -1,4 +1,4 @@
-import { FlatList, Image, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Image, Pressable, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { ListChecks } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { TaskItem } from "../task-api";
@@ -21,7 +21,7 @@ type TaskListViewProps = {
   hasActiveFilters: boolean;
   header?: React.ReactElement | null;
   footer?: React.ReactElement | null;
-  onScroll?: (event: any) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onEndReached?: () => void;
 };
 

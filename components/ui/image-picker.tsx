@@ -19,7 +19,7 @@ type ImagePickerProps = {
   disabled?: boolean;
 };
 
-type SelectedImage = {
+export type SelectedImage = {
   storagePath: string;
   signedUrl: string;
   name?: string | null;

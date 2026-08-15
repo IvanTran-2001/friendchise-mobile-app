@@ -107,6 +107,18 @@ async function removeOrphanedUpload(encodedOrgId: string, storagePath: string) {
   });
 }
 
+async function withTimeoutMessage<T>(promise: Promise<T>, message: string) {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(message);
+    }
+
+    throw error;
+  }
+}
+
 /**
  * Uploads a picked image to the org library and returns the saved image row.
  */
@@ -141,7 +153,10 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
     controller = new AbortController();
     timeoutId = setTimeout(() => controller?.abort(), 30000);
 
-    const assetResponse = await fetch(asset.uri, { signal: controller.signal });
+    const assetResponse = await withTimeoutMessage(
+      fetch(asset.uri, { signal: controller.signal }),
+      "Image upload timed out. Please try again.",
+    );
     if (!assetResponse.ok) {
       throw new Error("Failed to read the selected image.");
     }
@@ -151,12 +166,15 @@ export async function uploadRichTextImage(orgId: string, asset: ImagePicker.Imag
       throw new Error("Selected image is empty.");
     }
 
-    const putResponse = await fetch(signedUrl, {
-      method: "PUT",
-      body: blob,
-      headers: { "Content-Type": mimeType },
-      signal: controller.signal,
-    });
+    const putResponse = await withTimeoutMessage(
+      fetch(signedUrl, {
+        method: "PUT",
+        body: blob,
+        headers: { "Content-Type": mimeType },
+        signal: controller.signal,
+      }),
+      "Image upload timed out. Please try again.",
+    );
 
     if (!putResponse.ok) {
       throw new Error("Upload failed. Please try again.");

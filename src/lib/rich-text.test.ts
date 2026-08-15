@@ -34,4 +34,8 @@ describe("toRichTextHtml", () => {
   it("escapes literal closing-tag text instead of treating it as HTML", () => {
     expect(toRichTextHtml("Look </p> here")).toBe("<p>Look &lt;/p&gt; here</p>");
   });
+
+  it("preserves newline breaks as br elements", () => {
+    expect(toRichTextHtml("First line\nSecond line")).toBe("<p>First line<br>Second line</p>");
+  });
 });
