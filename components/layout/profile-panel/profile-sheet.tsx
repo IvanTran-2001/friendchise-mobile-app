@@ -51,7 +51,7 @@ export function ProfileSheet() {
   const orgLabel = currentOrg ? currentOrg.name : "Not selected";
 
   const handleOpenSettings = () => {
-    openSheet(<SettingsSheet />, {
+    openSheet(<SettingsSheet userName={currentUser?.name ?? null} />, {
       title: "Settings",
       subtitle: "App and account preferences",
     });
