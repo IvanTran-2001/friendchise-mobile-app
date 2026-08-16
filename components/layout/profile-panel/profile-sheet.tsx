@@ -3,9 +3,8 @@ import { LogOut, Settings2, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import { apiFetch } from "../../../src/lib/api/client";
 import { useAuthStore } from "../../../src/features/auth/auth-store";
-import { clearAuthToken } from "../../../src/features/auth/token-store";
+import { clearSessionAndRedirect, useMe, type MeUser } from "../../../src/features/auth";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { Avatar, getInitials } from "../../ui/avatar";
 import { Badge } from "../../ui/badge";
@@ -17,18 +16,6 @@ import { useGlobalSheet } from "../global-sheet";
 import { SettingsSheet } from "./settings-sheet";
 import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
 
-type MeResponse = {
-  user: {
-    id: string;
-    name: string | null;
-    image: string | null;
-  };
-};
-
-async function fetchMe() {
-  return apiFetch<MeResponse>("/api/mobile/me");
-}
-
 export function ProfileSheet() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -36,10 +23,7 @@ export function ProfileSheet() {
   const currentOrgId = useCurrentOrgId();
 
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
-  const { data: meData } = useQuery({
-    queryKey: ["mobile-me"],
-    queryFn: fetchMe,
-  });
+  const { data: meData } = useMe();
   const { data: orgData } = useQuery({
     queryKey: ["mobile-orgs"],
     queryFn: fetchOrganizations,
@@ -51,7 +35,7 @@ export function ProfileSheet() {
   const orgLabel = currentOrg ? currentOrg.name : "Not selected";
 
   const handleOpenSettings = () => {
-    openSheet(<SettingsSheet userName={currentUser?.name ?? null} />, {
+    openSheet(<SettingsSheet />, {
       title: "Settings",
       subtitle: "App and account preferences",
     });
@@ -70,7 +54,7 @@ export function ProfileSheet() {
 }
 
 type ProfilePanelProps = {
-  currentUser: MeResponse["user"] | null;
+  currentUser: MeUser | null;
   userInitials: string;
   orgLabel: string;
 };
@@ -144,10 +128,7 @@ type LogoutActionArgs = {
 
 async function handleLogout({ closeSheet, queryClient, setAuthenticated, router }: LogoutActionArgs) {
   closeSheet();
-  await clearAuthToken();
-  queryClient.clear();
-  setAuthenticated(false);
-  router.replace("/(auth)/login");
+  await clearSessionAndRedirect({ queryClient, setAuthenticated, router });
 }
 
 type LogoutButtonProps = {

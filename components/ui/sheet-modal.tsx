@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Modal, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { colors, spacing } from "../../src/lib/theme";
@@ -9,7 +9,7 @@ import { Text } from "./text";
 type SheetModalProps = {
   visible: boolean;
   onClose: () => void;
-  onDismiss?: () => void;
+  onCloseComplete?: () => void;
   title?: string;
   subtitle?: string;
   children: ReactNode;
@@ -25,14 +25,28 @@ type SheetModalProps = {
  *   {content}
  * </SheetModal>
  */
-export function SheetModal({ visible, onClose, onDismiss, title, subtitle, children }: SheetModalProps) {
+export function SheetModal({ visible, onClose, onCloseComplete, title, subtitle, children }: SheetModalProps) {
+  const previousVisibleRef = useRef(visible);
+
+  useEffect(() => {
+    const wasVisible = previousVisibleRef.current;
+    previousVisibleRef.current = visible;
+
+    if (!wasVisible || visible || !onCloseComplete || Platform.OS === "ios") {
+      return;
+    }
+
+    const timeout = setTimeout(onCloseComplete, 300);
+    return () => clearTimeout(timeout);
+  }, [visible, onCloseComplete]);
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
-      onDismiss={onDismiss}
+      onDismiss={Platform.OS === "ios" ? onCloseComplete : undefined}
     >
       <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
         <View style={styles.header}>

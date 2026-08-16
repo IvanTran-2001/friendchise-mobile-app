@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../../../src/lib/api/client";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { Avatar, getInitials } from "../../ui/avatar";
 import { useGlobalSheet } from "../global-sheet";
@@ -9,18 +7,7 @@ import { ProfileSheet } from "./profile-sheet";
 import { colors, radius, spacing } from "../../../src/lib/theme";
 import { Text } from "../../ui/text";
 import { fetchOrganizations, type Org } from "../../../src/features/orgs/organization-api";
-
-type MeResponse = {
-  user: {
-    id: string;
-    name: string | null;
-    image: string | null;
-  };
-};
-
-async function fetchMe() {
-  return apiFetch<MeResponse>("/api/mobile/me");
-}
+import { useMe, type MeUser } from "../../../src/features/auth";
 
 /**
  * Profile trigger shown in the app navbar.
@@ -31,10 +18,7 @@ async function fetchMe() {
 export function ProfileOrgButton() {
   const { openSheet } = useGlobalSheet();
   const currentOrgId = useCurrentOrgId();
-  const { data: meData } = useQuery({
-    queryKey: ["mobile-me"],
-    queryFn: fetchMe,
-  });
+  const { data: meData } = useMe();
   const { data: orgData } = useQuery({
     queryKey: ["mobile-orgs"],
     queryFn: fetchOrganizations,
@@ -66,7 +50,7 @@ export function ProfileOrgButton() {
 }
 
 type ProfileClusterProps = {
-  currentUser: MeResponse["user"] | null;
+  currentUser: MeUser | null;
   currentOrg: Org | null;
   userInitials: string;
 };

@@ -52,7 +52,7 @@ export function GlobalSheetProvider({ children }: { children: ReactNode }) {
       content,
       title: options?.title ?? current.title,
       subtitle: options?.subtitle ?? current.subtitle,
-      loading: options?.loading ?? false,
+      loading: options?.loading ?? current.loading,
     }));
   }, []);
 
@@ -75,7 +75,7 @@ export function GlobalSheetProvider({ children }: { children: ReactNode }) {
       <SheetModal
         visible={sheetState.visible}
         onClose={closeSheet}
-        onDismiss={handleDismiss}
+        onCloseComplete={handleDismiss}
         title={sheetState.title}
         subtitle={sheetState.subtitle}
       >

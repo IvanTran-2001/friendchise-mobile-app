@@ -1,19 +1,16 @@
 import { useState } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react-native";
-import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { StyleSheet, View } from "react-native";
-import { apiFetch } from "../../../src/lib/api/client";
+import { StyleSheet, View, Platform } from "react-native";
+import { useRouter } from "expo-router";
+import { getApiUrl } from "../../../src/lib/config";
 import { useAuthStore } from "../../../src/features/auth/auth-store";
-import { clearAuthToken } from "../../../src/features/auth/token-store";
+import { clearSessionAndRedirect, useMe } from "../../../src/features/auth";
+import { useGlobalSheet } from "../global-sheet";
 import { Text } from "../../ui/text";
 import { TextField } from "../../ui/text-field";
 import { Button } from "../../ui/button";
 import { colors, radius, spacing } from "../../../src/lib/theme";
-
-type SettingsSheetProps = {
-  userName: string | null;
-};
 
 type DeleteAccountResponse = {
   ok: true;
@@ -25,26 +22,61 @@ type DeleteAccountResponse = {
  * Currently this sheet focuses on the destructive account-deletion flow and
  * keeps the confirmation logic isolated from the profile sheet itself.
  */
-export function SettingsSheet({ userName }: SettingsSheetProps) {
+export function SettingsSheet() {
   return (
     <View style={styles.body}>
-      <DeleteAccountPanel userName={userName} />
+      <DeleteAccountPanel />
     </View>
   );
 }
 
-type DeleteAccountPanelProps = {
-  userName: string | null;
-};
-
 /**
  * Calls the account-delete endpoint with the user confirmation text.
  */
+class DeleteAccountApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "DeleteAccountApiError";
+  }
+}
+
 async function deleteAccount(confirmText: string) {
-  return apiFetch<DeleteAccountResponse>("/api/account/delete", {
+  const response = await fetch(`${getApiUrl()}/api/account/delete`, {
     method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ confirmText }),
+    credentials: Platform.OS === "web" ? "include" : undefined,
   });
+
+  if (!response.ok) {
+    const message = (await response.text()).trim() || response.statusText || `HTTP ${response.status}`;
+    throw new DeleteAccountApiError(response.status, message);
+  }
+
+  return (await response.json()) as DeleteAccountResponse;
+}
+
+function getDeleteAccountErrorMessage(error: unknown) {
+  if (error instanceof DeleteAccountApiError) {
+    switch (error.status) {
+      case 401:
+        return "Your session expired. Please sign in again.";
+      case 403:
+        return "You do not have permission to delete this account.";
+      case 409:
+        return "This account cannot be deleted right now because it is still in use.";
+      default:
+        return "Failed to delete account. Please try again.";
+    }
+  }
+
+  return "Failed to delete account. Please try again.";
 }
 
 /**
@@ -53,15 +85,17 @@ async function deleteAccount(confirmText: string) {
  * It validates the confirmation text locally, invokes the API, and clears the
  * mobile auth state after a successful delete.
  */
-function DeleteAccountPanel({ userName }: DeleteAccountPanelProps) {
+function DeleteAccountPanel() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: meData } = useMe();
+  const { closeSheet } = useGlobalSheet();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const expectedMatch = userName?.trim() ?? "";
+  const expectedMatch = meData?.user.name?.trim() ?? "";
   const confirmed = expectedMatch.length > 0 && confirmText.trim() === expectedMatch;
 
   const handleDelete = async () => {
@@ -72,12 +106,10 @@ function DeleteAccountPanel({ userName }: DeleteAccountPanelProps) {
 
     try {
       await deleteAccount(confirmText.trim());
-      await clearAuthToken();
-      queryClient.clear();
-      setAuthenticated(false);
-      router.replace("/(auth)/login");
+      closeSheet();
+      await clearSessionAndRedirect({ queryClient, setAuthenticated, router });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete account");
+      setError(getDeleteAccountErrorMessage(err));
     } finally {
       setIsDeleting(false);
     }
@@ -111,11 +143,7 @@ function DeleteAccountPanel({ userName }: DeleteAccountPanelProps) {
           autoCorrect={false}
         />
 
-        {error ? (
-          <Text variant="caption" tone="danger">
-            {error}
-          </Text>
-        ) : null}
+        {error ? <Text variant="caption" tone="danger">{error}</Text> : null}
 
         <Button
           label={isDeleting ? "Deleting…" : "Delete account"}
@@ -151,14 +179,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xl,
     paddingTop: spacing.lg,
-  },
-  card: {
-    gap: spacing.sm,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.surface,
-    padding: spacing.lg,
   },
   deleteSection: {
     gap: spacing.sm,
