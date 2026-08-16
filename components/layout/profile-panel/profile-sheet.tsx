@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Settings2, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { useAuthStore } from "../../../src/features/auth/auth-store";
 import { clearSessionAndRedirect, useMe, type MeUser } from "../../../src/features/auth";
@@ -11,6 +11,7 @@ import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Text } from "../../ui/text";
 import { colors, spacing } from "../../../src/lib/theme";
+import { formatDemoCountdown } from "./profile-panel-utils";
 import { OrgSwitcher } from "./org-switcher";
 import { useGlobalSheet } from "../global-sheet";
 import { SettingsSheet } from "./settings-sheet";
@@ -23,6 +24,8 @@ export function ProfileSheet() {
   const currentOrgId = useCurrentOrgId();
 
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const isDemo = useAuthStore((state) => state.isDemo);
+  const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
   const { data: meData } = useMe();
   const { data: orgData } = useQuery({
     queryKey: ["mobile-orgs"],
@@ -43,7 +46,13 @@ export function ProfileSheet() {
 
   return (
     <View style={styles.body}>
-      <ProfilePanel currentUser={currentUser} userInitials={userInitials} orgLabel={orgLabel} />
+      <ProfilePanel
+        currentUser={currentUser}
+        userInitials={userInitials}
+        orgLabel={orgLabel}
+        isDemo={isDemo}
+        demoExpiresAt={demoExpiresAt}
+      />
       <OrganizationPanel currentOrgId={currentOrgId} />
       <AccountPanel
         onOpenSettings={handleOpenSettings}
@@ -57,9 +66,26 @@ type ProfilePanelProps = {
   currentUser: MeUser | null;
   userInitials: string;
   orgLabel: string;
+  isDemo: boolean;
+  demoExpiresAt: number | null;
 };
 
-function ProfilePanel({ currentUser, userInitials, orgLabel }: ProfilePanelProps) {
+function ProfilePanel({ currentUser, userInitials, orgLabel, isDemo, demoExpiresAt }: ProfilePanelProps) {
+  const [remaining, setRemaining] = useState(() => (demoExpiresAt ? demoExpiresAt - Date.now() : 0));
+
+  useEffect(() => {
+    if (!isDemo || !demoExpiresAt) {
+      return;
+    }
+
+    setRemaining(demoExpiresAt - Date.now());
+    const id = setInterval(() => {
+      setRemaining(demoExpiresAt - Date.now());
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [demoExpiresAt, isDemo]);
+
   return (
     <View style={styles.section}>
       <View style={styles.hero}>
@@ -75,7 +101,13 @@ function ProfilePanel({ currentUser, userInitials, orgLabel }: ProfilePanelProps
           {currentUser?.name ?? "Your profile"}
         </Text>
 
+        {isDemo ? <Badge label="Demo" tone="danger" dotted /> : null}
         <Badge label={orgLabel} tone="accent" />
+        {isDemo ? (
+          <Text variant="caption" tone="danger" align="center">
+            Demo access ends in {formatDemoCountdown(remaining)}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

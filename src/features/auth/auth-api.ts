@@ -39,6 +39,12 @@ export async function startOAuthLogin(provider: AuthProvider) {
   await Linking.openURL(url);
 }
 
+export async function startDemoLogin() {
+  const callbackUrl = ExpoLinking.createURL("/callback");
+  const url = `${getApiUrl()}/api/mobile-auth/demo?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  await Linking.openURL(url);
+}
+
 export async function startDevLogin(email: string) {
   const response = await fetch(
     `${getApiUrl()}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,

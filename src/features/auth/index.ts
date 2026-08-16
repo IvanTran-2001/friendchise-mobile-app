@@ -1,5 +1,7 @@
 export * from "./auth-api";
 export * from "./auth-store";
+export * from "./demo";
+export * from "./demo-session-banner";
 export * from "./logout";
 export * from "./jwt-utils";
 export * from "./me";

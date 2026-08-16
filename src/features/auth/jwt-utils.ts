@@ -1,4 +1,4 @@
-export function getJwtExpiryMs(token: string) {
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
   const parts = token.split(".");
 
   if (parts.length < 2) {
@@ -6,17 +6,20 @@ export function getJwtExpiryMs(token: string) {
   }
 
   try {
-    const payload = JSON.parse(base64UrlDecode(parts[1]));
-    const exp = payload?.exp;
-
-    if (typeof exp !== "number") {
-      return null;
-    }
-
-    return exp * 1000;
+    return JSON.parse(base64UrlDecode(parts[1]));
   } catch {
     return null;
   }
+}
+
+export function getJwtExpiryMs(token: string) {
+  const exp = decodeJwtPayload(token)?.exp;
+
+  if (typeof exp !== "number") {
+    return null;
+  }
+
+  return exp * 1000;
 }
 
 export function isJwtExpired(token: string, nowMs = Date.now()) {
@@ -27,6 +30,13 @@ export function isJwtExpired(token: string, nowMs = Date.now()) {
   }
 
   return expiryMs <= nowMs;
+}
+
+/** Reads the token's `email` claim, e.g. to detect demo sessions client-side. */
+export function getJwtEmail(token: string): string | null {
+  const email = decodeJwtPayload(token)?.email;
+
+  return typeof email === "string" ? email : null;
 }
 
 function base64UrlDecode(value: string) {

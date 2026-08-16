@@ -18,13 +18,19 @@ function firstParam(value: string | string[] | undefined) {
 export default function AuthCallbackScreen() {
   const router = useRouter();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const setDemoSession = useAuthStore((state) => state.setDemoSession);
   const params = useLocalSearchParams<{
     token?: string | string[];
     access_token?: string | string[];
     error?: string | string[];
+    isDemo?: string | string[];
+    expiresAt?: string | string[];
   }>();
   const token = firstParam(params.token) ?? firstParam(params.access_token);
   const error = firstParam(params.error);
+  const isDemo = firstParam(params.isDemo) === "1";
+  const expiresAtParam = firstParam(params.expiresAt);
+  const expiresAt = expiresAtParam ? Number(expiresAtParam) : null;
 
   const message = error
     ? `Sign in failed: ${error}`
@@ -40,12 +46,13 @@ export default function AuthCallbackScreen() {
     saveAuthToken(token)
       .then(() => {
         setAuthenticated(true);
+        setDemoSession({ isDemo, expiresAt: isDemo ? expiresAt : null });
         router.replace("/(app)");
       })
       .catch(() => {
         router.replace("/(auth)/login");
       });
-  }, [error, router, setAuthenticated, token]);
+  }, [error, expiresAt, isDemo, router, setAuthenticated, setDemoSession, token]);
 
   return (
     <Screen edges={["top", "bottom"]} centered>
