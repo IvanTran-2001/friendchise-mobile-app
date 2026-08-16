@@ -1,6 +1,6 @@
 # FriendChise Mobile App
 
-Expo React Native app for the FriendChise product.
+Expo React Native app for the FriendChise product. Visit friendchise Web [Github](https://github.com/IvanTran-2001/FriendChise) for reference.
 
 ## Stack
 
@@ -20,17 +20,27 @@ Expo React Native app for the FriendChise product.
 
 ## Environment
 
-Use `.env` for local development. The app expects `EXPO_PUBLIC_API_URL` to be set for every environment and does not ship with a baked-in API URL.
+Use `.env` for local development. The app expects `EXPO_PUBLIC_API_URL` to be set for every environment.
+
+For the hosted FriendChise app, use:
 
 ```bash
-EXPO_PUBLIC_API_URL=http://localhost:3000
+EXPO_PUBLIC_API_URL=https://friendchise.app
 ```
 
-If you run the mobile app on a physical device, replace `localhost` with your computer's LAN IP address.
+For local development on a physical mobile device, use your computer's network IP address instead of `localhost`. For example:
 
-## Docker
+```bash
+EXPO_PUBLIC_API_URL=http://192.168.1.97:3000
+```
 
-You do not need Docker to run the mobile app itself. Expo runs directly on your machine. Docker only makes sense if you want to containerize the backend or supporting services.
+The IP address may be different on your machine. When starting the backend locally, use the `Network` URL shown in the terminal, such as:
+
+```bash
+Network: http://192.168.1.97:3000
+```
+
+If you use `localhost` on a physical phone, the app will look for the backend on the phone itself instead of your computer, so the mobile app will not be able to connect.
 
 ## Current Scope
 
