@@ -101,6 +101,7 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
         uri: selectedFile.uri,
         name: selectedFile.name,
         mimeType: selectedFile.mimeType,
+        fileSize: selectedFile.fileSize,
       });
 
       setStage("scanning");

@@ -117,8 +117,15 @@ async function withTimeoutMessage<T>(promise: Promise<T>, message: string) {
  */
 export async function uploadScanSource(
   orgId: string,
-  file: { uri: string; name: string; mimeType: string },
+  file: { uri: string; name: string; mimeType: string; fileSize: number | null },
 ): Promise<ScanSource> {
+  if (file.fileSize === null) {
+    throw new Error("Could not determine file size.");
+  }
+  if (file.fileSize > SCAN_TO_TASK_MAX_FILE_BYTES) {
+    throw new Error("Files must be 15MB or smaller.");
+  }
+
   const encodedOrgId = encodeURIComponent(orgId);
 
   const uploadUrlResponse = await authenticatedFetch(`/api/orgs/${encodedOrgId}/tools/scan-to-task/upload-url`, {
@@ -146,9 +153,6 @@ export async function uploadScanSource(
     const blob = await assetResponse.blob();
     if (!blob.size) {
       throw new Error("Selected file is empty.");
-    }
-    if (blob.size > SCAN_TO_TASK_MAX_FILE_BYTES) {
-      throw new Error("Files must be 15MB or smaller.");
     }
 
     const putResponse = await withTimeoutMessage(
@@ -193,11 +197,11 @@ export async function runScanToTask(orgId: string, sources: ScanSource[], instru
   }
 
   const results = payload && typeof payload === "object" ? (payload as { results?: unknown }).results : null;
-  if (!Array.isArray(results)) {
+  if (!Array.isArray(results) || !results.every(isScanResultItem)) {
     throw new Error("Unexpected response while scanning file.");
   }
 
-  return results.filter(isScanResultItem);
+  return results;
 }
 
 export type ConfirmScanDraftInput = {
