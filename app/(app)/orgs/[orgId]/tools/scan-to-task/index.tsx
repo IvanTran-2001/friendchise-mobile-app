@@ -1,22 +1,7 @@
-import { Screen } from "@/components/ui/screen";
-import { ScreenHeader } from "@/components/ui/screen-header";
-import { Card } from "@/components/ui/card";
-import { Text } from "@/components/ui/text";
+import { ScanToTaskScreen } from "../../../../../../src/features/scan-to-task/scan-to-task-screen";
+import { useOrgIdParam } from "../../../../../../hooks/use-org-id-param";
 
-export default function ScanToTaskScreen() {
-  return (
-    <Screen scroll>
-      <ScreenHeader
-        kicker="Tool"
-        title="Scan to Task"
-        subtitle="Turn scans into task drafts and refine them here."
-      />
-
-      <Card padding="lg">
-        <Text variant="body" tone="secondary">
-          Scan to Task is not available yet. We’ll add the workflow here once it’s ready.
-        </Text>
-      </Card>
-    </Screen>
-  );
+export default function ScanToTaskRoute() {
+  const orgId = useOrgIdParam();
+  return <ScanToTaskScreen orgId={orgId} />;
 }
