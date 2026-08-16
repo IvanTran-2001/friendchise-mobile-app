@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react-native";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StyleSheet, View, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { getApiUrl } from "../../../src/lib/config";
 import { useAuthStore } from "../../../src/features/auth/auth-store";
 import { clearSessionAndRedirect, useMe } from "../../../src/features/auth";
+import { getAuthToken } from "../../../src/features/auth/token-store";
+import { getApiUrl } from "../../../src/lib/config";
 import { useGlobalSheet } from "../global-sheet";
 import { Text } from "../../ui/text";
 import { TextField } from "../../ui/text-field";
@@ -44,11 +45,13 @@ class DeleteAccountApiError extends Error {
 }
 
 async function deleteAccount(confirmText: string) {
+  const token = await getAuthToken();
   const response = await fetch(`${getApiUrl()}/api/account/delete`, {
     method: "DELETE",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ confirmText }),
     credentials: Platform.OS === "web" ? "include" : undefined,
@@ -93,26 +96,25 @@ function DeleteAccountPanel() {
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteMutation = useMutation({
+    mutationFn: deleteAccount,
+    onSuccess: async () => {
+      closeSheet();
+      await clearSessionAndRedirect({ queryClient, setAuthenticated, router });
+    },
+    onError: (err) => {
+      setError(getDeleteAccountErrorMessage(err));
+    },
+  });
 
   const expectedMatch = meData?.user.name?.trim() ?? "";
   const confirmed = expectedMatch.length > 0 && confirmText.trim() === expectedMatch;
 
   const handleDelete = async () => {
-    if (!confirmed || isDeleting) return;
+    if (!confirmed || deleteMutation.isPending) return;
 
     setError(null);
-    setIsDeleting(true);
-
-    try {
-      await deleteAccount(confirmText.trim());
-      closeSheet();
-      await clearSessionAndRedirect({ queryClient, setAuthenticated, router });
-    } catch (err) {
-      setError(getDeleteAccountErrorMessage(err));
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteMutation.mutate(confirmText.trim());
   };
 
   return (
@@ -146,11 +148,11 @@ function DeleteAccountPanel() {
         {error ? <Text variant="caption" tone="danger">{error}</Text> : null}
 
         <Button
-          label={isDeleting ? "Deleting…" : "Delete account"}
+          label={deleteMutation.isPending ? "Deleting…" : "Delete account"}
           onPress={() => void handleDelete()}
           variant="danger"
           fullWidth
-          disabled={!confirmed || isDeleting}
+          disabled={!confirmed || deleteMutation.isPending}
           leftIcon={<Trash2 size={16} strokeWidth={2.2} color={colors.danger} />}
         />
       </View>
