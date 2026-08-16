@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { Avatar, getInitials } from "../../ui/avatar";
 import { useGlobalSheet } from "../global-sheet";

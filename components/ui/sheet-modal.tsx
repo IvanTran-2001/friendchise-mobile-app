@@ -9,6 +9,7 @@ import { Text } from "./text";
 type SheetModalProps = {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   onCloseComplete?: () => void;
   title?: string;
   subtitle?: string;
@@ -25,20 +26,21 @@ type SheetModalProps = {
  *   {content}
  * </SheetModal>
  */
-export function SheetModal({ visible, onClose, onCloseComplete, title, subtitle, children }: SheetModalProps) {
+export function SheetModal({ visible, onClose, onDismiss, onCloseComplete, title, subtitle, children }: SheetModalProps) {
   const previousVisibleRef = useRef(visible);
+  const handleCloseComplete = onCloseComplete ?? onDismiss;
 
   useEffect(() => {
     const wasVisible = previousVisibleRef.current;
     previousVisibleRef.current = visible;
 
-    if (!wasVisible || visible || !onCloseComplete || Platform.OS === "ios") {
+    if (!wasVisible || visible || !handleCloseComplete || Platform.OS === "ios") {
       return;
     }
 
-    const timeout = setTimeout(onCloseComplete, 300);
+    const timeout = setTimeout(handleCloseComplete, 300);
     return () => clearTimeout(timeout);
-  }, [visible, onCloseComplete]);
+  }, [visible, handleCloseComplete]);
 
   return (
     <Modal
@@ -46,7 +48,7 @@ export function SheetModal({ visible, onClose, onCloseComplete, title, subtitle,
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
-      onDismiss={Platform.OS === "ios" ? onCloseComplete : undefined}
+      onDismiss={Platform.OS === "ios" ? handleCloseComplete : undefined}
     >
       <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
         <View style={styles.header}>
