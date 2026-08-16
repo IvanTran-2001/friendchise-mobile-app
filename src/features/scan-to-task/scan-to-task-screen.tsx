@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Camera, FileText, Image as ImageIcon, X } from "lucide-react-native";
@@ -12,43 +12,20 @@ import { LoadingState } from "../../../components/ui/state-views";
 import { colors, spacing } from "../../lib/theme";
 import { pickScanFile, type ScanSourceOrigin } from "./scan-source-picker";
 import {
+  useScanToTaskWorkflowStore,
+  type DraftForm,
+  type DraftReviewItem,
+  type ReviewItem,
+  type SelectedFile,
+} from "./scan-to-task-store";
+import {
   clearScanResult,
+  type ConfirmScanDraftInput,
   confirmScanDraft,
   runScanToTask,
   uploadScanSource,
   SCAN_TO_TASK_MAX_FILE_BYTES,
 } from "./scan-to-task-api";
-
-type SelectedFile = {
-  uri: string;
-  name: string;
-  mimeType: string;
-  fileSize: number | null;
-};
-
-type DraftForm = {
-  title: string;
-  description: string;
-  summary: string;
-  sourceText: string;
-  color?: string;
-  durationMin: string;
-  peopleRequired: string;
-  minWaitDays: string;
-  maxWaitDays: string;
-};
-
-type ReviewItem =
-  | {
-      kind: "draft";
-      resultId: string;
-      fileName: string;
-      form: DraftForm;
-      saving: boolean;
-      discarding: boolean;
-      error: string | null;
-    }
-  | { kind: "failed"; resultId: string; fileName: string; message: string; dismissing: boolean };
 
 function toPositiveInt(value: string) {
   const trimmed = value.trim();
@@ -75,6 +52,17 @@ type ScanToTaskScreenProps = {
   orgId?: string;
 };
 
+type ConfirmDraftMutationVariables = {
+  item: DraftReviewItem;
+  payload: ConfirmScanDraftInput;
+  savedTitle: string;
+};
+
+type ClearReviewItemMutationVariables = {
+  resultId: string;
+  kind: ReviewItem["kind"];
+};
+
 /**
  * Mobile Scan to Task screen: pick a photo or PDF, scan it into draft tasks,
  * then review/edit and save each draft into the org's task list.
@@ -85,12 +73,20 @@ type ScanToTaskScreenProps = {
  */
 export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
   const queryClient = useQueryClient();
-  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
-  const [instruction, setInstruction] = useState("");
-  const [pickError, setPickError] = useState<string | null>(null);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
-  const [stage, setStage] = useState<"idle" | "uploading" | "scanning">("idle");
+  const selectedFile = useScanToTaskWorkflowStore((state) => state.selectedFile);
+  const instruction = useScanToTaskWorkflowStore((state) => state.instruction);
+  const pickError = useScanToTaskWorkflowStore((state) => state.pickError);
+  const scanError = useScanToTaskWorkflowStore((state) => state.scanError);
+  const reviewItems = useScanToTaskWorkflowStore((state) => state.reviewItems);
+  const stage = useScanToTaskWorkflowStore((state) => state.stage);
+  const setSelectedFile = useScanToTaskWorkflowStore((state) => state.setSelectedFile);
+  const setInstruction = useScanToTaskWorkflowStore((state) => state.setInstruction);
+  const setPickError = useScanToTaskWorkflowStore((state) => state.setPickError);
+  const setScanError = useScanToTaskWorkflowStore((state) => state.setScanError);
+  const setReviewItems = useScanToTaskWorkflowStore((state) => state.setReviewItems);
+  const setStage = useScanToTaskWorkflowStore((state) => state.setStage);
+  const updateReviewItem = useScanToTaskWorkflowStore((state) => state.updateReviewItem);
+  const removeReviewItem = useScanToTaskWorkflowStore((state) => state.removeReviewItem);
 
   const scanMutation = useMutation({
     mutationFn: async () => {
@@ -148,6 +144,89 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
     },
   });
 
+  const confirmMutation = useMutation({
+    mutationFn: async ({ payload }: ConfirmDraftMutationVariables) => {
+      if (!orgId) {
+        throw new Error("Select an organization first.");
+      }
+
+      return confirmScanDraft(orgId, payload);
+    },
+    onMutate: ({ item }) => {
+      updateReviewItem(item.resultId, (entry) =>
+        entry.kind === "draft"
+          ? {
+              ...entry,
+              saving: true,
+              error: null,
+            }
+          : entry,
+      );
+    },
+    onSuccess: async (_taskId, variables) => {
+      if (!orgId) {
+        return;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["tasks", orgId] });
+      removeReviewItem(variables.item.resultId);
+      Alert.alert("Saved", `"${variables.savedTitle}" was added to your task list.`);
+    },
+    onError: (error, variables) => {
+      const message = error instanceof Error ? error.message : "Failed to save task.";
+      updateReviewItem(variables.item.resultId, (entry) =>
+        entry.kind === "draft"
+          ? {
+              ...entry,
+              saving: false,
+              error: message,
+            }
+          : entry,
+      );
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: async ({ resultId }: ClearReviewItemMutationVariables) => {
+      if (!orgId) {
+        throw new Error("Select an organization first.");
+      }
+
+      await clearScanResult(orgId, resultId);
+      return resultId;
+    },
+    onMutate: ({ resultId, kind }) => {
+      updateReviewItem(resultId, (entry) => {
+        if (entry.kind === "draft" && kind === "draft") {
+          return { ...entry, discarding: true, error: null };
+        }
+
+        if (entry.kind === "failed" && kind === "failed") {
+          return { ...entry, dismissing: true };
+        }
+
+        return entry;
+      });
+    },
+    onSuccess: (_resultId, variables) => {
+      removeReviewItem(variables.resultId);
+    },
+    onError: (error, variables) => {
+      const message = error instanceof Error ? error.message : "Failed to discard draft.";
+      updateReviewItem(variables.resultId, (entry) => {
+        if (entry.kind === "draft" && variables.kind === "draft") {
+          return { ...entry, discarding: false, error: message };
+        }
+
+        if (entry.kind === "failed" && variables.kind === "failed") {
+          return { ...entry, dismissing: false };
+        }
+
+        return entry;
+      });
+    },
+  });
+
   const handlePick = useCallback(async (origin: ScanSourceOrigin) => {
     setPickError(null);
     const result = await pickScanFile(origin);
@@ -166,28 +245,24 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
 
     setScanError(null);
     setSelectedFile(result.file);
-  }, []);
+  }, [setPickError, setScanError, setSelectedFile]);
 
   const handleScan = useCallback(() => {
     setScanError(null);
     scanMutation.mutate();
-  }, [scanMutation]);
+  }, [scanMutation, setScanError]);
 
   const updateDraftField = useCallback((resultId: string, field: keyof DraftForm, value: string) => {
-    setReviewItems((items) =>
-      items.map((item) =>
-        item.kind === "draft" && item.resultId === resultId
-          ? { ...item, form: { ...item.form, [field]: value } }
-          : item,
-      ),
+    updateReviewItem(resultId, (item) =>
+      item.kind === "draft"
+        ? { ...item, form: { ...item.form, [field]: value } }
+        : item,
     );
-  }, []);
+  }, [updateReviewItem]);
 
   const handleSaveDraft = useCallback(
-    async (resultId: string) => {
+    (item: DraftReviewItem) => {
       if (!orgId) return;
-      const item = reviewItems.find((entry) => entry.resultId === resultId);
-      if (!item || item.kind !== "draft") return;
 
       const durationMin = toPositiveInt(item.form.durationMin);
       const peopleRequired = toPositiveInt(item.form.peopleRequired);
@@ -203,19 +278,22 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
       else if (maxWaitDays < minWaitDays) fieldError = "Max wait days must be at least min wait days.";
 
       if (fieldError) {
-        setReviewItems((items) =>
-          items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, error: fieldError } : entry)),
+        updateReviewItem(item.resultId, (entry) =>
+          entry.kind === "draft"
+            ? {
+                ...entry,
+                error: fieldError,
+              }
+            : entry,
         );
         return;
       }
 
-      setReviewItems((items) =>
-        items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, saving: true, error: null } : entry)),
-      );
-
-      try {
-        await confirmScanDraft(orgId, {
-          resultId,
+      confirmMutation.mutate({
+        item,
+        savedTitle: item.form.title.trim(),
+        payload: {
+          resultId: item.resultId,
           fileName: item.fileName,
           title: item.form.title.trim(),
           description: item.form.description,
@@ -226,60 +304,24 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
           peopleRequired: peopleRequired!,
           minWaitDays: minWaitDays!,
           maxWaitDays: maxWaitDays!,
-        });
-
-        await queryClient.invalidateQueries({ queryKey: ["tasks", orgId] });
-        setReviewItems((items) => items.filter((entry) => entry.resultId !== resultId));
-        Alert.alert("Saved", `"${item.form.title.trim()}" was added to your task list.`);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to save task.";
-        setReviewItems((items) =>
-          items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, saving: false, error: message } : entry)),
-        );
-      }
+        },
+      });
     },
-    [orgId, queryClient, reviewItems],
+    [confirmMutation, orgId, updateReviewItem],
   );
 
   const handleDismiss = useCallback(
-    async (resultId: string) => {
-      if (!orgId) return;
-
-      setReviewItems((items) =>
-        items.map((entry) => (entry.resultId === resultId && entry.kind === "failed" ? { ...entry, dismissing: true } : entry)),
-      );
-
-      try {
-        await clearScanResult(orgId, resultId);
-        setReviewItems((items) => items.filter((entry) => entry.resultId !== resultId));
-      } catch {
-        setReviewItems((items) =>
-          items.map((entry) => (entry.resultId === resultId && entry.kind === "failed" ? { ...entry, dismissing: false } : entry)),
-        );
-      }
+    (resultId: string) => {
+      clearMutation.mutate({ resultId, kind: "failed" });
     },
-    [orgId],
+    [clearMutation],
   );
 
   const handleDiscardDraft = useCallback(
-    async (resultId: string) => {
-      if (!orgId) return;
-
-      setReviewItems((items) =>
-        items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, discarding: true, error: null } : entry)),
-      );
-
-      try {
-        await clearScanResult(orgId, resultId);
-        setReviewItems((items) => items.filter((entry) => entry.resultId !== resultId));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to discard draft.";
-        setReviewItems((items) =>
-          items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, discarding: false, error: message } : entry)),
-        );
-      }
+    (resultId: string) => {
+      clearMutation.mutate({ resultId, kind: "draft" });
     },
-    [orgId],
+    [clearMutation],
   );
 
   const scanning = stage !== "idle";
@@ -306,7 +348,7 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
                 key={item.resultId}
                 item={item}
                 onChange={(field, value) => updateDraftField(item.resultId, field, value)}
-                onSave={() => handleSaveDraft(item.resultId)}
+                onSave={() => handleSaveDraft(item)}
                 onDiscard={() => handleDiscardDraft(item.resultId)}
               />
             ) : (
