@@ -11,6 +11,7 @@
     "plugins": [
       "expo-router",
       "expo-image-picker",
+      "expo-document-picker",
       "expo-secure-store",
       "expo-font"
     ],
@@ -24,8 +25,8 @@
       "bundleIdentifier": "com.ivantran2001.friendchisemobileapp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Allow FriendChise to take photos for task images.",
-        "NSPhotoLibraryUsageDescription": "Allow FriendChise to pick task images from your photo library.",
+        "NSCameraUsageDescription": "Allow FriendChise to take photos for task images and Scan to Task.",
+        "NSPhotoLibraryUsageDescription": "Allow FriendChise to pick photos from your library for task images and Scan to Task.",
         "NSPhotoLibraryAddUsageDescription": "Allow FriendChise to save task images to your photo library."
       }
     },
