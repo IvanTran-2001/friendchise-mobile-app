@@ -39,7 +39,15 @@ type DraftForm = {
 };
 
 type ReviewItem =
-  | { kind: "draft"; resultId: string; fileName: string; form: DraftForm; saving: boolean; error: string | null }
+  | {
+      kind: "draft";
+      resultId: string;
+      fileName: string;
+      form: DraftForm;
+      saving: boolean;
+      discarding: boolean;
+      error: string | null;
+    }
   | { kind: "failed"; resultId: string; fileName: string; message: string; dismissing: boolean };
 
 function toPositiveInt(value: string) {
@@ -109,6 +117,7 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
                 resultId: result.resultId,
                 fileName: result.fileName,
                 saving: false,
+                discarding: false,
                 error: null,
                 form: {
                   title: result.draft.title,
@@ -256,7 +265,7 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
       if (!orgId) return;
 
       setReviewItems((items) =>
-        items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, saving: true, error: null } : entry)),
+        items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, discarding: true, error: null } : entry)),
       );
 
       try {
@@ -265,7 +274,7 @@ export function ScanToTaskScreen({ orgId }: ScanToTaskScreenProps) {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to discard draft.";
         setReviewItems((items) =>
-          items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, saving: false, error: message } : entry)),
+          items.map((entry) => (entry.resultId === resultId && entry.kind === "draft" ? { ...entry, discarding: false, error: message } : entry)),
         );
       }
     },
@@ -452,6 +461,7 @@ type DraftReviewCardProps = {
 };
 
 function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardProps) {
+  const busy = item.saving || item.discarding;
   return (
     <Card padding="lg" style={styles.card}>
       <Text variant="caption" tone="secondary">
@@ -461,14 +471,14 @@ function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardP
         label="Title"
         value={item.form.title}
         onChangeText={(value) => onChange("title", value)}
-        editable={!item.saving}
+        editable={!busy}
         containerStyle={styles.field}
       />
       <TextField
         label="Description"
         value={item.form.description}
         onChangeText={(value) => onChange("description", value)}
-        editable={!item.saving}
+        editable={!busy}
         multiline
         numberOfLines={3}
         containerStyle={styles.field}
@@ -479,7 +489,7 @@ function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardP
           value={item.form.durationMin}
           onChangeText={(value) => onChange("durationMin", value)}
           keyboardType="number-pad"
-          editable={!item.saving}
+          editable={!busy}
           containerStyle={styles.gridField}
         />
         <TextField
@@ -487,7 +497,7 @@ function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardP
           value={item.form.peopleRequired}
           onChangeText={(value) => onChange("peopleRequired", value)}
           keyboardType="number-pad"
-          editable={!item.saving}
+          editable={!busy}
           containerStyle={styles.gridField}
         />
       </View>
@@ -497,7 +507,7 @@ function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardP
           value={item.form.minWaitDays}
           onChangeText={(value) => onChange("minWaitDays", value)}
           keyboardType="number-pad"
-          editable={!item.saving}
+          editable={!busy}
           containerStyle={styles.gridField}
         />
         <TextField
@@ -505,7 +515,7 @@ function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardP
           value={item.form.maxWaitDays}
           onChangeText={(value) => onChange("maxWaitDays", value)}
           keyboardType="number-pad"
-          editable={!item.saving}
+          editable={!busy}
           containerStyle={styles.gridField}
         />
       </View>
@@ -515,12 +525,19 @@ function DraftReviewCard({ item, onChange, onSave, onDiscard }: DraftReviewCardP
         </Text>
       ) : null}
       <View style={styles.actionsRow}>
-        <Button label="Discard" variant="outline" disabled={item.saving} onPress={onDiscard} style={styles.actionButton} />
+        <Button
+          label="Discard"
+          variant="outline"
+          loading={item.discarding}
+          disabled={busy}
+          onPress={onDiscard}
+          style={styles.actionButton}
+        />
         <Button
           label="Save to task list"
           variant="primary"
           loading={item.saving}
-          disabled={item.saving}
+          disabled={busy}
           onPress={onSave}
           style={styles.actionButton}
         />

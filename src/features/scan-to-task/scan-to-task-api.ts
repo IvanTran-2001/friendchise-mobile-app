@@ -58,8 +58,40 @@ function isSignedUpload(value: unknown): value is SignedUploadResponse {
   );
 }
 
-async function extractErrorMessage(response: Response, fallback: string) {
-  const payload: unknown = await response.json().catch(() => null);
+function isScanTaskDraft(value: unknown): value is ScanTaskDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Record<string, unknown>;
+  return (
+    typeof draft.title === "string" &&
+    typeof draft.description === "string" &&
+    typeof draft.summary === "string" &&
+    typeof draft.sourceText === "string" &&
+    (draft.color === undefined || typeof draft.color === "string") &&
+    typeof draft.durationMin === "number" &&
+    typeof draft.peopleRequired === "number" &&
+    typeof draft.minWaitDays === "number" &&
+    typeof draft.maxWaitDays === "number"
+  );
+}
+
+function isScanResultItem(value: unknown): value is ScanResultItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  if (
+    typeof item.resultId !== "string" ||
+    typeof item.fileName !== "string" ||
+    typeof item.fileKind !== "string" ||
+    typeof item.fileSize !== "number"
+  ) {
+    return false;
+  }
+
+  if (item.ok === true) return isScanTaskDraft(item.draft);
+  if (item.ok === false) return typeof item.error === "string";
+  return false;
+}
+
+function extractErrorMessage(payload: unknown, fallback: string) {
   const message = payload && typeof payload === "object" && "error" in payload ? (payload as { error?: unknown }).error : null;
   return typeof message === "string" && message.trim() ? message : fallback;
 }
@@ -68,7 +100,8 @@ async function withTimeoutMessage<T>(promise: Promise<T>, message: string) {
   try {
     return await promise;
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
+    // React Native's fetch may reject with a plain Error rather than a DOMException.
+    if (error instanceof Error && error.name === "AbortError") {
       throw new Error(message);
     }
 
@@ -95,7 +128,7 @@ export async function uploadScanSource(
 
   const uploadUrlPayload: unknown = await uploadUrlResponse.json().catch(() => null);
   if (!uploadUrlResponse.ok || !isSignedUpload(uploadUrlPayload)) {
-    throw new Error(await extractErrorMessage(uploadUrlResponse, "Failed to prepare upload."));
+    throw new Error(extractErrorMessage(uploadUrlPayload, "Failed to prepare upload."));
   }
 
   const controller = new AbortController();
@@ -156,7 +189,7 @@ export async function runScanToTask(orgId: string, sources: ScanSource[], instru
 
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, "Failed to scan file."));
+    throw new Error(extractErrorMessage(payload, "Failed to scan file."));
   }
 
   const results = payload && typeof payload === "object" ? (payload as { results?: unknown }).results : null;
@@ -164,7 +197,7 @@ export async function runScanToTask(orgId: string, sources: ScanSource[], instru
     throw new Error("Unexpected response while scanning file.");
   }
 
-  return results as ScanResultItem[];
+  return results.filter(isScanResultItem);
 }
 
 export type ConfirmScanDraftInput = {
@@ -191,7 +224,7 @@ export async function confirmScanDraft(orgId: string, input: ConfirmScanDraftInp
 
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, "Failed to save task."));
+    throw new Error(extractErrorMessage(payload, "Failed to save task."));
   }
 
   const taskId = payload && typeof payload === "object" ? (payload as { taskId?: unknown }).taskId : null;
@@ -207,6 +240,7 @@ export async function clearScanResult(orgId: string, resultId: string): Promise<
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response, "Failed to discard draft."));
+    const payload: unknown = await response.json().catch(() => null);
+    throw new Error(extractErrorMessage(payload, "Failed to discard draft."));
   }
 }

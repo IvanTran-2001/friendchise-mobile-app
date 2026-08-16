@@ -1,6 +1,6 @@
 import * as ExpoImagePicker from "expo-image-picker";
 import * as ExpoDocumentPicker from "expo-document-picker";
-import * as ImageManipulator from "expo-image-manipulator";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
 
 export type ScanSourceOrigin = "camera" | "library" | "document";
@@ -58,9 +58,10 @@ async function normalizeImageAsset(uri: string, mimeType: string, name: string) 
     return { uri, mimeType, name, fileSize: await readFileSize(uri) };
   }
 
-  const manipulated = await ImageManipulator.manipulateAsync(uri, [], {
+  const rendered = await ImageManipulator.manipulate(uri).renderAsync();
+  const manipulated = await rendered.saveAsync({
     compress: 0.88,
-    format: ImageManipulator.SaveFormat.JPEG,
+    format: SaveFormat.JPEG,
   });
   const jpegName = name.replace(/\.(heic|heif)$/i, "") + ".jpg";
 
@@ -149,12 +150,17 @@ async function pickFromDocuments(): Promise<PickScanFileResult> {
   }
 
   const asset = result.assets[0];
+  const mimeType = asset.mimeType ?? "application/pdf";
+  if (mimeType !== "application/pdf") {
+    return { status: "error", message: "Please choose a PDF file." };
+  }
+
   return {
     status: "picked",
     file: {
       uri: asset.uri,
       name: asset.name ?? "document.pdf",
-      mimeType: asset.mimeType ?? "application/pdf",
+      mimeType,
       fileSize: asset.size ?? null,
     },
   };
