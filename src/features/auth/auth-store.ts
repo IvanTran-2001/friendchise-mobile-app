@@ -40,10 +40,12 @@ export const useAuthStore = create<AuthState>()(
         demoExpiresAt: state.demoExpiresAt,
       }),
       onRehydrateStorage: () => (_state, error) => {
-        const { setAuthenticated, setHasHydrated } = useAuthStore.getState();
+        const { setAuthenticated, setHasHydrated, setSessionExpiresAt, setDemoSession } = useAuthStore.getState();
 
         if (error) {
           setAuthenticated(false);
+          setSessionExpiresAt(null);
+          setDemoSession({ isDemo: false, expiresAt: null });
           setHasHydrated(true);
           return;
         }
