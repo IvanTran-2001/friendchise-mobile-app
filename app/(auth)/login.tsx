@@ -87,7 +87,7 @@ export default function LoginScreen() {
             />
             <DemoAccessSection
               onPress={() => mutation.mutate("demo")}
-              pending={mutation.isPending}
+              pending={mutation.isPending && mutation.variables === "demo"}
             />
           </View>
         </AuthCard>
