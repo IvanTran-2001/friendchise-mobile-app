@@ -6,10 +6,10 @@ import { useAuthStore } from "./auth-store";
 export function SessionWatcher() {
   const router = useRouter();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const setSessionExpiresAt = useAuthStore((state) => state.setSessionExpiresAt);
   const setDemoSession = useAuthStore((state) => state.setDemoSession);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const isDemo = useAuthStore((state) => state.isDemo);
-  const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
+  const sessionExpiresAt = useAuthStore((state) => state.sessionExpiresAt);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -26,14 +26,15 @@ export function SessionWatcher() {
 
       if (!token) {
         setAuthenticated(false);
+        setSessionExpiresAt(null);
         setDemoSession({ isDemo: false, expiresAt: null });
         router.replace("/(auth)/login");
         return;
       }
 
       // The mobile token is an encrypted next-auth JWE, so we can't read its
-      // exp/email claims client-side. isDemo/demoExpiresAt are set explicitly
-      // at login (see callback.tsx) and persisted, so leave them untouched here.
+      // claims client-side. The callback persists the session expiry metadata,
+      // so we only sync auth state here.
       setAuthenticated(true);
     }).catch(() => {
       if (!alive) {
@@ -41,6 +42,7 @@ export function SessionWatcher() {
       }
 
       setAuthenticated(false);
+      setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
       router.replace("/(auth)/login");
     });
@@ -48,10 +50,10 @@ export function SessionWatcher() {
     return () => {
       alive = false;
     };
-  }, [hasHydrated, router, setAuthenticated, setDemoSession]);
+  }, [hasHydrated, router, setAuthenticated, setDemoSession, setSessionExpiresAt]);
 
   useEffect(() => {
-    if (!isDemo || !demoExpiresAt) {
+    if (!sessionExpiresAt) {
       return;
     }
 
@@ -65,13 +67,14 @@ export function SessionWatcher() {
           await clearAuthToken();
         } finally {
           setAuthenticated(false);
+          setSessionExpiresAt(null);
           setDemoSession({ isDemo: false, expiresAt: null });
           router.replace("/(auth)/login");
         }
       };
 
       void expire();
-    }, Math.max(0, demoExpiresAt - Date.now()));
+    }, Math.max(0, sessionExpiresAt - Date.now()));
 
     return () => {
       if (expiryTimerRef.current) {
@@ -79,7 +82,7 @@ export function SessionWatcher() {
         expiryTimerRef.current = null;
       }
     };
-  }, [demoExpiresAt, isDemo, router, setAuthenticated, setDemoSession]);
+  }, [router, sessionExpiresAt, setAuthenticated, setDemoSession, setSessionExpiresAt]);
 
   return null;
 }

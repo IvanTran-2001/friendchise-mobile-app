@@ -6,9 +6,11 @@ import { getLastRoute } from "../src/features/navigation/last-route-store";
 import { Text } from "../components/ui/text";
 import { colors, spacing } from "../src/lib/theme";
 import { isJwtExpired } from "../src/features/auth/jwt-utils";
+import { useAuthStore } from "../src/features/auth/auth-store";
 
 export default function Index() {
   const [target, setTarget] = useState<string | null>(null);
+  const sessionExpiresAt = useAuthStore((state) => state.sessionExpiresAt);
 
   useEffect(() => {
     let alive = true;
@@ -18,7 +20,7 @@ export default function Index() {
         return;
       }
 
-      if (token && isJwtExpired(token)) {
+      if (token && isJwtExpired(sessionExpiresAt)) {
         void clearAuthToken();
         setTarget("/(auth)/login");
         return;
@@ -39,7 +41,7 @@ export default function Index() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [sessionExpiresAt]);
 
   if (!target) {
     return (

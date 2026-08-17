@@ -4,5 +4,5 @@
 const DEMO_EMAIL_SUFFIX = "@demo.friendchise.app";
 
 export function isDemoEmail(email: string | null | undefined): boolean {
-  return !!email && email.endsWith(DEMO_EMAIL_SUFFIX);
+  return !!email && email.toLowerCase().endsWith(DEMO_EMAIL_SUFFIX);
 }
