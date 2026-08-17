@@ -1,14 +1,17 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { Avatar, getInitials } from "../../ui/avatar";
+import { Badge } from "../../ui/badge";
 import { useGlobalSheet } from "../global-sheet";
+import { formatDemoCountdown } from "./profile-panel-utils";
 import { ProfileSheet } from "./profile-sheet";
 import { colors, radius, spacing } from "../../../src/lib/theme";
 import { Text } from "../../ui/text";
 import { fetchOrganizations, type Org } from "../../../src/features/orgs/organization-api";
 import { useMe, type MeUser } from "../../../src/features/auth";
+import { useAuthStore } from "../../../src/features/auth/auth-store";
 
 /**
  * Profile trigger shown in the app navbar.
@@ -20,6 +23,9 @@ export function ProfileOrgButton() {
   const { openSheet } = useGlobalSheet();
   const currentOrgId = useCurrentOrgId();
   const { data: meData } = useMe();
+  const isDemo = useAuthStore((state) => state.isDemo);
+  const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
+  const [remainingMs, setRemainingMs] = useState(() => (demoExpiresAt ? demoExpiresAt - Date.now() : 0));
   const { data: orgData } = useQuery({
     queryKey: ["mobile-orgs"],
     queryFn: fetchOrganizations,
@@ -28,6 +34,19 @@ export function ProfileOrgButton() {
   const currentUser = meData?.user ?? null;
   const currentOrg = orgData?.organizations.find((org) => org.id === currentOrgId) ?? null;
   const userInitials = useMemo(() => getInitials(currentUser?.name), [currentUser?.name]);
+
+  useEffect(() => {
+    if (!isDemo || !demoExpiresAt) {
+      return;
+    }
+
+    setRemainingMs(demoExpiresAt - Date.now());
+    const id = setInterval(() => {
+      setRemainingMs(demoExpiresAt - Date.now());
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [demoExpiresAt, isDemo]);
 
   const handleOpenProfile = () => {
     openSheet(<ProfileSheet />, {
@@ -44,7 +63,17 @@ export function ProfileOrgButton() {
         accessibilityLabel="Open profile panel"
         onPress={handleOpenProfile}
       >
-        <ProfileCluster currentUser={currentUser} currentOrg={currentOrg} userInitials={userInitials} />
+        <View style={styles.buttonContent}>
+          {isDemo ? (
+            <View style={styles.demoStack}>
+              <Badge label="Demo" tone="danger" dotted />
+              <Text variant="caption" tone="danger" align="center" numberOfLines={1}>
+                {formatDemoCountdown(remainingMs)}
+              </Text>
+            </View>
+          ) : null}
+          <ProfileCluster currentUser={currentUser} currentOrg={currentOrg} userInitials={userInitials} />
+        </View>
       </Pressable>
     </>
   );
@@ -80,12 +109,21 @@ function ProfileCluster({ currentUser, currentOrg, userInitials }: ProfileCluste
 const styles = StyleSheet.create({
   button: {
     minHeight: 50,
+    paddingVertical: spacing.xs,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.xl,
   },
   buttonPressed: {
     opacity: 0.85,
+  },
+  buttonContent: {
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  demoStack: {
+    alignItems: "center",
+    gap: 2,
   },
   avatarCluster: {
     flexDirection: "row",

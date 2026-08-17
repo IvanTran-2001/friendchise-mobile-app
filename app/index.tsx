@@ -6,11 +6,18 @@ import { getLastRoute } from "../src/features/navigation/last-route-store";
 import { Text } from "../components/ui/text";
 import { colors, spacing } from "../src/lib/theme";
 import { isJwtExpired } from "../src/features/auth/jwt-utils";
+import { useAuthStore } from "../src/features/auth/auth-store";
 
 export default function Index() {
   const [target, setTarget] = useState<string | null>(null);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const sessionExpiresAt = useAuthStore((state) => state.sessionExpiresAt);
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     let alive = true;
 
     Promise.all([getAuthToken(), getLastRoute()]).then(([token, lastRoute]) => {
@@ -18,9 +25,16 @@ export default function Index() {
         return;
       }
 
-      if (token && isJwtExpired(token)) {
-        void clearAuthToken();
-        setTarget("/(auth)/login");
+      if (token && (sessionExpiresAt == null || isJwtExpired(sessionExpiresAt))) {
+        void clearAuthToken()
+          .catch(() => undefined)
+          .finally(() => {
+            if (!alive) {
+              return;
+            }
+
+            setTarget("/(auth)/login");
+          });
         return;
       }
 
@@ -39,7 +53,7 @@ export default function Index() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [hasHydrated, sessionExpiresAt]);
 
   if (!target) {
     return (

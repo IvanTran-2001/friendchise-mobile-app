@@ -1,12 +1,19 @@
 import { useMemo } from "react";
 import { Image, View, StyleSheet } from "react-native";
 import { useMutation } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react-native";
 import { getApiUrl } from "../../src/lib/config";
-import { startOAuthLogin, type AuthProvider } from "../../src/features/auth/auth-api";
+import {
+  startDemoLogin,
+  startOAuthLogin,
+  type AuthProvider,
+} from "../../src/features/auth/auth-api";
 import { DevUsersOverlay } from "./dev-users-overlay";
 import { AuthCard, AuthProviderButton } from "../../components/auth/auth-ui";
 import { Screen } from "../../components/ui/screen";
 import { Text } from "../../components/ui/text";
+import { Button } from "../../components/ui/button";
+import { Divider } from "../../components/ui/divider";
 import { ErrorState } from "../../components/ui/state-views";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 
@@ -28,7 +35,8 @@ export default function LoginScreen() {
     [apiUrlResult.apiUrl],
   );
   const mutation = useMutation({
-    mutationFn: (provider: AuthProvider) => startOAuthLogin(provider),
+    mutationFn: (method: AuthProvider | "demo") =>
+      method === "demo" ? startDemoLogin() : startOAuthLogin(method),
   });
 
   if (apiUrlResult.error) {
@@ -77,6 +85,11 @@ export default function LoginScreen() {
               onPress={() => mutation.mutate("linkedin")}
               disabled={mutation.isPending}
             />
+            <DemoAccessSection
+              onPress={() => mutation.mutate("demo")}
+              pending={mutation.isPending}
+              loading={mutation.isPending && mutation.variables === "demo"}
+            />
           </View>
         </AuthCard>
 
@@ -88,6 +101,40 @@ export default function LoginScreen() {
       </Screen>
 
       {__DEV__ ? <DevUsersOverlay /> : null}
+    </View>
+  );
+}
+
+type DemoAccessSectionProps = {
+  onPress: () => void;
+  pending: boolean;
+  loading: boolean;
+};
+
+function DemoAccessSection({ onPress, pending, loading }: DemoAccessSectionProps) {
+  return (
+    <View style={styles.demoSection}>
+      <View style={styles.dividerRow}>
+        <Divider style={styles.dividerLine} />
+        <Text variant="label" tone="tertiary">
+          OR
+        </Text>
+        <Divider style={styles.dividerLine} />
+      </View>
+      <Button
+        label="Try Demo"
+        variant="secondary"
+        size="md"
+        leftIcon={<Sparkles size={16} color={colors.accent} />}
+        onPress={onPress}
+        disabled={pending}
+        loading={loading}
+        loadingLabel="Opening demo..."
+        fullWidth
+      />
+      <Text variant="caption" tone="tertiary" align="center">
+        No account needed — explore a seeded workspace.
+      </Text>
     </View>
   );
 }
@@ -130,6 +177,18 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 360,
     gap: spacing.sm + 2,
+  },
+  demoSection: {
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
   },
   error: {
     marginTop: spacing.md,
