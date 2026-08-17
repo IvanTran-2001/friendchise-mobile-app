@@ -5,9 +5,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 type AuthState = {
   isAuthenticated: boolean;
   hasHydrated: boolean;
-  /** Whether the current session belongs to a demo account. Derived from the token by `SessionWatcher`, not persisted. */
+  /** Whether the current session belongs to a demo account. Persisted alongside `demoExpiresAt`. */
   isDemo: boolean;
-  /** Epoch ms when the current demo session's token expires, or null if not a demo session. */
+  /** Epoch ms when the current demo session expires, or null if not a demo session. Persisted alongside `isDemo`. */
   demoExpiresAt: number | null;
   setAuthenticated: (value: boolean) => void;
   setHasHydrated: (value: boolean) => void;

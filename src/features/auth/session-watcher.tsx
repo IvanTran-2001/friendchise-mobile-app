@@ -60,10 +60,17 @@ export function SessionWatcher() {
     }
 
     expiryTimerRef.current = setTimeout(() => {
-      void clearAuthToken();
-      setAuthenticated(false);
-      setDemoSession({ isDemo: false, expiresAt: null });
-      router.replace("/(auth)/login");
+      const expire = async () => {
+        try {
+          await clearAuthToken();
+        } finally {
+          setAuthenticated(false);
+          setDemoSession({ isDemo: false, expiresAt: null });
+          router.replace("/(auth)/login");
+        }
+      };
+
+      void expire();
     }, Math.max(0, demoExpiresAt - Date.now()));
 
     return () => {

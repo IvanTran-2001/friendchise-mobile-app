@@ -94,13 +94,14 @@ function DeleteAccountPanel() {
   const { data: meData } = useMe();
   const { closeSheet } = useGlobalSheet();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const setDemoSession = useAuthStore((state) => state.setDemoSession);
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const deleteMutation = useMutation({
     mutationFn: deleteAccount,
     onSuccess: async () => {
       closeSheet();
-      await clearSessionAndRedirect({ queryClient, setAuthenticated, router });
+      await clearSessionAndRedirect({ queryClient, setAuthenticated, setDemoSession, router });
     },
     onError: (err) => {
       setError(getDeleteAccountErrorMessage(err));

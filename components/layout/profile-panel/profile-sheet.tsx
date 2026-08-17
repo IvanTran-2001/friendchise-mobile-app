@@ -24,6 +24,7 @@ export function ProfileSheet() {
   const currentOrgId = useCurrentOrgId();
 
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const setDemoSession = useAuthStore((state) => state.setDemoSession);
   const isDemo = useAuthStore((state) => state.isDemo);
   const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
   const { data: meData } = useMe();
@@ -56,7 +57,7 @@ export function ProfileSheet() {
       <OrganizationPanel currentOrgId={currentOrgId} />
       <AccountPanel
         onOpenSettings={handleOpenSettings}
-        onLogout={() => void handleLogout({ closeSheet, queryClient, setAuthenticated, router })}
+        onLogout={() => void handleLogout({ closeSheet, queryClient, setAuthenticated, setDemoSession, router })}
       />
     </View>
   );
@@ -155,12 +156,13 @@ type LogoutActionArgs = {
   closeSheet: () => void;
   queryClient: ReturnType<typeof useQueryClient>;
   setAuthenticated: (authenticated: boolean) => void;
+  setDemoSession: (session: { isDemo: boolean; expiresAt: number | null }) => void;
   router: ReturnType<typeof useRouter>;
 };
 
-async function handleLogout({ closeSheet, queryClient, setAuthenticated, router }: LogoutActionArgs) {
+async function handleLogout({ closeSheet, queryClient, setAuthenticated, setDemoSession, router }: LogoutActionArgs) {
   closeSheet();
-  await clearSessionAndRedirect({ queryClient, setAuthenticated, router });
+  await clearSessionAndRedirect({ queryClient, setAuthenticated, setDemoSession, router });
 }
 
 type LogoutButtonProps = {

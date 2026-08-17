@@ -1,4 +1,5 @@
 export * from "./auth-api";
+export * from "./auth-callback";
 export * from "./auth-store";
 export * from "./demo";
 export * from "./demo-session-banner";

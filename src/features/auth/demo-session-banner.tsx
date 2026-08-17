@@ -40,6 +40,7 @@ export function DemoSessionBanner() {
   const isDemo = useAuthStore((state) => state.isDemo);
   const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const setDemoSession = useAuthStore((state) => state.setDemoSession);
   const [remaining, setRemaining] = useState(() => (demoExpiresAt ? demoExpiresAt - Date.now() : 0));
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export function DemoSessionBanner() {
         variant="ghost"
         accessibilityLabel="End demo session"
         onPress={() => {
-          void clearSessionAndRedirect({ queryClient, setAuthenticated, router });
+          void clearSessionAndRedirect({ queryClient, setAuthenticated, setDemoSession, router });
         }}
       >
         <X size={16} color={colors.warning} />
