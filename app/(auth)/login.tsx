@@ -87,7 +87,8 @@ export default function LoginScreen() {
             />
             <DemoAccessSection
               onPress={() => mutation.mutate("demo")}
-              pending={mutation.isPending && mutation.variables === "demo"}
+              pending={mutation.isPending}
+              loading={mutation.isPending && mutation.variables === "demo"}
             />
           </View>
         </AuthCard>
@@ -107,9 +108,10 @@ export default function LoginScreen() {
 type DemoAccessSectionProps = {
   onPress: () => void;
   pending: boolean;
+  loading: boolean;
 };
 
-function DemoAccessSection({ onPress, pending }: DemoAccessSectionProps) {
+function DemoAccessSection({ onPress, pending, loading }: DemoAccessSectionProps) {
   return (
     <View style={styles.demoSection}>
       <View style={styles.dividerRow}>
@@ -126,7 +128,7 @@ function DemoAccessSection({ onPress, pending }: DemoAccessSectionProps) {
         leftIcon={<Sparkles size={16} color={colors.accent} />}
         onPress={onPress}
         disabled={pending}
-        loading={pending}
+        loading={loading}
         loadingLabel="Opening demo..."
         fullWidth
       />
