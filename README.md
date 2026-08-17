@@ -2,6 +2,10 @@
 
 Expo React Native app for the FriendChise product. Visit friendchise Web [Github](https://github.com/IvanTran-2001/FriendChise) for reference.
 
+## Quick Start
+
+See the [mobile quick start](https://friendchise.app/doc/getting-started/quick-start-mobile-app) for the step-by-step setup guide.
+
 ## Stack
 
 - Expo
