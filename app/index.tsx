@@ -21,8 +21,13 @@ export default function Index() {
       }
 
       if (token && isJwtExpired(sessionExpiresAt)) {
-        void clearAuthToken();
-        setTarget("/(auth)/login");
+        clearAuthToken().then(() => {
+          if (!alive) {
+            return;
+          }
+
+          setTarget("/(auth)/login");
+        });
         return;
       }
 
