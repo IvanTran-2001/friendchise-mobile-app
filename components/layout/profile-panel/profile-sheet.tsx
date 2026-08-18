@@ -105,6 +105,12 @@ function ProfilePanel({ currentUser, userInitials, orgLabel, isDemo, demoExpires
           {currentUser?.name ?? "Your profile"}
         </Text>
 
+        {currentUser?.email ? (
+          <Text variant="caption" tone="secondary" align="center" numberOfLines={1}>
+            {currentUser.email}
+          </Text>
+        ) : null}
+
         {isDemo ? <Badge label="Demo" tone="danger" dotted /> : null}
         <Badge label={orgLabel} tone="accent" />
         {isDemo ? (

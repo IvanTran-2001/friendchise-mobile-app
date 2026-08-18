@@ -13,7 +13,8 @@
       "expo-image-picker",
       "expo-document-picker",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},

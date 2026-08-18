@@ -9,6 +9,7 @@ type AuthCallbackQuery = {
   error?: string | string[];
   isDemo?: string | string[];
   expiresAt?: string | string[];
+  attemptId?: string | string[];
 };
 
 type AuthCallbackState = {
@@ -48,9 +49,28 @@ export function useAuthCallbackState(): AuthCallbackState {
   const error = useMemo(() => firstParam(params.error), [params.error]);
   const isDemo = useMemo(() => firstParam(params.isDemo) === "1", [params.isDemo]);
   const expiresAt = useMemo(() => parseExpiresAt(params.expiresAt), [params.expiresAt]);
+  const attemptId = useMemo(() => firstParam(params.attemptId), [params.attemptId]);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  useEffect(() => {
+    if (!__DEV__) {
+      return;
+    }
+
+    const logPrefix = attemptId ? `[AUTH ${attemptId}][MOBILE]` : "[AUTH unknown][MOBILE]";
+    console.info(`${logPrefix} callback received`, {
+      route: "/(auth)/callback",
+      nativeAuthStatus: isAuthenticated,
+      tokenPresent: !!token,
+      error: error ?? null,
+      isDemo,
+      expiresAt,
+    });
+  }, [attemptId, error, expiresAt, isAuthenticated, isDemo, token]);
 
   useEffect(() => {
     if (error) {
+      console.info("[mobile-auth] callback error branch", { error });
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
@@ -59,10 +79,12 @@ export function useAuthCallbackState(): AuthCallbackState {
     }
 
     if (!token) {
+      console.info("[mobile-auth] callback waiting for token");
       return;
     }
 
     if (!expiresAt || expiresAt <= Date.now()) {
+      console.info("[mobile-auth] callback expired or invalid expiry", { expiresAt });
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
@@ -70,14 +92,18 @@ export function useAuthCallbackState(): AuthCallbackState {
       return;
     }
 
+    console.info("[mobile-auth] saving callback token", { expiresAt, isDemo });
+
     saveAuthToken(token)
       .then(() => {
+        console.info("[mobile-auth] callback token saved, redirecting to app", { expiresAt, isDemo });
         setAuthenticated(true);
         setSessionExpiresAt(expiresAt);
         setDemoSession({ isDemo, expiresAt: isDemo ? expiresAt : null });
         router.replace("/(app)");
       })
       .catch(() => {
+        console.info("[mobile-auth] failed to save callback token");
         setAuthenticated(false);
         setSessionExpiresAt(null);
         setDemoSession({ isDemo: false, expiresAt: null });
