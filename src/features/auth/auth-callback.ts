@@ -53,7 +53,7 @@ export function useAuthCallbackState(): AuthCallbackState {
   const expiresAt = useMemo(() => parseExpiresAt(params.expiresAt), [params.expiresAt]);
   const attemptId = useMemo(() => firstParam(params.attemptId), [params.attemptId]);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const attemptMatches = !activeOAuthAttemptId || !attemptId || activeOAuthAttemptId === attemptId;
+  const attemptMatches = !!attemptId && (!activeOAuthAttemptId || activeOAuthAttemptId === attemptId);
 
   useEffect(() => {
     if (!__DEV__) {
