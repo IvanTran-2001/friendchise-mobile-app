@@ -29,8 +29,8 @@ const providerStyles = {
     iconName: "google" as const,
   },
   linkedin: {
-    backgroundColor: colors.accentSoft,
-    iconBackgroundColor: "rgba(37, 99, 235, 0.12)",
+    backgroundColor: colors.surface,
+    iconBackgroundColor: colors.surfaceMuted,
     iconColor: colors.accent,
     textColor: colors.textPrimary,
     iconName: "linkedin-in" as const,
@@ -49,7 +49,7 @@ const providerStyles = {
 /** Elevated card wrapper used for the sign-in card and dev-tools panel. */
 export function AuthCard({ children, style }: AuthCardProps) {
   return (
-    <Card padding="lg" elevation="lg" style={[styles.card, style]}>
+    <Card padding="lg" elevation="md" style={[styles.card, style]}>
       {children}
     </Card>
   );
@@ -89,13 +89,19 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   button: {
+    minHeight: 50,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md + 2,
+    paddingHorizontal: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   buttonPressed: {
     opacity: 0.85,
@@ -104,14 +110,15 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonContent: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm + 2,
   },
   iconWrap: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -119,5 +126,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontWeight: "700",
     fontSize: 15,
+    letterSpacing: 0.1,
   },
 });

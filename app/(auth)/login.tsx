@@ -51,17 +51,26 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <Screen edges={["top", "bottom"]} scroll centered keyboardAvoiding>
+      <Screen
+        edges={["top", "bottom"]}
+        scroll
+        centered
+        keyboardAvoiding
+        contentStyle={styles.screenContent}
+      >
         <AuthCard style={styles.card}>
           <View style={styles.hero}>
-            <View style={styles.logoFrame}>
+            <View style={styles.logoShell}>
               <Image source={logoSource} style={styles.logoImage} resizeMode="contain" />
             </View>
-            <Text variant="bodyLarge" tone="secondary" align="center" style={styles.subtitle}>
-              Sign in with Google or LinkedIn.
+            <Text variant="label" tone="accent" align="center" style={styles.kicker}>
+              FriendChise
             </Text>
-            <Text variant="caption" tone="tertiary" align="center" style={styles.helper}>
-              You will be sent back to the app after sign in.
+            <Text variant="title" align="center" style={styles.title}>
+              Sign in to your workspace
+            </Text>
+            <Text variant="bodyLarge" tone="secondary" align="center" style={styles.subtitle}>
+              Use your account to continue.
             </Text>
           </View>
 
@@ -139,49 +148,58 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  screenContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.xl,
+  },
   card: {
-    maxWidth: 380,
+    maxWidth: 400,
   },
   hero: {
     alignItems: "center",
     width: "100%",
-    maxWidth: 360,
+    maxWidth: 340,
   },
-  subtitle: {
-    marginBottom: spacing.sm,
-  },
-  helper: {
-    marginBottom: spacing.xl,
-  },
-  logoFrame: {
-    width: 180,
-    height: 180,
-    borderRadius: radius.xxl + 18,
+  logoShell: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.accentSoftBorder,
+    marginBottom: spacing.sm,
+  },
+  kicker: {
+    marginBottom: 2,
+  },
+  title: {
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    maxWidth: 320,
     marginBottom: spacing.lg,
-    ...shadows.lg,
   },
   logoImage: {
-    width: 132,
-    height: 132,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
   },
   actions: {
     width: "100%",
     maxWidth: 360,
-    gap: spacing.sm + 2,
+    gap: spacing.sm,
   },
   demoSection: {
-    marginTop: spacing.sm,
-    gap: spacing.sm,
+    marginTop: 2,
+    gap: spacing.xs + 2,
   },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs + 2,
   },
   dividerLine: {
     flex: 1,
