@@ -145,7 +145,7 @@ export async function startDevLogin(email: string) {
   );
 
   if (shouldLogAuthFlow()) {
-    console.info("[mobile-auth] startDevLogin", { email, ok: response.ok, status: response.status });
+    console.info("[mobile-auth] startDevLogin", { ok: response.ok, status: response.status });
   }
 
   if (!response.ok) {

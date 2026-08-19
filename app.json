@@ -23,13 +23,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.ivantran2001.friendchisemobileapp",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Allow FriendChise to take photos for task images and Scan to Task.",
-        "NSPhotoLibraryUsageDescription": "Allow FriendChise to pick photos from your library for task images and Scan to Task.",
-        "NSPhotoLibraryAddUsageDescription": "Allow FriendChise to save task images to your photo library."
-      }
+      "bundleIdentifier": "com.ivantran2001.friendchisemobileapp"
     },
     "android": {
       "package": "com.ivantran2001.friendchisemobileapp"
