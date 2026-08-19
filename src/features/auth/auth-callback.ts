@@ -84,9 +84,16 @@ export function useAuthCallbackState(): AuthCallbackState {
       return;
     }
 
+    const currentAttemptId = activeOAuthAttemptId;
+
+    const isCurrentAttempt = () => useAuthStore.getState().activeOAuthAttemptId === currentAttemptId;
+
     if (error) {
       if (__DEV__) {
         console.info("[mobile-auth] callback error branch", { error });
+      }
+      if (!isCurrentAttempt()) {
+        return;
       }
       setAuthenticated(false);
       setSessionExpiresAt(null);
@@ -107,6 +114,9 @@ export function useAuthCallbackState(): AuthCallbackState {
       if (__DEV__) {
         console.info("[mobile-auth] callback expired or invalid expiry", { expiresAt });
       }
+      if (!isCurrentAttempt()) {
+        return;
+      }
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
@@ -119,8 +129,15 @@ export function useAuthCallbackState(): AuthCallbackState {
       console.info("[mobile-auth] saving callback token", { expiresAt, isDemo });
     }
 
+    if (!isCurrentAttempt()) {
+      return;
+    }
+
     saveAuthToken(token)
       .then(() => {
+        if (!isCurrentAttempt()) {
+          return;
+        }
         if (__DEV__) {
           console.info("[mobile-auth] callback token saved, redirecting to app", { expiresAt, isDemo });
         }
@@ -133,6 +150,9 @@ export function useAuthCallbackState(): AuthCallbackState {
       .catch(() => {
         if (__DEV__) {
           console.info("[mobile-auth] failed to save callback token");
+        }
+        if (!isCurrentAttempt()) {
+          return;
         }
         setAuthenticated(false);
         setSessionExpiresAt(null);
