@@ -1,4 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
+import * as ExpoLinking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
+import { getApiUrl } from "../../lib/config";
 import { clearAuthToken } from "./token-store";
 
 type LogoutRedirectArgs = {
@@ -16,6 +19,15 @@ type LogoutRedirectArgs = {
  */
 export async function clearSessionAndRedirect({ queryClient, setAuthenticated, setSessionExpiresAt, setDemoSession, router }: LogoutRedirectArgs) {
   try {
+    const callbackUrl = ExpoLinking.createURL("/login");
+    const signOutUrl = `${getApiUrl()}/api/mobile-auth/logout?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+
+    try {
+      await WebBrowser.openAuthSessionAsync(signOutUrl, callbackUrl);
+    } catch {
+      // If the browser sign-out flow is interrupted, still clear the local session.
+    }
+
     await clearAuthToken();
   } finally {
     queryClient.clear();
