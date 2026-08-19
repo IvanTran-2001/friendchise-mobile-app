@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Settings2, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -15,7 +15,6 @@ import { formatDemoCountdown } from "./profile-panel-utils";
 import { OrgSwitcher } from "./org-switcher";
 import { useGlobalSheet } from "../global-sheet";
 import { SettingsSheet } from "./settings-sheet";
-import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
 
 export function ProfileSheet() {
   const router = useRouter();
@@ -29,15 +28,9 @@ export function ProfileSheet() {
   const isDemo = useAuthStore((state) => state.isDemo);
   const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
   const { data: meData } = useMe();
-  const { data: orgData } = useQuery({
-    queryKey: ["mobile-orgs"],
-    queryFn: fetchOrganizations,
-  });
 
   const currentUser = meData?.user ?? null;
-  const currentOrg = orgData?.organizations.find((org) => org.id === currentOrgId) ?? null;
   const userInitials = useMemo(() => getInitials(currentUser?.name), [currentUser?.name]);
-  const orgLabel = currentOrg ? currentOrg.name : "Not selected";
 
   const handleOpenSettings = () => {
     openSheet(<SettingsSheet />, {
@@ -51,7 +44,6 @@ export function ProfileSheet() {
       <ProfilePanel
         currentUser={currentUser}
         userInitials={userInitials}
-        orgLabel={orgLabel}
         isDemo={isDemo}
         demoExpiresAt={demoExpiresAt}
       />
@@ -69,12 +61,11 @@ export function ProfileSheet() {
 type ProfilePanelProps = {
   currentUser: MeUser | null;
   userInitials: string;
-  orgLabel: string;
   isDemo: boolean;
   demoExpiresAt: number | null;
 };
 
-function ProfilePanel({ currentUser, userInitials, orgLabel, isDemo, demoExpiresAt }: ProfilePanelProps) {
+function ProfilePanel({ currentUser, userInitials, isDemo, demoExpiresAt }: ProfilePanelProps) {
   const [remaining, setRemaining] = useState(() => (demoExpiresAt ? demoExpiresAt - Date.now() : 0));
 
   useEffect(() => {
@@ -111,12 +102,8 @@ function ProfilePanel({ currentUser, userInitials, orgLabel, isDemo, demoExpires
           </Text>
         ) : null}
 
-        {isDemo ? <Badge label="Demo" tone="danger" dotted /> : null}
-        <Badge label={orgLabel} tone="accent" />
         {isDemo ? (
-          <Text variant="caption" tone="danger" align="center">
-            Demo access ends in {formatDemoCountdown(remaining)}
-          </Text>
+          <Badge label={`Demo · ${formatDemoCountdown(remaining)}`} tone="danger" dotted />
         ) : null}
       </View>
     </View>

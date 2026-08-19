@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { Sparkles, X } from "lucide-react-native";
+import { Sparkles } from "lucide-react-native";
 import { Text } from "../../../components/ui/text";
-import { IconButton } from "../../../components/ui/icon-button";
 import { colors, radius, spacing } from "../../lib/theme";
 import { useAuthStore } from "./auth-store";
-import { clearSessionAndRedirect } from "./logout";
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) {
-    return "Expired";
+    return "0:00";
   }
 
   const totalSeconds = Math.floor(ms / 1000);
@@ -20,28 +16,20 @@ function formatRemaining(ms: number): string {
   const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-  return `${seconds}s`;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 /**
- * Persistent status strip shown only for demo sessions, mirroring the web
- * app's demo banner (`components/layout/demo-tour/components/demo-banner.tsx`).
- * Shows a live countdown to token expiry and lets the visitor end the demo
- * early. Auto sign-out at expiry is handled separately by `SessionWatcher`.
+ * Compact "Demo Mode" pill (icon + live countdown) shown for demo sessions.
+ * Rendered by `AppNavbar` as an absolutely positioned overlay near the
+ * profile button so it never takes up layout space. Ending the demo early
+ * is still available from the profile sheet.
  */
-export function DemoSessionBanner() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+export function DemoModeIndicator() {
   const isDemo = useAuthStore((state) => state.isDemo);
   const demoExpiresAt = useAuthStore((state) => state.demoExpiresAt);
-  const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
-  const setSessionExpiresAt = useAuthStore((state) => state.setSessionExpiresAt);
-  const setDemoSession = useAuthStore((state) => state.setDemoSession);
   const [remaining, setRemaining] = useState(() => (demoExpiresAt ? demoExpiresAt - Date.now() : 0));
 
   useEffect(() => {
@@ -62,61 +50,25 @@ export function DemoSessionBanner() {
   }
 
   return (
-    <View style={styles.banner}>
-      <View style={styles.info}>
-        <View style={styles.iconWrap}>
-          <Sparkles size={13} color={colors.warning} />
-        </View>
-        <Text variant="captionStrong" tone="warning" numberOfLines={1}>
-          Demo session
-        </Text>
-        <Text variant="caption" tone="warning" numberOfLines={1} style={styles.timer}>
-          Ends in {formatRemaining(remaining)}
-        </Text>
-      </View>
-      <IconButton
-        size="sm"
-        variant="ghost"
-        accessibilityLabel="End demo session"
-        onPress={() => {
-          void clearSessionAndRedirect({ queryClient, setAuthenticated, setSessionExpiresAt, setDemoSession, router });
-        }}
-      >
-        <X size={16} color={colors.warning} />
-      </IconButton>
+    <View style={styles.pill} pointerEvents="none">
+      <Sparkles size={12} color={colors.accent} />
+      <Text variant="captionStrong" tone="accent" numberOfLines={1}>
+        {formatRemaining(remaining)}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.warningSoft,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.warningBorder,
-  },
-  info: {
-    flex: 1,
+  pill: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    minWidth: 0,
-  },
-  iconWrap: {
-    width: 22,
-    height: 22,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 4,
     borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(180, 83, 9, 0.14)",
-  },
-  timer: {
-    marginLeft: spacing.xs,
-    opacity: 0.85,
+    backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.accentSoftBorder,
   },
 });

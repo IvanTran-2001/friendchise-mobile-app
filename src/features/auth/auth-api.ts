@@ -1,9 +1,9 @@
 import * as ExpoLinking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
-import { Linking } from "react-native";
 import { getApiUrl } from "../../lib/config";
 import { useAuthStore } from "./auth-store";
+import { saveAuthToken } from "./token-store";
 
 export type AuthProvider = "google" | "linkedin";
 
@@ -145,21 +145,41 @@ export async function startOAuthLogin(provider: AuthProvider) {
 export async function startDemoLogin() {
   const attemptId = generateAttemptId();
   const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
-  const callbackUrl = `${ExpoLinking.createURL("/callback")}?attemptId=${encodeURIComponent(attemptId)}`;
-  const url = `${getApiUrl()}/api/mobile-auth/demo?callbackUrl=${encodeURIComponent(callbackUrl)}&attemptId=${encodeURIComponent(attemptId)}`;
-
   setActiveOAuthAttemptId(attemptId);
 
-  if (shouldLogAuthFlow()) {
-    console.info("[mobile-auth] startDemoLogin", {
-      attemptId,
-      callbackUrl,
-      url,
-    });
-  }
-
   try {
-    await Linking.openURL(url);
+    // Demo provisioning needs no OAuth/browser hop, so fetch the token
+    // directly and skip the WebBrowser/redirect round trip entirely.
+    const response = await fetch(
+      `${getApiUrl()}/api/mobile-auth/demo?attemptId=${encodeURIComponent(attemptId)}`,
+      { headers: { Accept: "application/json" } },
+    );
+
+    if (shouldLogAuthFlow()) {
+      console.info("[mobile-auth] startDemoLogin", { ok: response.ok, status: response.status });
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to start demo session: ${await getResponseError(response)}`);
+    }
+
+    const body = (await response.json()) as {
+      token: string;
+      orgId: string;
+      isDemo: boolean;
+      expiresAt: number;
+    };
+
+    if (useAuthStore.getState().activeOAuthAttemptId !== attemptId) {
+      return;
+    }
+
+    await saveAuthToken(body.token);
+    useAuthStore.getState().setAuthenticated(true);
+    useAuthStore.getState().setSessionExpiresAt(body.expiresAt);
+    useAuthStore.getState().setDemoSession({ isDemo: true, expiresAt: body.expiresAt });
+    clearActiveOAuthAttemptId();
+    router.replace("/(app)");
   } catch (error) {
     if (useAuthStore.getState().activeOAuthAttemptId === attemptId) {
       clearActiveOAuthAttemptId();
