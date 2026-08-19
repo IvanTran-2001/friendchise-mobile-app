@@ -1,9 +1,10 @@
 /**
  * Formats demo-session state for the profile panel UI.
+ * Matches `DemoModeIndicator`'s mm:ss clock format for consistency.
  */
 export function formatDemoCountdown(ms: number): string {
   if (ms <= 0) {
-    return "Expired";
+    return "0:00";
   }
 
   const totalSeconds = Math.floor(ms / 1000);
@@ -12,12 +13,8 @@ export function formatDemoCountdown(ms: number): string {
   const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m ${seconds}s`;
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
 
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-
-  return `${seconds}s`;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

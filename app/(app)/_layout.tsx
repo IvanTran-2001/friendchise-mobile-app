@@ -8,7 +8,6 @@ import { GlobalSheetProvider } from "../../components/layout/global-sheet";
 import { colors } from "../../src/lib/theme";
 import { saveLastRoute } from "../../src/features/navigation/last-route-store";
 import { SessionWatcher } from "../../src/features/auth/session-watcher";
-import { DemoSessionBanner } from "../../src/features/auth/demo-session-banner";
 
 function RouteTracker() {
   const pathname = usePathname();
@@ -31,7 +30,6 @@ export default function AppLayout() {
         <RouteTracker />
         <SessionWatcher />
         <View style={styles.container}>
-          <DemoSessionBanner />
           <AppNavbar />
           <View style={styles.content}>
             <Stack screenOptions={{ headerShown: false, animation: "none" }} />
