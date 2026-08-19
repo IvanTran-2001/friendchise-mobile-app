@@ -67,7 +67,7 @@ export async function startOAuthLogin(provider: AuthProvider) {
   const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
   let handedOffToCallback = false;
 
-  if (activeOAuthAttemptId) {
+  if (activeOAuthAttemptId && shouldLogAuthFlow()) {
     console.warn(`${logPrefix} another OAuth attempt is already active`, {
       activeOAuthAttemptId,
     });
