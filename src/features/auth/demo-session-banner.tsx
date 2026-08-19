@@ -49,11 +49,19 @@ export function DemoModeIndicator() {
     return null;
   }
 
+  const remainingLabel = formatRemaining(remaining);
+
   return (
-    <View style={styles.pill} pointerEvents="none">
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`Demo mode, ${remainingLabel} remaining`}
+      style={styles.pill}
+      pointerEvents="none"
+    >
       <Sparkles size={12} color={colors.accent} />
       <Text variant="captionStrong" tone="accent" numberOfLines={1}>
-        {formatRemaining(remaining)}
+        {remainingLabel}
       </Text>
     </View>
   );
