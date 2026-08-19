@@ -17,6 +17,8 @@ import { Divider } from "../../components/ui/divider";
 import { ErrorState } from "../../components/ui/state-views";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 
+const logoSource = require("../../public/LOGO.png");
+
 function describeError(error: unknown) {
   return error instanceof Error ? error.message : "Unknown error";
 }
@@ -30,10 +32,6 @@ export default function LoginScreen() {
     }
   }, []);
 
-  const logoUri = useMemo(
-    () => (apiUrlResult.apiUrl ? `${apiUrlResult.apiUrl}/Logo4.png` : null),
-    [apiUrlResult.apiUrl],
-  );
   const mutation = useMutation({
     mutationFn: (method: AuthProvider | "demo") =>
       method === "demo" ? startDemoLogin() : startOAuthLogin(method),
@@ -57,9 +55,7 @@ export default function LoginScreen() {
         <AuthCard style={styles.card}>
           <View style={styles.hero}>
             <View style={styles.logoFrame}>
-              {logoUri ? (
-                <Image source={{ uri: logoUri }} style={styles.logoImage} resizeMode="contain" />
-              ) : null}
+              <Image source={logoSource} style={styles.logoImage} resizeMode="contain" />
             </View>
             <Text variant="bodyLarge" tone="secondary" align="center" style={styles.subtitle}>
               Sign in with Google or LinkedIn.
