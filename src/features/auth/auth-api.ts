@@ -1,5 +1,4 @@
 import * as ExpoLinking from "expo-linking";
-import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { Linking } from "react-native";
@@ -23,7 +22,11 @@ function shouldLogAuthFlow() {
 }
 
 function generateAttemptId() {
-  return Crypto.randomUUID();
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `attempt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 // Strips the token value before logging a callback URL so we never print credentials.
