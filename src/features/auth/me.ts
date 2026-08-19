@@ -4,6 +4,7 @@ import { apiFetch } from "../../lib/api/client";
 export type MeUser = {
   id: string;
   name: string | null;
+  email: string | null;
   image: string | null;
 };
 

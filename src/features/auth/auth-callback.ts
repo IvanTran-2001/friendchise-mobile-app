@@ -9,6 +9,7 @@ type AuthCallbackQuery = {
   error?: string | string[];
   isDemo?: string | string[];
   expiresAt?: string | string[];
+  attemptId?: string | string[];
 };
 
 type AuthCallbackState = {
@@ -43,47 +44,136 @@ export function useAuthCallbackState(): AuthCallbackState {
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setSessionExpiresAt = useAuthStore((state) => state.setSessionExpiresAt);
   const setDemoSession = useAuthStore((state) => state.setDemoSession);
+  const activeOAuthAttemptId = useAuthStore((state) => state.activeOAuthAttemptId);
+  const clearActiveOAuthAttemptId = useAuthStore((state) => state.clearActiveOAuthAttemptId);
 
   const token = useMemo(() => firstParam(params.token) ?? firstParam(params.access_token), [params.access_token, params.token]);
   const error = useMemo(() => firstParam(params.error), [params.error]);
   const isDemo = useMemo(() => firstParam(params.isDemo) === "1", [params.isDemo]);
   const expiresAt = useMemo(() => parseExpiresAt(params.expiresAt), [params.expiresAt]);
+  const attemptId = useMemo(() => firstParam(params.attemptId), [params.attemptId]);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const attemptMatches = !!attemptId && !!activeOAuthAttemptId && activeOAuthAttemptId === attemptId;
 
   useEffect(() => {
+    if (!__DEV__) {
+      return;
+    }
+
+    const logPrefix = attemptId ? `[AUTH ${attemptId}][MOBILE]` : "[AUTH unknown][MOBILE]";
+    console.info(`${logPrefix} callback received`, {
+      route: "/(auth)/callback",
+      nativeAuthStatus: isAuthenticated,
+      tokenPresent: !!token,
+      error: error ?? null,
+      isDemo,
+      expiresAt,
+      attemptMatches,
+    });
+  }, [attemptId, attemptMatches, error, expiresAt, isAuthenticated, isDemo, token]);
+
+  useEffect(() => {
+    if (!attemptMatches) {
+      if (__DEV__) {
+        console.info("[mobile-auth] callback ignored because attempt is not active", {
+          activeOAuthAttemptId,
+          attemptId: attemptId ?? null,
+          error: error ?? null,
+        });
+      }
+      return;
+    }
+
+    const currentAttemptId = activeOAuthAttemptId;
+
+    const isCurrentAttempt = () => useAuthStore.getState().activeOAuthAttemptId === currentAttemptId;
+
     if (error) {
+      if (__DEV__) {
+        console.info("[mobile-auth] callback error branch", { error });
+      }
+      if (!isCurrentAttempt()) {
+        return;
+      }
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
+      clearActiveOAuthAttemptId();
       router.replace("/(auth)/login");
       return;
     }
 
     if (!token) {
+      if (__DEV__) {
+        console.info("[mobile-auth] callback waiting for token");
+      }
       return;
     }
 
     if (!expiresAt || expiresAt <= Date.now()) {
+      if (__DEV__) {
+        console.info("[mobile-auth] callback expired or invalid expiry", { expiresAt });
+      }
+      if (!isCurrentAttempt()) {
+        return;
+      }
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
+      clearActiveOAuthAttemptId();
       router.replace("/(auth)/login");
+      return;
+    }
+
+    if (__DEV__) {
+      console.info("[mobile-auth] saving callback token", { expiresAt, isDemo });
+    }
+
+    if (!isCurrentAttempt()) {
       return;
     }
 
     saveAuthToken(token)
       .then(() => {
+        if (!isCurrentAttempt()) {
+          return;
+        }
+        if (__DEV__) {
+          console.info("[mobile-auth] callback token saved, redirecting to app", { expiresAt, isDemo });
+        }
         setAuthenticated(true);
         setSessionExpiresAt(expiresAt);
         setDemoSession({ isDemo, expiresAt: isDemo ? expiresAt : null });
+        clearActiveOAuthAttemptId();
         router.replace("/(app)");
       })
       .catch(() => {
+        if (__DEV__) {
+          console.info("[mobile-auth] failed to save callback token");
+        }
+        if (!isCurrentAttempt()) {
+          return;
+        }
         setAuthenticated(false);
         setSessionExpiresAt(null);
         setDemoSession({ isDemo: false, expiresAt: null });
+        clearActiveOAuthAttemptId();
         router.replace("/(auth)/login");
       });
-  }, [error, expiresAt, isDemo, router, setAuthenticated, setDemoSession, setSessionExpiresAt, token]);
+  }, [
+    activeOAuthAttemptId,
+    attemptId,
+    attemptMatches,
+    clearActiveOAuthAttemptId,
+    error,
+    expiresAt,
+    isDemo,
+    router,
+    setAuthenticated,
+    setDemoSession,
+    setSessionExpiresAt,
+    token,
+  ]);
 
   const recover = useMemo(() => () => router.replace("/(auth)/login"), [router]);
 

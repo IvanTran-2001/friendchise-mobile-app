@@ -1,7 +1,4 @@
 import type { QueryClient } from "@tanstack/react-query";
-import * as ExpoLinking from "expo-linking";
-import { Linking, Platform } from "react-native";
-import { getApiUrl } from "../../lib/config";
 import { clearAuthToken } from "./token-store";
 
 type LogoutRedirectArgs = {
@@ -19,11 +16,6 @@ type LogoutRedirectArgs = {
  */
 export async function clearSessionAndRedirect({ queryClient, setAuthenticated, setSessionExpiresAt, setDemoSession, router }: LogoutRedirectArgs) {
   try {
-    if (Platform.OS !== "web") {
-      const callbackUrl = ExpoLinking.createURL("/login");
-      const signOutUrl = `${getApiUrl()}/api/mobile-auth/signout?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-      await Linking.openURL(signOutUrl);
-    }
     await clearAuthToken();
   } finally {
     queryClient.clear();
