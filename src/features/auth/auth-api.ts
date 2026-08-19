@@ -54,6 +54,28 @@ async function getResponseError(response: Response) {
 // the first one resolved. Not a fix; do not turn this into a silent no-op.
 let activeOAuthAttemptId: string | null = null;
 
+type DemoLoginResponse = {
+  token: string;
+  orgId: string;
+  isDemo: true;
+  expiresAt: number;
+};
+
+function isDemoLoginResponse(value: unknown): value is DemoLoginResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.token === "string" &&
+    candidate.token.length > 0 &&
+    typeof candidate.expiresAt === "number" &&
+    Number.isFinite(candidate.expiresAt) &&
+    candidate.isDemo === true
+  );
+}
+
 export async function fetchDevUsers() {
   const response = await fetch(`${getApiUrl()}/api/mobile-auth/dev-users`);
 
@@ -163,18 +185,24 @@ export async function startDemoLogin() {
       throw new Error(`Failed to start demo session: ${await getResponseError(response)}`);
     }
 
-    const body = (await response.json()) as {
-      token: string;
-      orgId: string;
-      isDemo: boolean;
-      expiresAt: number;
-    };
+    const rawBody: unknown = await response.json();
+    if (!isDemoLoginResponse(rawBody)) {
+      throw new Error("Demo login response was malformed");
+    }
+    const body = rawBody;
 
     if (useAuthStore.getState().activeOAuthAttemptId !== attemptId) {
       return;
     }
 
     await saveAuthToken(body.token);
+
+    // A newer attempt may have started while the token was being persisted —
+    // don't let a stale attempt clobber its state or navigation.
+    if (useAuthStore.getState().activeOAuthAttemptId !== attemptId) {
+      return;
+    }
+
     useAuthStore.getState().setAuthenticated(true);
     useAuthStore.getState().setSessionExpiresAt(body.expiresAt);
     useAuthStore.getState().setDemoSession({ isDemo: true, expiresAt: body.expiresAt });
