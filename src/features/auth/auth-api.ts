@@ -140,17 +140,29 @@ export async function startOAuthLogin(provider: AuthProvider) {
 }
 
 export async function startDemoLogin() {
-  const callbackUrl = ExpoLinking.createURL("/callback");
-  const url = `${getApiUrl()}/api/mobile-auth/demo?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  const attemptId = generateAttemptId();
+  const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
+  const callbackUrl = `${ExpoLinking.createURL("/callback")}?attemptId=${encodeURIComponent(attemptId)}`;
+  const url = `${getApiUrl()}/api/mobile-auth/demo?callbackUrl=${encodeURIComponent(callbackUrl)}&attemptId=${encodeURIComponent(attemptId)}`;
+
+  setActiveOAuthAttemptId(attemptId);
 
   if (shouldLogAuthFlow()) {
     console.info("[mobile-auth] startDemoLogin", {
+      attemptId,
       callbackUrl,
       url,
     });
   }
 
-  await Linking.openURL(url);
+  try {
+    await Linking.openURL(url);
+  } catch (error) {
+    if (useAuthStore.getState().activeOAuthAttemptId === attemptId) {
+      clearActiveOAuthAttemptId();
+    }
+    throw error;
+  }
 }
 
 export async function startDevLogin(email: string) {
