@@ -31,6 +31,9 @@ function redactCallbackUrl(url: string) {
     if (parsed.searchParams.has("token")) {
       parsed.searchParams.set("token", "<redacted>");
     }
+    if (parsed.searchParams.has("access_token")) {
+      parsed.searchParams.set("access_token", "<redacted>");
+    }
     return parsed.pathname + "?" + parsed.searchParams.toString();
   } catch {
     return "<unparseable>";

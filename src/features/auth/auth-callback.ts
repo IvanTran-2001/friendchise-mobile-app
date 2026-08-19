@@ -70,7 +70,9 @@ export function useAuthCallbackState(): AuthCallbackState {
 
   useEffect(() => {
     if (error) {
-      console.info("[mobile-auth] callback error branch", { error });
+      if (__DEV__) {
+        console.info("[mobile-auth] callback error branch", { error });
+      }
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
@@ -79,12 +81,16 @@ export function useAuthCallbackState(): AuthCallbackState {
     }
 
     if (!token) {
-      console.info("[mobile-auth] callback waiting for token");
+      if (__DEV__) {
+        console.info("[mobile-auth] callback waiting for token");
+      }
       return;
     }
 
     if (!expiresAt || expiresAt <= Date.now()) {
-      console.info("[mobile-auth] callback expired or invalid expiry", { expiresAt });
+      if (__DEV__) {
+        console.info("[mobile-auth] callback expired or invalid expiry", { expiresAt });
+      }
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
@@ -92,18 +98,24 @@ export function useAuthCallbackState(): AuthCallbackState {
       return;
     }
 
-    console.info("[mobile-auth] saving callback token", { expiresAt, isDemo });
+    if (__DEV__) {
+      console.info("[mobile-auth] saving callback token", { expiresAt, isDemo });
+    }
 
     saveAuthToken(token)
       .then(() => {
-        console.info("[mobile-auth] callback token saved, redirecting to app", { expiresAt, isDemo });
+        if (__DEV__) {
+          console.info("[mobile-auth] callback token saved, redirecting to app", { expiresAt, isDemo });
+        }
         setAuthenticated(true);
         setSessionExpiresAt(expiresAt);
         setDemoSession({ isDemo, expiresAt: isDemo ? expiresAt : null });
         router.replace("/(app)");
       })
       .catch(() => {
-        console.info("[mobile-auth] failed to save callback token");
+        if (__DEV__) {
+          console.info("[mobile-auth] failed to save callback token");
+        }
         setAuthenticated(false);
         setSessionExpiresAt(null);
         setDemoSession({ isDemo: false, expiresAt: null });
