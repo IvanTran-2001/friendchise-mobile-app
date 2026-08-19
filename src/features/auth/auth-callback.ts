@@ -44,6 +44,8 @@ export function useAuthCallbackState(): AuthCallbackState {
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setSessionExpiresAt = useAuthStore((state) => state.setSessionExpiresAt);
   const setDemoSession = useAuthStore((state) => state.setDemoSession);
+  const activeOAuthAttemptId = useAuthStore((state) => state.activeOAuthAttemptId);
+  const clearActiveOAuthAttemptId = useAuthStore((state) => state.clearActiveOAuthAttemptId);
 
   const token = useMemo(() => firstParam(params.token) ?? firstParam(params.access_token), [params.access_token, params.token]);
   const error = useMemo(() => firstParam(params.error), [params.error]);
@@ -51,6 +53,7 @@ export function useAuthCallbackState(): AuthCallbackState {
   const expiresAt = useMemo(() => parseExpiresAt(params.expiresAt), [params.expiresAt]);
   const attemptId = useMemo(() => firstParam(params.attemptId), [params.attemptId]);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const attemptMatches = !activeOAuthAttemptId || !attemptId || activeOAuthAttemptId === attemptId;
 
   useEffect(() => {
     if (!__DEV__) {
@@ -65,8 +68,9 @@ export function useAuthCallbackState(): AuthCallbackState {
       error: error ?? null,
       isDemo,
       expiresAt,
+      attemptMatches,
     });
-  }, [attemptId, error, expiresAt, isAuthenticated, isDemo, token]);
+  }, [attemptId, attemptMatches, error, expiresAt, isAuthenticated, isDemo, token]);
 
   useEffect(() => {
     if (error) {
@@ -76,6 +80,22 @@ export function useAuthCallbackState(): AuthCallbackState {
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
+      clearActiveOAuthAttemptId();
+      router.replace("/(auth)/login");
+      return;
+    }
+
+    if (!attemptMatches) {
+      if (__DEV__) {
+        console.info("[mobile-auth] callback attempt mismatch", {
+          activeOAuthAttemptId,
+          attemptId: attemptId ?? null,
+        });
+      }
+      setAuthenticated(false);
+      setSessionExpiresAt(null);
+      setDemoSession({ isDemo: false, expiresAt: null });
+      clearActiveOAuthAttemptId();
       router.replace("/(auth)/login");
       return;
     }
@@ -94,6 +114,7 @@ export function useAuthCallbackState(): AuthCallbackState {
       setAuthenticated(false);
       setSessionExpiresAt(null);
       setDemoSession({ isDemo: false, expiresAt: null });
+      clearActiveOAuthAttemptId();
       router.replace("/(auth)/login");
       return;
     }
@@ -110,6 +131,7 @@ export function useAuthCallbackState(): AuthCallbackState {
         setAuthenticated(true);
         setSessionExpiresAt(expiresAt);
         setDemoSession({ isDemo, expiresAt: isDemo ? expiresAt : null });
+        clearActiveOAuthAttemptId();
         router.replace("/(app)");
       })
       .catch(() => {
@@ -119,9 +141,23 @@ export function useAuthCallbackState(): AuthCallbackState {
         setAuthenticated(false);
         setSessionExpiresAt(null);
         setDemoSession({ isDemo: false, expiresAt: null });
+        clearActiveOAuthAttemptId();
         router.replace("/(auth)/login");
       });
-  }, [error, expiresAt, isDemo, router, setAuthenticated, setDemoSession, setSessionExpiresAt, token]);
+  }, [
+    activeOAuthAttemptId,
+    attemptId,
+    attemptMatches,
+    clearActiveOAuthAttemptId,
+    error,
+    expiresAt,
+    isDemo,
+    router,
+    setAuthenticated,
+    setDemoSession,
+    setSessionExpiresAt,
+    token,
+  ]);
 
   const recover = useMemo(() => () => router.replace("/(auth)/login"), [router]);
 

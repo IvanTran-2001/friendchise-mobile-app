@@ -3,6 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { Linking } from "react-native";
 import { getApiUrl } from "../../lib/config";
+import { useAuthStore } from "./auth-store";
 
 export type AuthProvider = "google" | "linkedin";
 
@@ -62,6 +63,7 @@ export async function fetchDevUsers() {
 export async function startOAuthLogin(provider: AuthProvider) {
   const attemptId = generateAttemptId();
   const logPrefix = `[AUTH ${attemptId}][MOBILE]`;
+  const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
 
   if (activeOAuthAttemptId) {
     console.warn(`${logPrefix} another OAuth attempt is already active`, {
@@ -69,6 +71,7 @@ export async function startOAuthLogin(provider: AuthProvider) {
     });
   }
   activeOAuthAttemptId = attemptId;
+  setActiveOAuthAttemptId(attemptId);
 
   const callbackUrl = `${ExpoLinking.createURL("/callback")}?attemptId=${encodeURIComponent(attemptId)}`;
   const completeUrl = `/api/mobile-auth/complete?callbackUrl=${encodeURIComponent(callbackUrl)}&attemptId=${encodeURIComponent(attemptId)}`;
@@ -117,6 +120,8 @@ export async function startOAuthLogin(provider: AuthProvider) {
         });
       }
       router.replace({ pathname: "/callback", params: queryParams ?? undefined });
+    } else {
+      clearActiveOAuthAttemptId();
     }
   } finally {
     if (activeOAuthAttemptId === attemptId) {

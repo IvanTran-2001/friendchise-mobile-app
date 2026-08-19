@@ -10,7 +10,13 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-image-picker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow FriendChise to take photos for task images and Scan to Task.",
+          "photosPermission": "Allow FriendChise to pick photos from your library for task images and Scan to Task."
+        }
+      ],
       "expo-document-picker",
       "expo-secure-store",
       "expo-font",

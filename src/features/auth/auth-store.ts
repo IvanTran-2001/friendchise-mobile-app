@@ -11,10 +11,13 @@ type AuthState = {
   isDemo: boolean;
   /** Epoch ms when the current demo session expires, or null if not a demo session. Persisted alongside `isDemo`. */
   demoExpiresAt: number | null;
+  activeOAuthAttemptId: string | null;
   setAuthenticated: (value: boolean) => void;
   setHasHydrated: (value: boolean) => void;
   setSessionExpiresAt: (expiresAt: number | null) => void;
   setDemoSession: (session: { isDemo: boolean; expiresAt: number | null }) => void;
+  setActiveOAuthAttemptId: (attemptId: string | null) => void;
+  clearActiveOAuthAttemptId: () => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -25,10 +28,13 @@ export const useAuthStore = create<AuthState>()(
       sessionExpiresAt: null,
       isDemo: false,
       demoExpiresAt: null,
+      activeOAuthAttemptId: null,
       setAuthenticated: (value) => set({ isAuthenticated: value }),
       setHasHydrated: (value) => set({ hasHydrated: value }),
       setSessionExpiresAt: (expiresAt) => set({ sessionExpiresAt: expiresAt }),
       setDemoSession: ({ isDemo, expiresAt }) => set({ isDemo, demoExpiresAt: expiresAt }),
+      setActiveOAuthAttemptId: (attemptId) => set({ activeOAuthAttemptId: attemptId }),
+      clearActiveOAuthAttemptId: () => set({ activeOAuthAttemptId: null }),
     }),
     {
       name: "friendchise.auth.state",
@@ -40,16 +46,24 @@ export const useAuthStore = create<AuthState>()(
         demoExpiresAt: state.demoExpiresAt,
       }),
       onRehydrateStorage: () => (_state, error) => {
-        const { setAuthenticated, setHasHydrated, setSessionExpiresAt, setDemoSession } = useAuthStore.getState();
+        const {
+          setAuthenticated,
+          setHasHydrated,
+          setSessionExpiresAt,
+          setDemoSession,
+          clearActiveOAuthAttemptId,
+        } = useAuthStore.getState();
 
         if (error) {
           setAuthenticated(false);
           setSessionExpiresAt(null);
           setDemoSession({ isDemo: false, expiresAt: null });
+          clearActiveOAuthAttemptId();
           setHasHydrated(true);
           return;
         }
 
+        clearActiveOAuthAttemptId();
         setHasHydrated(true);
       },
     },
