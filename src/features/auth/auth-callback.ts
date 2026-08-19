@@ -53,7 +53,7 @@ export function useAuthCallbackState(): AuthCallbackState {
   const expiresAt = useMemo(() => parseExpiresAt(params.expiresAt), [params.expiresAt]);
   const attemptId = useMemo(() => firstParam(params.attemptId), [params.attemptId]);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const attemptMatches = !!attemptId && (!activeOAuthAttemptId || activeOAuthAttemptId === attemptId);
+  const attemptMatches = !!attemptId && !!activeOAuthAttemptId && activeOAuthAttemptId === attemptId;
 
   useEffect(() => {
     if (!__DEV__) {
@@ -73,24 +73,20 @@ export function useAuthCallbackState(): AuthCallbackState {
   }, [attemptId, attemptMatches, error, expiresAt, isAuthenticated, isDemo, token]);
 
   useEffect(() => {
-    if (error) {
+    if (!attemptMatches) {
       if (__DEV__) {
-        console.info("[mobile-auth] callback error branch", { error });
+        console.info("[mobile-auth] callback ignored because attempt is not active", {
+          activeOAuthAttemptId,
+          attemptId: attemptId ?? null,
+          error: error ?? null,
+        });
       }
-      setAuthenticated(false);
-      setSessionExpiresAt(null);
-      setDemoSession({ isDemo: false, expiresAt: null });
-      clearActiveOAuthAttemptId();
-      router.replace("/(auth)/login");
       return;
     }
 
-    if (!attemptMatches) {
+    if (error) {
       if (__DEV__) {
-        console.info("[mobile-auth] callback attempt mismatch", {
-          activeOAuthAttemptId,
-          attemptId: attemptId ?? null,
-        });
+        console.info("[mobile-auth] callback error branch", { error });
       }
       setAuthenticated(false);
       setSessionExpiresAt(null);

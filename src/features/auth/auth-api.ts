@@ -1,4 +1,5 @@
 import * as ExpoLinking from "expo-linking";
+import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { Linking } from "react-native";
@@ -22,7 +23,7 @@ function shouldLogAuthFlow() {
 }
 
 function generateAttemptId() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return Crypto.randomUUID();
 }
 
 // Strips the token value before logging a callback URL so we never print credentials.
@@ -64,6 +65,7 @@ export async function startOAuthLogin(provider: AuthProvider) {
   const attemptId = generateAttemptId();
   const logPrefix = `[AUTH ${attemptId}][MOBILE]`;
   const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
+  let handedOffToCallback = false;
 
   if (activeOAuthAttemptId) {
     console.warn(`${logPrefix} another OAuth attempt is already active`, {
@@ -119,13 +121,20 @@ export async function startOAuthLogin(provider: AuthProvider) {
           attemptIdEcho: queryParams?.attemptId ?? null,
         });
       }
+      handedOffToCallback = true;
       router.replace({ pathname: "/callback", params: queryParams ?? undefined });
     } else {
-      clearActiveOAuthAttemptId();
+      if (useAuthStore.getState().activeOAuthAttemptId === attemptId) {
+        clearActiveOAuthAttemptId();
+      }
     }
   } finally {
     if (activeOAuthAttemptId === attemptId) {
       activeOAuthAttemptId = null;
+    }
+
+    if (!handedOffToCallback && useAuthStore.getState().activeOAuthAttemptId === attemptId) {
+      clearActiveOAuthAttemptId();
     }
   }
 }
