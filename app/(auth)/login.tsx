@@ -15,7 +15,7 @@ import { Text } from "../../components/ui/text";
 import { Button } from "../../components/ui/button";
 import { Divider } from "../../components/ui/divider";
 import { ErrorState } from "../../components/ui/state-views";
-import { colors, radius, shadows, spacing } from "../../src/lib/theme";
+import { colors, spacing } from "../../src/lib/theme";
 
 const logoSource = require("../../public/LOGO.png");
 
