@@ -19,6 +19,22 @@ export type CreateTaskResult =
   | { ok: true; taskId: string | null }
   | { ok: false; error: string };
 
+export type UpdateTaskInput = {
+  title: string;
+  description?: string;
+  color: string;
+  durationMin: number;
+  peopleRequired: number;
+  minWaitDays: number;
+  maxWaitDays: number;
+  preferredStartTimeMin?: number | null;
+  imageStoragePath?: string;
+};
+
+export type UpdateTaskResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
 export async function createTask(orgId: string, input: CreateTaskInput): Promise<CreateTaskResult> {
   const encodedOrgId = encodeURIComponent(orgId);
   const formData = new FormData();
@@ -70,6 +86,78 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
   }
 
   return { ok: true, taskId: null };
+}
+
+export async function updateTask(orgId: string, taskId: string, input: UpdateTaskInput): Promise<UpdateTaskResult> {
+  const encodedOrgId = encodeURIComponent(orgId);
+  const encodedTaskId = encodeURIComponent(taskId);
+  const formData = new FormData();
+  formData.append("title", input.title.trim());
+  formData.append("description", normalizeRichText(input.description));
+  formData.append("color", input.color);
+  formData.append("durationMin", String(input.durationMin));
+  formData.append("peopleRequired", String(input.peopleRequired));
+  formData.append("minWaitDays", String(input.minWaitDays));
+  formData.append("maxWaitDays", String(input.maxWaitDays));
+  formData.append("preferredStartTimeMin", input.preferredStartTimeMin == null ? "" : String(input.preferredStartTimeMin));
+
+  if (input.imageStoragePath?.trim()) {
+    formData.append("imageStoragePath", input.imageStoragePath.trim());
+  }
+
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/tasks/${encodedTaskId}`, {
+    method: "PATCH",
+    body: formData,
+  });
+
+  const payload: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload as { error?: unknown; message?: unknown; errors?: unknown }).error ??
+          (payload as { error?: unknown; message?: unknown; errors?: unknown }).message ??
+          (payload as { error?: unknown; message?: unknown; errors?: unknown }).errors
+        : null;
+
+    return {
+      ok: false,
+      error:
+        typeof message === "string"
+          ? message
+          : "Failed to update task.",
+    };
+  }
+
+  return { ok: true };
+}
+
+export async function deleteTask(orgId: string, taskId: string): Promise<UpdateTaskResult> {
+  const encodedOrgId = encodeURIComponent(orgId);
+  const encodedTaskId = encodeURIComponent(taskId);
+  const response = await authenticatedFetch(`/api/orgs/${encodedOrgId}/tasks/${encodedTaskId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload as { error?: unknown; message?: unknown; errors?: unknown }).error ??
+          (payload as { error?: unknown; message?: unknown; errors?: unknown }).message ??
+          (payload as { error?: unknown; message?: unknown; errors?: unknown }).errors
+        : null;
+
+    return {
+      ok: false,
+      error:
+        typeof message === "string"
+          ? message
+          : "Failed to delete task.",
+    };
+  }
+
+  return { ok: true };
 }
 
 export type TaskItem = {
@@ -154,6 +242,9 @@ export async function getTasks(
 }
 
 export type TaskDetailItem = TaskItem & {
+  imageUrl?: string | null;
+  minWaitDays: number | null;
+  maxWaitDays: number | null;
   preferredStartTimeMin: number | null;
   scope: "ORG" | "GLOBAL";
   organization?: { id: string; name: string } | null;

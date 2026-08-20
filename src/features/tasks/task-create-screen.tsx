@@ -11,7 +11,7 @@ import { RichTextField } from "../../../components/ui/rich-text-field";
 import { ImagePicker, type SelectedImage } from "../../../components/ui/image-picker";
 import { Text } from "../../../components/ui/text";
 import { colors, spacing } from "../../lib/theme";
-import { createTask, type CreateTaskInput } from "./task-api";
+import { createTask, updateTask, type CreateTaskInput, type TaskDetailItem } from "./task-api";
 
 const COLOR_OPTIONS = [
   { name: "Accent", value: colors.accent },
@@ -24,9 +24,14 @@ const COLOR_OPTIONS = [
 
 type TaskCreateScreenProps = {
   orgId?: string;
+  task?: TaskDetailItem | null;
   onCancel: () => void;
-  onCreated: (taskId: string | null) => void;
+  onSubmitted: (taskId: string | null) => void;
 };
+
+type TaskSaveResult =
+  | { ok: true; taskId: string | null }
+  | { ok: false; error: string };
 
 function toPositiveInt(value: string) {
   const trimmed = value.trim();
@@ -48,27 +53,58 @@ function toNonNegativeInt(value: string) {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScreenProps) {
+function buildSelectedImage(task?: TaskDetailItem | null): SelectedImage | null {
+  if (!task?.imageUrl || !task.imageSignedUrl) {
+    return null;
+  }
+
+  return {
+    storagePath: task.imageUrl,
+    signedUrl: task.imageSignedUrl,
+    name: task.imageUrl.split("/").pop() ?? null,
+  };
+}
+
+export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCreateScreenProps) {
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
-  const [color, setColor] = useState(COLOR_OPTIONS[0].value);
-  const [durationMin, setDurationMin] = useState("30");
-  const [peopleRequired, setPeopleRequired] = useState("1");
-  const [minWaitDays, setMinWaitDays] = useState("1");
-  const [maxWaitDays, setMaxWaitDays] = useState("1");
+  const isEditing = !!task;
+  const [title, setTitle] = useState(task?.name ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(buildSelectedImage(task));
+  const [color, setColor] = useState(task?.color ?? COLOR_OPTIONS[0].value);
+  const [durationMin, setDurationMin] = useState(String(task?.durationMin ?? 30));
+  const [peopleRequired, setPeopleRequired] = useState(String(task?.minPeople ?? 1));
+  const [minWaitDays, setMinWaitDays] = useState(String(task?.minWaitDays ?? 1));
+  const [maxWaitDays, setMaxWaitDays] = useState(String(task?.maxWaitDays ?? 1));
   const [formError, setFormError] = useState<string | null>(null);
-  const createTaskMutation = useMutation({
-    mutationFn: async (input: CreateTaskInput) => createTask(orgId!, input),
+  const createTaskMutation = useMutation<TaskSaveResult, Error, CreateTaskInput>({
+    mutationFn: async (input: CreateTaskInput): Promise<TaskSaveResult> => {
+      if (!orgId) {
+        return { ok: false, error: "Organization is unavailable." };
+      }
+
+      if (task) {
+        const result = await updateTask(orgId, task.id, input);
+        if (!result.ok) {
+          return { ok: false as const, error: result.error };
+        }
+
+        return { ok: true as const, taskId: task.id };
+      }
+
+      return createTask(orgId, input);
+    },
     onSuccess: async (result) => {
       if (!result.ok || !orgId) {
         return;
       }
 
       await queryClient.invalidateQueries({ queryKey: ["tasks", orgId] });
+      if (task) {
+        await queryClient.invalidateQueries({ queryKey: ["task", orgId, task.id] });
+      }
 
-      onCreated(result.taskId);
+      onSubmitted(result.taskId ?? task?.id ?? null);
     },
   });
 
@@ -125,7 +161,7 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
         Alert.alert("Failed to create task", result.error);
       }
     } catch (error) {
-      Alert.alert("Failed to create task", error instanceof Error ? error.message : "Please try again.");
+      Alert.alert(isEditing ? "Failed to update task" : "Failed to create task", error instanceof Error ? error.message : "Please try again.");
     }
   };
 
@@ -133,8 +169,8 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
     <Screen scroll keyboardAvoiding contentStyle={styles.content}>
       <ScreenHeader
         kicker="Tasks"
-        title="Create task"
-        subtitle="Add recipes, operations & tasks"
+        title={isEditing ? "Edit task" : "Create task"}
+        subtitle={isEditing ? "Update the task details" : "Add recipes, operations & tasks"}
       />
 
       <Card padding="lg" style={styles.card}>
@@ -155,7 +191,6 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
             value={description}
             onChangeText={setDescription}
             placeholder="Add details, steps, or notes…"
-            helperText="Format with bold, italic, underline, or lists."
           />
         </View>
 
@@ -246,16 +281,16 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
         <Button
           label="Cancel"
           variant="outline"
-          fullWidth
           leftIcon={<ArrowLeft size={16} color={colors.textPrimary} />}
+          style={styles.actionButton}
           onPress={onCancel}
         />
         <Button
-          label={createTaskMutation.isPending ? "Posting…" : "Post task"}
-          fullWidth
+          label={createTaskMutation.isPending ? (isEditing ? "Saving…" : "Posting…") : isEditing ? "Save task" : "Post task"}
           loading={createTaskMutation.isPending}
-          loadingLabel="Posting…"
+          loadingLabel={isEditing ? "Saving…" : "Posting…"}
           leftIcon={<Sparkles size={16} color={colors.textInverse} />}
+          style={styles.actionButton}
           onPress={handleSubmit}
           disabled={!canSubmit}
         />
@@ -306,5 +341,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     paddingBottom: spacing.xl,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

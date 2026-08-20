@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from "react";
-import { StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIsFocused } from "@react-navigation/native";
-import { getTasks } from "./task-api";
+import { deleteTask, getTasks } from "./task-api";
 import { colors, radius, shadows, spacing } from "../../lib/theme";
 import { useNavbarSetters } from "../../../components/layout/navbar-context";
 import { TaskNavbarActions } from "./components/task-navbar-actions";
@@ -23,6 +23,7 @@ const TASK_PAGE_SIZE = 100;
 
 export function TaskListScreen({ orgId }: TaskListScreenProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const {
     isHydrated,
     preferences,
@@ -67,6 +68,53 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
 
   const tasks = useMemo(() => tasksQuery.data?.pages.flatMap((page) => page.tasks) ?? [], [tasksQuery.data]);
   const isTasksLoading = tasksQuery.isLoading || !isHydrated || !isSearchHydrated || (!isSearchSettled && !tasksQuery.data);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      if (!orgId) {
+        throw new Error("Organization is unavailable.");
+      }
+
+      const result = await deleteTask(orgId, taskId);
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      Alert.alert("Failed to delete task", error instanceof Error ? error.message : "Please try again.");
+    },
+  });
+
+  const handleEditTask = useCallback((taskId: string) => {
+    if (!orgId) {
+      return;
+    }
+
+    router.push({
+      pathname: "/(app)/orgs/[orgId]/tasks/edit",
+      params: { orgId, taskId },
+    });
+  }, [orgId, router]);
+
+  const handleDeleteTask = useCallback((taskId: string, taskName: string) => {
+    if (!orgId) {
+      return;
+    }
+
+    Alert.alert("Delete task?", `Delete \"${taskName}\" from this organization?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          deleteMutation.mutate(taskId);
+        },
+      },
+    ]);
+  }, [deleteMutation, orgId]);
 
   const hasMoreMatches = isSearching && !!tasksQuery.data?.pages[0]?.nextCursor;
   const hasMoreTasks = !isSearching && tasksQuery.hasNextPage;
@@ -147,6 +195,8 @@ export function TaskListScreen({ orgId }: TaskListScreenProps) {
           footer={footer}
           onScroll={onScroll}
           onEndReached={handleEndReached}
+          onEditTask={(task) => handleEditTask(task.id)}
+          onDeleteTask={(task) => handleDeleteTask(task.id, task.name)}
         />
       )}
     </CollapsibleSearchDock>

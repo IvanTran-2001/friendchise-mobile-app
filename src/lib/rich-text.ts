@@ -1,4 +1,7 @@
 import { Parser } from "htmlparser2";
+import MarkdownIt from "markdown-it";
+
+const markdownParser = new MarkdownIt({ html: true, breaks: true, linkify: true });
 
 /**
  * Escapes raw text so it can be safely embedded inside HTML.
@@ -234,5 +237,5 @@ export function toRichTextHtml(value: string) {
     return sanitizeRichTextHtml(trimmed);
   }
 
-  return `<p>${escapeHtml(trimmed).replace(/\r\n|\r|\n/g, "<br>")}</p>`;
+  return sanitizeRichTextHtml(markdownParser.render(escapeHtml(trimmed)));
 }
