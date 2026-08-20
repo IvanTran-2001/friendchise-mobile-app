@@ -158,7 +158,7 @@ export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCre
       });
 
       if (!result.ok) {
-        Alert.alert("Failed to create task", result.error);
+        Alert.alert(isEditing ? "Failed to update task" : "Failed to create task", result.error);
       }
     } catch (error) {
       Alert.alert(isEditing ? "Failed to update task" : "Failed to create task", error instanceof Error ? error.message : "Please try again.");
