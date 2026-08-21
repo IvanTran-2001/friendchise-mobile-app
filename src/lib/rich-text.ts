@@ -1,4 +1,8 @@
 import { Parser } from "htmlparser2";
+import MarkdownIt from "markdown-it";
+
+const markdownParser = new MarkdownIt({ html: false, breaks: true, linkify: true });
+const markdownHtmlDetectionParser = new MarkdownIt({ html: true, breaks: true, linkify: true });
 
 /**
  * Escapes raw text so it can be safely embedded inside HTML.
@@ -33,6 +37,7 @@ const ALLOWED_TAGS = new Set([
   "video",
   "audio",
   "source",
+  "s",
   "div",
   "span",
   "code",
@@ -51,8 +56,6 @@ const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
   audio: ["src", "controls", "autoplay", "loop", "muted"],
   source: ["src", "type"],
 };
-
-const HTML_TAG_PATTERN = new RegExp(`<(?:${Array.from(ALLOWED_TAGS).join("|")})(?=[\\s>/])`, "i");
 
 /**
  * Removes unsafe tags, event handlers, and disallowed URI schemes from HTML.
@@ -125,7 +128,7 @@ export function sanitizeRichTextHtml(value: string) {
  * Returns true when the value already looks like allowlisted HTML rich text.
  */
 export function isHtmlRichText(value: string) {
-  return HTML_TAG_PATTERN.test(value);
+  return containsRawHtmlTokens(markdownHtmlDetectionParser.parse(value, {}) as MarkdownToken[]);
 }
 
 /**
@@ -220,6 +223,25 @@ function isSafeUri(rawValue: string, tagName: string, attributeName: string) {
 
 export { isSafeUri };
 
+type MarkdownToken = {
+  type: string;
+  content?: string;
+  children?: MarkdownToken[] | null;
+};
+
+function containsRawHtmlTokens(tokens: MarkdownToken[]): boolean {
+  return tokens.some(
+    (token) => {
+      if (token.type === "html_block" || token.type === "html_inline") {
+        const content = token.content?.trim() ?? "";
+        return content.startsWith("<") && !content.startsWith("</");
+      }
+
+      return token.children ? containsRawHtmlTokens(token.children) : false;
+    },
+  );
+}
+
 /**
  * Normalizes a value into HTML rich text for shared UI inputs.
  */
@@ -234,5 +256,5 @@ export function toRichTextHtml(value: string) {
     return sanitizeRichTextHtml(trimmed);
   }
 
-  return `<p>${escapeHtml(trimmed).replace(/\r\n|\r|\n/g, "<br>")}</p>`;
+  return sanitizeRichTextHtml(markdownParser.render(trimmed));
 }

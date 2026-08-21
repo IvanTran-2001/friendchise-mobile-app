@@ -1,5 +1,5 @@
-import { FlatList, Image, Pressable, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
-import { ListChecks } from "lucide-react-native";
+import { Alert, FlatList, Image, Pressable, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { ListChecks, MoreHorizontal } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { TaskItem } from "../task-api";
 import { Badge } from "../../../../components/ui/badge";
@@ -23,8 +23,9 @@ type TaskListViewProps = {
   footer?: React.ReactElement | null;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onEndReached?: () => void;
+  onEditTask?: (task: TaskItem) => void;
+  onDeleteTask?: (task: TaskItem) => void;
 };
-
 export function TaskListView({
   orgId,
   tasks,
@@ -37,9 +38,9 @@ export function TaskListView({
   footer,
   onScroll,
   onEndReached,
+  onEditTask,
+  onDeleteTask,
 }: TaskListViewProps) {
-  const router = useRouter();
-
   return (
     <FlatList
       data={tasks}
@@ -53,93 +54,7 @@ export function TaskListView({
       onEndReachedThreshold={0.4}
       ListHeaderComponent={header ?? null}
       ListFooterComponent={footer ?? null}
-      renderItem={({ item }) => (
-        <Pressable
-          onPress={() => {
-            if (!orgId) return;
-            router.push(`/orgs/${orgId}/tasks/${item.id}`);
-          }}
-          style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
-        >
-          <Card
-            padding={viewMode === "feed" ? "lg" : "md"}
-            style={viewMode === "feed" ? styles.feedCard : viewMode === "card" ? styles.cardModeCard : null}
-          >
-            {viewMode === "feed" ? (
-              <View>
-              <View style={styles.feedMediaWrap}>
-                {item.imageSignedUrl ? (
-                  <Image source={{ uri: item.imageSignedUrl }} style={styles.feedImage} resizeMode="cover" />
-                ) : (
-                  <View style={[styles.feedImageFallback, { backgroundColor: `${item.color}18` }]}>
-                    <View style={[styles.feedColorMark, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
-                  </View>
-                )}
-
-                <View style={styles.feedMediaOverlay} />
-                <View style={styles.feedMediaHeader}>
-                  <View style={styles.feedMediaTitleBlock}>
-                    <Text variant="captionStrong" tone="inverse" style={styles.feedKicker}>
-                      Task feed
-                    </Text>
-                    <Text variant="title3" tone="inverse" numberOfLines={2} style={styles.feedTitle}>
-                      {item.name}
-                    </Text>
-                  </View>
-                  <Badge
-                    label={item._available ? "Shared" : "Mine"}
-                    tone={item._available ? "accent" : "neutral"}
-                    dotted
-                  />
-                </View>
-              </View>
-
-              <View style={styles.feedMetaRow}>
-                <Badge label={`${item.durationMin} min`} tone="neutral" />
-                <Badge label={`${item.minPeople}+ ppl`} tone="neutral" />
-              </View>
-
-              <View style={styles.feedDescription}>
-                {item.description ? (
-                  <TaskRichText source={item.description} orgId={item.orgId} />
-                ) : (
-                  <Text variant="body" tone="secondary">
-                    {item.durationMin} min · {item.minPeople}+ people
-                  </Text>
-                )}
-              </View>
-              </View>
-            ) : viewMode === "card" ? (
-              <View style={styles.cardMode}>
-                <View style={styles.cardModeHeader}>
-                  <View style={[styles.colorTag, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
-                  <Badge label={item._available ? "Shared" : "My Tasks"} tone={item._available ? "accent" : "neutral"} />
-                </View>
-                <Text variant="bodyStrong" numberOfLines={2} style={styles.cardModeTitle}>
-                  {item.name}
-                </Text>
-                {item.description ? (
-                  <View style={styles.cardModeDescription}>
-                    <TaskRichText source={item.description} orgId={item.orgId} />
-                  </View>
-                ) : null}
-                <View style={styles.cardModeMetaRow}>
-                  <Badge label={`${item.durationMin} min`} tone="neutral" />
-                  <Badge label={`${item.minPeople}+ ppl`} tone="neutral" />
-                </View>
-              </View>
-            ) : (
-              <View style={styles.cardTopRow}>
-                <View style={[styles.colorTag, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
-                <Text variant="bodyStrong" numberOfLines={2} style={styles.cardTitle}>
-                  {item.name}
-                </Text>
-                <Badge label={item._available ? "Shared" : "My Tasks"} tone={item._available ? "accent" : "neutral"} />
-              </View>
-            )}
-          </Card>
-        </Pressable>
-      )}
+      renderItem={({ item }) => <TaskListItem orgId={orgId} item={item} viewMode={viewMode} onEditTask={onEditTask} onDeleteTask={onDeleteTask} />}
       ListEmptyComponent={
         isLoading ? (
           <LoadingState message="Loading tasks..." />
@@ -159,6 +74,168 @@ export function TaskListView({
       }
     />
   );
+}
+
+function TaskListItem({
+  orgId,
+  item,
+  viewMode,
+  onEditTask,
+  onDeleteTask,
+}: {
+  orgId?: string;
+  item: TaskItem;
+  viewMode: TaskViewMode;
+  onEditTask?: (task: TaskItem) => void;
+  onDeleteTask?: (task: TaskItem) => void;
+}) {
+  const router = useRouter();
+
+  return (
+    <Card
+      padding={viewMode === "feed" ? "lg" : "md"}
+      style={viewMode === "feed" ? styles.feedCard : viewMode === "card" ? styles.cardModeCard : null}
+    >
+      <Pressable
+        onPress={() => {
+          if (!orgId) return;
+          router.push(`/orgs/${orgId}/tasks/${item.id}`);
+        }}
+        style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
+      >
+        {viewMode === "feed" ? (
+          <TaskFeedView item={item} />
+        ) : viewMode === "card" ? (
+          <TaskCardView item={item} />
+        ) : (
+          <TaskCompactView item={item} onEditTask={onEditTask} onDeleteTask={onDeleteTask} />
+        )}
+      </Pressable>
+    </Card>
+  );
+}
+
+function TaskFeedView({ item }: { item: TaskItem }) {
+  return (
+    <View>
+      <View style={styles.feedMediaWrap}>
+        {item.imageSignedUrl ? (
+          <Image source={{ uri: item.imageSignedUrl }} style={styles.feedImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.feedImageFallback, { backgroundColor: `${item.color}18` }]}>
+            <View style={[styles.feedColorMark, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
+          </View>
+        )}
+
+        <View style={styles.feedMediaOverlay} />
+        <View style={styles.feedMediaHeader}>
+          <View style={styles.feedMediaTitleBlock}>
+            <Text variant="captionStrong" tone="inverse" style={styles.feedKicker}>
+              Task feed
+            </Text>
+            <Text variant="title3" tone="inverse" numberOfLines={2} style={styles.feedTitle}>
+              {item.name}
+            </Text>
+          </View>
+          <Badge label={item._available ? "Shared" : "Mine"} tone={item._available ? "accent" : "neutral"} dotted />
+        </View>
+      </View>
+
+      <View style={styles.feedMetaRow}>
+        <Badge label={`${item.durationMin} min`} tone="neutral" />
+        <Badge label={`${item.minPeople}+ ppl`} tone="neutral" />
+      </View>
+
+      <View style={styles.feedDescription}>
+        {item.description ? (
+          <TaskRichText source={item.description} orgId={item.orgId} />
+        ) : (
+          <Text variant="body" tone="secondary">
+            {item.durationMin} min · {item.minPeople}+ people
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function TaskCardView({ item }: { item: TaskItem }) {
+  return (
+    <View style={styles.cardMode}>
+      <View style={styles.cardModeHeader}>
+        <View style={[styles.colorTag, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
+        <Badge label={item._available ? "Shared" : "My Tasks"} tone={item._available ? "accent" : "neutral"} />
+      </View>
+      <Text variant="bodyStrong" numberOfLines={2} style={styles.cardModeTitle}>
+        {item.name}
+      </Text>
+      {item.description ? (
+        <View style={styles.cardModeDescription}>
+          <TaskRichText source={item.description} orgId={item.orgId} />
+        </View>
+      ) : null}
+      <View style={styles.cardModeMetaRow}>
+        <Badge label={`${item.durationMin} min`} tone="neutral" />
+        <Badge label={`${item.minPeople}+ ppl`} tone="neutral" />
+      </View>
+    </View>
+  );
+}
+
+function TaskCompactView({
+  item,
+  onEditTask,
+  onDeleteTask,
+}: {
+  item: TaskItem;
+  onEditTask?: (task: TaskItem) => void;
+  onDeleteTask?: (task: TaskItem) => void;
+}) {
+  return (
+    <View style={styles.cardTopRow}>
+      <View style={[styles.colorTag, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
+      <Text variant="bodyStrong" numberOfLines={2} style={styles.cardTitle}>
+        {item.name}
+      </Text>
+      {item._available ? (
+        <Badge label="Shared" tone="accent" />
+      ) : onEditTask || onDeleteTask ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Task actions"
+          onPress={() =>
+            openTaskActionsAlert(
+              item.name,
+              onEditTask ? () => onEditTask(item) : undefined,
+              onDeleteTask ? () => onDeleteTask(item) : undefined,
+            )
+          }
+          style={({ pressed }) => [styles.compactActionButton, pressed ? styles.actionButtonPressed : null]}
+        >
+          <MoreHorizontal size={16} color={colors.textPrimary} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function openTaskActionsAlert(
+  taskName: string,
+  onEditTask?: () => void,
+  onDeleteTask?: () => void,
+) {
+  Alert.alert("Task actions", taskName, [
+    { text: "Cancel", style: "cancel" },
+    {
+      text: "Edit",
+      onPress: () => onEditTask?.(),
+    },
+    {
+      text: "Delete",
+      style: "destructive",
+      onPress: () => onDeleteTask?.(),
+    },
+  ]);
 }
 
 const styles = StyleSheet.create({
@@ -263,6 +340,19 @@ const styles = StyleSheet.create({
     opacity: 0.94,
     transform: [{ scale: 0.995 }],
   },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionButtonPressed: {
+    opacity: 0.82,
+  },
   colorTag: {
     width: 12,
     height: 12,
@@ -272,5 +362,15 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     flex: 1,
+  },
+  compactActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 });

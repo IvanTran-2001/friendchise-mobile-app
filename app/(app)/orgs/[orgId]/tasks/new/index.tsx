@@ -10,7 +10,7 @@ export default function OrgTaskCreateScreen() {
     <TaskCreateScreen
       orgId={resolvedOrgId}
       onCancel={() => router.back()}
-      onCreated={(taskId) => {
+      onSubmitted={(taskId) => {
         if (!resolvedOrgId) {
           return;
         }

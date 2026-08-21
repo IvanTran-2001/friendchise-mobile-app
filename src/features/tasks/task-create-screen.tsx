@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Sparkles } from "lucide-react-native";
@@ -8,10 +8,11 @@ import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { TextField } from "../../../components/ui/text-field";
 import { RichTextField } from "../../../components/ui/rich-text-field";
-import { ImagePicker, type SelectedImage } from "../../../components/ui/image-picker";
+import { ImagePicker } from "../../../components/ui/image-picker";
 import { Text } from "../../../components/ui/text";
 import { colors, spacing } from "../../lib/theme";
-import { createTask, type CreateTaskInput } from "./task-api";
+import { createTask, updateTask, type CreateTaskInput, type TaskDetailItem } from "./task-api";
+import { useTaskCreateDraftStore } from "./task-create-draft-store";
 
 const COLOR_OPTIONS = [
   { name: "Accent", value: colors.accent },
@@ -24,8 +25,18 @@ const COLOR_OPTIONS = [
 
 type TaskCreateScreenProps = {
   orgId?: string;
+  task?: TaskDetailItem | null;
   onCancel: () => void;
-  onCreated: (taskId: string | null) => void;
+  onSubmitted: (taskId: string | null) => void;
+};
+
+type TaskSaveResult =
+  | { ok: true; taskId: string | null }
+  | { ok: false; error: string };
+
+type TaskSaveInput = Omit<CreateTaskInput, "minWaitDays" | "maxWaitDays"> & {
+  minWaitDays?: number;
+  maxWaitDays?: number;
 };
 
 function toPositiveInt(value: string) {
@@ -48,27 +59,77 @@ function toNonNegativeInt(value: string) {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScreenProps) {
+export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCreateScreenProps) {
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
-  const [color, setColor] = useState(COLOR_OPTIONS[0].value);
-  const [durationMin, setDurationMin] = useState("30");
-  const [peopleRequired, setPeopleRequired] = useState("1");
-  const [minWaitDays, setMinWaitDays] = useState("1");
-  const [maxWaitDays, setMaxWaitDays] = useState("1");
-  const [formError, setFormError] = useState<string | null>(null);
-  const createTaskMutation = useMutation({
-    mutationFn: async (input: CreateTaskInput) => createTask(orgId!, input),
+  const isEditing = !!task;
+  const {
+    title,
+    description,
+    selectedImage,
+    color,
+    durationMin,
+    peopleRequired,
+    minWaitDays,
+    maxWaitDays,
+    formError,
+    initializeDraft,
+    setTitle,
+    setDescription,
+    setSelectedImage,
+    setColor,
+    setDurationMin,
+    setPeopleRequired,
+    setMinWaitDays,
+    setMaxWaitDays,
+    setFormError,
+  } = useTaskCreateDraftStore();
+
+  useEffect(() => {
+    initializeDraft(task);
+  }, [initializeDraft, orgId, task]);
+
+  const createTaskMutation = useMutation<TaskSaveResult, Error, TaskSaveInput>({
+    mutationFn: async (input: TaskSaveInput): Promise<TaskSaveResult> => {
+      if (!orgId) {
+        return { ok: false, error: "Organization is unavailable." };
+      }
+
+      if (task) {
+        const result = await updateTask(orgId, task.id, input);
+        if (!result.ok) {
+          return { ok: false as const, error: result.error };
+        }
+
+        return { ok: true as const, taskId: task.id };
+      }
+
+      if (input.minWaitDays == null || input.maxWaitDays == null) {
+        return { ok: false, error: "Wait days are unavailable." };
+      }
+
+      return createTask(orgId, {
+        title: input.title,
+        description: input.description,
+        color: input.color,
+        durationMin: input.durationMin,
+        peopleRequired: input.peopleRequired,
+        minWaitDays: input.minWaitDays,
+        maxWaitDays: input.maxWaitDays,
+        preferredStartTimeMin: input.preferredStartTimeMin,
+        imageStoragePath: input.imageStoragePath,
+      });
+    },
     onSuccess: async (result) => {
       if (!result.ok || !orgId) {
         return;
       }
 
       await queryClient.invalidateQueries({ queryKey: ["tasks", orgId] });
+      if (task) {
+        await queryClient.invalidateQueries({ queryKey: ["task", orgId, task.id] });
+      }
 
-      onCreated(result.taskId);
+      onSubmitted(result.taskId ?? task?.id ?? null);
     },
   });
 
@@ -91,19 +152,33 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
       return;
     }
 
-    const parsedMinWaitDays = toNonNegativeInt(minWaitDays);
+    const trimmedMinWaitDays = minWaitDays.trim();
+    const parsedMinWaitDays = trimmedMinWaitDays
+      ? toNonNegativeInt(trimmedMinWaitDays)
+      : isEditing
+        ? undefined
+        : null;
     if (parsedMinWaitDays === null) {
       setFormError("Min wait days must be a whole number of 0 or more.");
       return;
     }
 
-    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays);
+    const trimmedMaxWaitDays = maxWaitDays.trim();
+    const parsedMaxWaitDays = trimmedMaxWaitDays
+      ? toNonNegativeInt(trimmedMaxWaitDays)
+      : isEditing
+        ? undefined
+        : null;
     if (parsedMaxWaitDays === null) {
       setFormError("Max wait days must be a whole number of 0 or more.");
       return;
     }
 
-    if (parsedMaxWaitDays < parsedMinWaitDays) {
+    if (
+      parsedMinWaitDays !== undefined &&
+      parsedMaxWaitDays !== undefined &&
+      parsedMaxWaitDays < parsedMinWaitDays
+    ) {
       setFormError("Max wait days must be at least min wait days.");
       return;
     }
@@ -117,15 +192,15 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
         color,
         durationMin: parsedDurationMin,
         peopleRequired: parsedPeopleRequired,
-        minWaitDays: parsedMinWaitDays,
-        maxWaitDays: parsedMaxWaitDays,
+        ...(parsedMinWaitDays !== undefined ? { minWaitDays: parsedMinWaitDays } : {}),
+        ...(parsedMaxWaitDays !== undefined ? { maxWaitDays: parsedMaxWaitDays } : {}),
       });
 
       if (!result.ok) {
-        Alert.alert("Failed to create task", result.error);
+        Alert.alert(isEditing ? "Failed to update task" : "Failed to create task", result.error);
       }
     } catch (error) {
-      Alert.alert("Failed to create task", error instanceof Error ? error.message : "Please try again.");
+      Alert.alert(isEditing ? "Failed to update task" : "Failed to create task", error instanceof Error ? error.message : "Please try again.");
     }
   };
 
@@ -133,8 +208,8 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
     <Screen scroll keyboardAvoiding contentStyle={styles.content}>
       <ScreenHeader
         kicker="Tasks"
-        title="Create task"
-        subtitle="Add recipes, operations & tasks"
+        title={isEditing ? "Edit task" : "Create task"}
+        subtitle={isEditing ? "Update the task details" : "Add recipes, operations & tasks"}
       />
 
       <Card padding="lg" style={styles.card}>
@@ -155,7 +230,6 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
             value={description}
             onChangeText={setDescription}
             placeholder="Add details, steps, or notes…"
-            helperText="Format with bold, italic, underline, or lists."
           />
         </View>
 
@@ -246,16 +320,16 @@ export function TaskCreateScreen({ orgId, onCancel, onCreated }: TaskCreateScree
         <Button
           label="Cancel"
           variant="outline"
-          fullWidth
           leftIcon={<ArrowLeft size={16} color={colors.textPrimary} />}
+          style={styles.actionButton}
           onPress={onCancel}
         />
         <Button
-          label={createTaskMutation.isPending ? "Posting…" : "Post task"}
-          fullWidth
+          label={createTaskMutation.isPending ? (isEditing ? "Saving…" : "Posting…") : isEditing ? "Save task" : "Post task"}
           loading={createTaskMutation.isPending}
-          loadingLabel="Posting…"
+          loadingLabel={isEditing ? "Saving…" : "Posting…"}
           leftIcon={<Sparkles size={16} color={colors.textInverse} />}
+          style={styles.actionButton}
           onPress={handleSubmit}
           disabled={!canSubmit}
         />
@@ -306,5 +380,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     paddingBottom: spacing.xl,
+  },
+  actionButton: {
+    flex: 1,
   },
 });
