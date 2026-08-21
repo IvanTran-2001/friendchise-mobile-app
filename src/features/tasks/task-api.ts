@@ -25,8 +25,8 @@ export type UpdateTaskInput = {
   color: string;
   durationMin: number;
   peopleRequired: number;
-  minWaitDays: number;
-  maxWaitDays: number;
+  minWaitDays?: number;
+  maxWaitDays?: number;
   preferredStartTimeMin?: number | null;
   imageStoragePath?: string;
 };
@@ -43,9 +43,18 @@ export async function createTask(orgId: string, input: CreateTaskInput): Promise
   formData.append("color", input.color);
   formData.append("durationMin", String(input.durationMin));
   formData.append("peopleRequired", String(input.peopleRequired));
-  formData.append("minWaitDays", String(input.minWaitDays));
-  formData.append("maxWaitDays", String(input.maxWaitDays));
-  formData.append("preferredStartTimeMin", input.preferredStartTimeMin == null ? "" : String(input.preferredStartTimeMin));
+  if (input.minWaitDays !== undefined) {
+    formData.append("minWaitDays", String(input.minWaitDays));
+  }
+  if (input.maxWaitDays !== undefined) {
+    formData.append("maxWaitDays", String(input.maxWaitDays));
+  }
+  if (input.preferredStartTimeMin !== undefined) {
+    formData.append(
+      "preferredStartTimeMin",
+      input.preferredStartTimeMin == null ? "" : String(input.preferredStartTimeMin),
+    );
+  }
 
   if (input.imageStoragePath?.trim()) {
     formData.append("imageStoragePath", input.imageStoragePath.trim());

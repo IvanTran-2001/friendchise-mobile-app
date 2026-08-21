@@ -33,6 +33,11 @@ type TaskSaveResult =
   | { ok: true; taskId: string | null }
   | { ok: false; error: string };
 
+type TaskSaveInput = Omit<CreateTaskInput, "minWaitDays" | "maxWaitDays"> & {
+  minWaitDays?: number;
+  maxWaitDays?: number;
+};
+
 function toPositiveInt(value: string) {
   const trimmed = value.trim();
   if (!/^[1-9]\d*$/.test(trimmed)) {
@@ -74,11 +79,15 @@ export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCre
   const [color, setColor] = useState(task?.color ?? COLOR_OPTIONS[0].value);
   const [durationMin, setDurationMin] = useState(String(task?.durationMin ?? 30));
   const [peopleRequired, setPeopleRequired] = useState(String(task?.minPeople ?? 1));
-  const [minWaitDays, setMinWaitDays] = useState(String(task?.minWaitDays ?? 1));
-  const [maxWaitDays, setMaxWaitDays] = useState(String(task?.maxWaitDays ?? 1));
+  const [minWaitDays, setMinWaitDays] = useState(
+    task?.minWaitDays == null ? (task ? "" : "1") : String(task.minWaitDays),
+  );
+  const [maxWaitDays, setMaxWaitDays] = useState(
+    task?.maxWaitDays == null ? (task ? "" : "1") : String(task.maxWaitDays),
+  );
   const [formError, setFormError] = useState<string | null>(null);
-  const createTaskMutation = useMutation<TaskSaveResult, Error, CreateTaskInput>({
-    mutationFn: async (input: CreateTaskInput): Promise<TaskSaveResult> => {
+  const createTaskMutation = useMutation<TaskSaveResult, Error, TaskSaveInput>({
+    mutationFn: async (input: TaskSaveInput): Promise<TaskSaveResult> => {
       if (!orgId) {
         return { ok: false, error: "Organization is unavailable." };
       }
@@ -92,7 +101,21 @@ export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCre
         return { ok: true as const, taskId: task.id };
       }
 
-      return createTask(orgId, input);
+      if (input.minWaitDays == null || input.maxWaitDays == null) {
+        return { ok: false, error: "Wait days are unavailable." };
+      }
+
+      return createTask(orgId, {
+        title: input.title,
+        description: input.description,
+        color: input.color,
+        durationMin: input.durationMin,
+        peopleRequired: input.peopleRequired,
+        minWaitDays: input.minWaitDays,
+        maxWaitDays: input.maxWaitDays,
+        preferredStartTimeMin: input.preferredStartTimeMin,
+        imageStoragePath: input.imageStoragePath,
+      });
     },
     onSuccess: async (result) => {
       if (!result.ok || !orgId) {
@@ -127,19 +150,33 @@ export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCre
       return;
     }
 
-    const parsedMinWaitDays = toNonNegativeInt(minWaitDays);
+    const trimmedMinWaitDays = minWaitDays.trim();
+    const parsedMinWaitDays = trimmedMinWaitDays
+      ? toNonNegativeInt(trimmedMinWaitDays)
+      : isEditing
+        ? undefined
+        : null;
     if (parsedMinWaitDays === null) {
       setFormError("Min wait days must be a whole number of 0 or more.");
       return;
     }
 
-    const parsedMaxWaitDays = toNonNegativeInt(maxWaitDays);
+    const trimmedMaxWaitDays = maxWaitDays.trim();
+    const parsedMaxWaitDays = trimmedMaxWaitDays
+      ? toNonNegativeInt(trimmedMaxWaitDays)
+      : isEditing
+        ? undefined
+        : null;
     if (parsedMaxWaitDays === null) {
       setFormError("Max wait days must be a whole number of 0 or more.");
       return;
     }
 
-    if (parsedMaxWaitDays < parsedMinWaitDays) {
+    if (
+      parsedMinWaitDays !== undefined &&
+      parsedMaxWaitDays !== undefined &&
+      parsedMaxWaitDays < parsedMinWaitDays
+    ) {
       setFormError("Max wait days must be at least min wait days.");
       return;
     }
@@ -153,8 +190,8 @@ export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCre
         color,
         durationMin: parsedDurationMin,
         peopleRequired: parsedPeopleRequired,
-        minWaitDays: parsedMinWaitDays,
-        maxWaitDays: parsedMaxWaitDays,
+        ...(parsedMinWaitDays !== undefined ? { minWaitDays: parsedMinWaitDays } : {}),
+        ...(parsedMaxWaitDays !== undefined ? { maxWaitDays: parsedMaxWaitDays } : {}),
       });
 
       if (!result.ok) {

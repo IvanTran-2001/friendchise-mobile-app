@@ -42,4 +42,12 @@ describe("toRichTextHtml", () => {
   it("renders markdown formatting instead of leaving marker text visible", () => {
     expect(toRichTextHtml("**Bold** and _italic_")).toBe("<p><strong>Bold</strong> and <em>italic</em></p>\n");
   });
+
+  it("keeps inline code with angle brackets as code content", () => {
+    expect(toRichTextHtml("`<p>`")).toBe("<p><code>&lt;p&gt;</code></p>\n");
+  });
+
+  it("preserves markdown strikethrough markup", () => {
+    expect(toRichTextHtml("~~deleted~~")).toBe("<p><s>deleted</s></p>\n");
+  });
 });
