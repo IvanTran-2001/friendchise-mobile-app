@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Sparkles } from "lucide-react-native";
@@ -8,10 +8,11 @@ import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { TextField } from "../../../components/ui/text-field";
 import { RichTextField } from "../../../components/ui/rich-text-field";
-import { ImagePicker, type SelectedImage } from "../../../components/ui/image-picker";
+import { ImagePicker } from "../../../components/ui/image-picker";
 import { Text } from "../../../components/ui/text";
 import { colors, spacing } from "../../lib/theme";
 import { createTask, updateTask, type CreateTaskInput, type TaskDetailItem } from "./task-api";
+import { useTaskCreateDraftStore } from "./task-create-draft-store";
 
 const COLOR_OPTIONS = [
   { name: "Accent", value: colors.accent },
@@ -58,34 +59,35 @@ function toNonNegativeInt(value: string) {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-function buildSelectedImage(task?: TaskDetailItem | null): SelectedImage | null {
-  if (!task?.imageUrl || !task.imageSignedUrl) {
-    return null;
-  }
-
-  return {
-    storagePath: task.imageUrl,
-    signedUrl: task.imageSignedUrl,
-    name: task.imageUrl.split("/").pop() ?? null,
-  };
-}
-
 export function TaskCreateScreen({ orgId, task, onCancel, onSubmitted }: TaskCreateScreenProps) {
   const queryClient = useQueryClient();
   const isEditing = !!task;
-  const [title, setTitle] = useState(task?.name ?? "");
-  const [description, setDescription] = useState(task?.description ?? "");
-  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(buildSelectedImage(task));
-  const [color, setColor] = useState(task?.color ?? COLOR_OPTIONS[0].value);
-  const [durationMin, setDurationMin] = useState(String(task?.durationMin ?? 30));
-  const [peopleRequired, setPeopleRequired] = useState(String(task?.minPeople ?? 1));
-  const [minWaitDays, setMinWaitDays] = useState(
-    task?.minWaitDays == null ? (task ? "" : "1") : String(task.minWaitDays),
-  );
-  const [maxWaitDays, setMaxWaitDays] = useState(
-    task?.maxWaitDays == null ? (task ? "" : "1") : String(task.maxWaitDays),
-  );
-  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    title,
+    description,
+    selectedImage,
+    color,
+    durationMin,
+    peopleRequired,
+    minWaitDays,
+    maxWaitDays,
+    formError,
+    initializeDraft,
+    setTitle,
+    setDescription,
+    setSelectedImage,
+    setColor,
+    setDurationMin,
+    setPeopleRequired,
+    setMinWaitDays,
+    setMaxWaitDays,
+    setFormError,
+  } = useTaskCreateDraftStore();
+
+  useEffect(() => {
+    initializeDraft(task);
+  }, [initializeDraft, orgId, task]);
+
   const createTaskMutation = useMutation<TaskSaveResult, Error, TaskSaveInput>({
     mutationFn: async (input: TaskSaveInput): Promise<TaskSaveResult> => {
       if (!orgId) {
