@@ -60,7 +60,7 @@ function useCreateOrgState() {
   const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const defaultTimezone = TIMEZONE_OPTIONS.some((item) => item.id === systemTimezone)
     ? systemTimezone
-    : "Australia/Sydney";
+    : "";
 
   const [title, setTitle] = useState("");
   const [timezone, setTimezone] = useState(defaultTimezone);
@@ -86,8 +86,22 @@ function useCreateOrgState() {
 }
 
 function buildPayload(state: ReturnType<typeof useCreateOrgState>) {
-  const openTimeMin = state.openTime ? toMinutes(state.openTime) ?? undefined : undefined;
-  const closeTimeMin = state.closeTime ? toMinutes(state.closeTime) ?? undefined : undefined;
+  const parseOptionalTime = (label: string, value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const parsed = toMinutes(trimmed);
+    if (parsed === null) {
+      throw new Error(`${label} must be in HH:MM format.`);
+    }
+
+    return parsed;
+  };
+
+  const openTimeMin = parseOptionalTime("Start time", state.openTime);
+  const closeTimeMin = parseOptionalTime("End time", state.closeTime);
 
   if (openTimeMin !== undefined && closeTimeMin !== undefined && closeTimeMin <= openTimeMin) {
     throw new Error("Close time must be after start time");

@@ -1,4 +1,4 @@
-import { Alert, FlatList, Image, Pressable, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { Alert, FlatList, Image, Pressable, StyleSheet, View, type AlertButton, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { ListChecks, MoreHorizontal } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { TaskItem } from "../task-api";
@@ -293,18 +293,17 @@ function openTaskActionsAlert(
   onEditTask?: () => void,
   onDeleteTask?: () => void,
 ) {
-  Alert.alert("Task actions", taskName, [
-    { text: "Cancel", style: "cancel" },
-    {
-      text: "Edit",
-      onPress: () => onEditTask?.(),
-    },
-    {
-      text: "Delete",
-      style: "destructive",
-      onPress: () => onDeleteTask?.(),
-    },
-  ]);
+  const buttons: AlertButton[] = [{ text: "Cancel", style: "cancel" }];
+
+  if (onEditTask) {
+    buttons.push({ text: "Edit", onPress: onEditTask });
+  }
+
+  if (onDeleteTask) {
+    buttons.push({ text: "Delete", style: "destructive", onPress: onDeleteTask });
+  }
+
+  Alert.alert("Task actions", taskName, buttons);
 }
 
 const styles = StyleSheet.create({
