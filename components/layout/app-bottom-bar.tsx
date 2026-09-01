@@ -13,9 +13,12 @@ export function AppBottomBar() {
   const router = useRouter();
   const currentOrgId = useCurrentOrgId();
   const pathname = usePathname();
-  const tabs = currentOrgId
-    ? getOrgTabs(currentOrgId, pathname)
-    : getNonOrgTabs();
+  const shellMode = getShellMode(pathname, currentOrgId);
+  const tabs = shellMode === "org" && currentOrgId ? getOrgTabs(currentOrgId, pathname) : getGlobalTabs(pathname);
+
+  if (shellMode === "none") {
+    return null;
+  }
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
@@ -25,17 +28,23 @@ export function AppBottomBar() {
             key={tab.label}
             disabled={tab.disabled}
             onPress={
-              tab.href
-                ? () => {
-                    const href = tab.href;
+              tab.onPress
+                ? tab.onPress
+                : tab.href
+                  ? () => {
+                      const href = tab.href;
 
-                    if (!href) {
-                      return;
+                      if (!href) {
+                        return;
+                      }
+
+                      router.replace(href);
                     }
-
-                    router.replace(href);
-                  }
-                : undefined
+                  : tab.label === "ORG"
+                    ? () => {
+                        router.replace("/");
+                      }
+                    : undefined
             }
             accessibilityRole="button"
             accessibilityLabel={tab.label}
@@ -72,12 +81,33 @@ type BottomTab = {
   active?: boolean;
   disabled?: boolean;
   href?: string;
+  onPress?: () => void;
 };
 
-function getNonOrgTabs(): BottomTab[] {
+type ShellMode = "global" | "org" | "none";
+
+function getShellMode(pathname: string, currentOrgId: string | null): ShellMode {
+  if (isAuthRoute(pathname)) {
+    return "none";
+  }
+
+  if (currentOrgId && pathname.startsWith(`/orgs/${currentOrgId}`)) {
+    return "org";
+  }
+
+  return "global";
+}
+
+function isAuthRoute(pathname: string) {
+  return pathname === "/login" || pathname.startsWith("/(auth)") || pathname.startsWith("/signin");
+}
+
+function getGlobalTabs(pathname: string): BottomTab[] {
+  const isOrgHubRoute = pathname === "/orgs" || pathname === "/orgs/new" || pathname === "/orgs/invite";
+
   return [
-    { label: "HUB", icon: Building2, active: true, disabled: true },
-    { label: "ORG", icon: Network, disabled: true },
+    { label: "HUB", icon: Building2, active: pathname === "/", href: "/" },
+    { label: "ORG", icon: Network, active: isOrgHubRoute, href: "/orgs" },
     { label: "NOTIF", icon: Bell, disabled: true },
   ];
 }

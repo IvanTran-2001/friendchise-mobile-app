@@ -90,6 +90,14 @@ function TaskListItem({
   onDeleteTask?: (task: TaskItem) => void;
 }) {
   const router = useRouter();
+  const hasTaskActions = Boolean(onEditTask || onDeleteTask);
+
+  const taskActions = hasTaskActions
+    ? {
+        onEditTask: onEditTask ? () => onEditTask(item) : undefined,
+        onDeleteTask: onDeleteTask ? () => onDeleteTask(item) : undefined,
+      }
+    : null;
 
   return (
     <Card
@@ -104,18 +112,28 @@ function TaskListItem({
         style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
       >
         {viewMode === "feed" ? (
-          <TaskFeedView item={item} />
+          <TaskFeedView item={item} onEditTask={taskActions?.onEditTask} onDeleteTask={taskActions?.onDeleteTask} />
         ) : viewMode === "card" ? (
-          <TaskCardView item={item} />
+          <TaskCardView item={item} onEditTask={taskActions?.onEditTask} onDeleteTask={taskActions?.onDeleteTask} />
         ) : (
-          <TaskCompactView item={item} onEditTask={onEditTask} onDeleteTask={onDeleteTask} />
+          <TaskCompactView item={item} onEditTask={taskActions?.onEditTask} onDeleteTask={taskActions?.onDeleteTask} />
         )}
       </Pressable>
     </Card>
   );
 }
 
-function TaskFeedView({ item }: { item: TaskItem }) {
+  function TaskFeedView({
+    item,
+    onEditTask,
+    onDeleteTask,
+  }: {
+    item: TaskItem;
+    onEditTask?: (task: TaskItem) => void;
+    onDeleteTask?: (task: TaskItem) => void;
+  }) {
+  const hasTaskActions = Boolean(onEditTask || onDeleteTask);
+
   return (
     <View>
       <View style={styles.feedMediaWrap}>
@@ -137,7 +155,12 @@ function TaskFeedView({ item }: { item: TaskItem }) {
               {item.name}
             </Text>
           </View>
-          <Badge label={item._available ? "Shared" : "Mine"} tone={item._available ? "accent" : "neutral"} dotted />
+          <View style={styles.feedHeaderActions}>
+            <Badge label={item._available ? "Shared" : "Mine"} tone={item._available ? "accent" : "neutral"} dotted />
+            {hasTaskActions ? (
+              <TaskOverflowButton task={item} onEditTask={onEditTask} onDeleteTask={onDeleteTask} tone="inverse" />
+            ) : null}
+          </View>
         </View>
       </View>
 
@@ -159,12 +182,27 @@ function TaskFeedView({ item }: { item: TaskItem }) {
   );
 }
 
-function TaskCardView({ item }: { item: TaskItem }) {
+function TaskCardView({
+  item,
+  onEditTask,
+  onDeleteTask,
+}: {
+  item: TaskItem;
+  onEditTask?: (task: TaskItem) => void;
+  onDeleteTask?: (task: TaskItem) => void;
+}) {
+  const hasTaskActions = Boolean(onEditTask || onDeleteTask);
+
   return (
     <View style={styles.cardMode}>
       <View style={styles.cardModeHeader}>
         <View style={[styles.colorTag, { backgroundColor: item.color }]} accessibilityLabel="Task color tag" />
-        <Badge label={item._available ? "Shared" : "My Tasks"} tone={item._available ? "accent" : "neutral"} />
+        <View style={styles.cardModeHeaderActions}>
+          <Badge label={item._available ? "Shared" : "My Tasks"} tone={item._available ? "accent" : "neutral"} />
+          {hasTaskActions ? (
+            <TaskOverflowButton task={item} onEditTask={onEditTask} onDeleteTask={onDeleteTask} />
+          ) : null}
+        </View>
       </View>
       <Text variant="bodyStrong" numberOfLines={2} style={styles.cardModeTitle}>
         {item.name}
@@ -179,6 +217,37 @@ function TaskCardView({ item }: { item: TaskItem }) {
         <Badge label={`${item.minPeople}+ ppl`} tone="neutral" />
       </View>
     </View>
+  );
+}
+
+function TaskOverflowButton({
+  task,
+  onEditTask,
+  onDeleteTask,
+  tone = "default",
+}: {
+  task: TaskItem;
+  onEditTask?: (task: TaskItem) => void;
+  onDeleteTask?: (task: TaskItem) => void;
+  tone?: "default" | "inverse";
+}) {
+  if (!onEditTask && !onDeleteTask) {
+    return null;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Task actions for ${task.name}`}
+      onPress={() => openTaskActionsAlert(task.name, onEditTask ? () => onEditTask(task) : undefined, onDeleteTask ? () => onDeleteTask(task) : undefined)}
+      style={({ pressed }) => [
+        styles.compactActionButton,
+        tone === "inverse" && styles.inverseActionButton,
+        pressed ? styles.actionButtonPressed : null,
+      ]}
+    >
+      <MoreHorizontal size={16} color={tone === "inverse" ? colors.textInverse : colors.textPrimary} />
+    </Pressable>
   );
 }
 
@@ -294,6 +363,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  feedHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
   feedKicker: {
     textTransform: "uppercase",
     letterSpacing: 1.6,
@@ -321,6 +395,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.md,
+  },
+  cardModeHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   cardModeTitle: {
     lineHeight: 24,
@@ -372,5 +451,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  inverseActionButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    borderColor: "rgba(255, 255, 255, 0.22)",
   },
 });

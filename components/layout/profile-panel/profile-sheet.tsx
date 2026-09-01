@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Settings2, UserRound } from "lucide-react-native";
+import { Home, LogOut, Settings2, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet } from "react-native";
@@ -12,9 +12,9 @@ import { Button } from "../../ui/button";
 import { Text } from "../../ui/text";
 import { colors, spacing } from "../../../src/lib/theme";
 import { formatDemoCountdown } from "./profile-panel-utils";
-import { OrgSwitcher } from "./org-switcher";
 import { useGlobalSheet } from "../global-sheet";
 import { SettingsSheet } from "./settings-sheet";
+import { OrgSwitcher } from "./org-switcher";
 
 export function ProfileSheet() {
   const router = useRouter();
@@ -65,6 +65,10 @@ type ProfilePanelProps = {
   demoExpiresAt: number | null;
 };
 
+type OrganizationPanelProps = {
+  currentOrgId: string | null;
+};
+
 function ProfilePanel({ currentUser, userInitials, isDemo, demoExpiresAt }: ProfilePanelProps) {
   const [remaining, setRemaining] = useState(() => (demoExpiresAt ? demoExpiresAt - Date.now() : 0));
 
@@ -110,20 +114,26 @@ function ProfilePanel({ currentUser, userInitials, isDemo, demoExpiresAt }: Prof
   );
 }
 
-type OrganizationPanelProps = {
-  currentOrgId: string | null;
-};
-
 function OrganizationPanel({ currentOrgId }: OrganizationPanelProps) {
+  const router = useRouter();
+
   return (
     <View style={styles.section}>
       <Text variant="label" tone="secondary">
         Organization
       </Text>
+      <Button
+        label="Global home"
+        onPress={() => router.replace("/(app)")}
+        variant="secondary"
+        fullWidth
+        leftIcon={<Home size={16} strokeWidth={2.2} color={colors.accent} />}
+      />
       <OrgSwitcher currentOrgId={currentOrgId} />
     </View>
   );
 }
+
 
 type AccountPanelProps = {
   onOpenSettings: () => void;
