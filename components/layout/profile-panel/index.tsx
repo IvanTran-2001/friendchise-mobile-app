@@ -6,9 +6,9 @@ import { Avatar, getInitials } from "../../ui/avatar";
 import { useGlobalSheet } from "../global-sheet";
 import { ProfileSheet } from "./profile-sheet";
 import { colors, radius, spacing } from "../../../src/lib/theme";
-import { Text } from "../../ui/text";
 import { fetchOrganizations, type Org } from "../../../src/features/orgs/organization-api";
 import { useMe } from "../../../src/features/auth";
+import { LogoMark } from "./logo-mark";
 
 /**
  * Profile trigger shown in the app navbar.
@@ -68,9 +68,7 @@ function ProfileCluster({ currentUser, currentOrg, userInitials }: ProfileCluste
         <Avatar imageUri={currentOrg.image} label={getInitials(currentOrg.name)} size="sm" tintId={currentOrg.id} />
       ) : (
         <View style={styles.notSelectedBadge}>
-          <Text variant="captionStrong" tone="tertiary">
-            ?
-          </Text>
+          <LogoMark size={28} />
         </View>
       )}
     </View>
@@ -115,5 +113,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
+    overflow: "hidden",
   },
 });
