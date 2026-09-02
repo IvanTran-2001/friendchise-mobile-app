@@ -1,12 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Home, LogOut, Settings2, UserRound } from "lucide-react-native";
+import { LogOut, Settings2, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { Image, InteractionManager, Pressable, StyleSheet, View } from "react-native";
 import { useAuthStore } from "../../../src/features/auth/auth-store";
 import { clearSessionAndRedirect, useMe, type MeUser } from "../../../src/features/auth";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { Avatar, getInitials } from "../../ui/avatar";
+import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { Text } from "../../ui/text";
@@ -15,6 +16,8 @@ import { formatDemoCountdown } from "./profile-panel-utils";
 import { useGlobalSheet } from "../global-sheet";
 import { SettingsSheet } from "./settings-sheet";
 import { OrgSwitcher } from "./org-switcher";
+
+const logoSource = require("../../../public/LOGO.png");
 
 export function ProfileSheet() {
   const router = useRouter();
@@ -115,21 +118,45 @@ function ProfilePanel({ currentUser, userInitials, isDemo, demoExpiresAt }: Prof
 }
 
 function OrganizationPanel({ currentOrgId }: OrganizationPanelProps) {
+  const { closeSheet } = useGlobalSheet();
   const router = useRouter();
+
+  const handleGoHome = () => {
+    router.replace("/(app)");
+    void InteractionManager.runAfterInteractions(() => {
+      closeSheet();
+    });
+  };
 
   return (
     <View style={styles.section}>
       <Text variant="label" tone="secondary">
         Organization
       </Text>
-      <Button
-        label="Global home"
-        onPress={() => router.replace("/(app)")}
-        variant="secondary"
-        fullWidth
-        leftIcon={<Home size={16} strokeWidth={2.2} color={colors.accent} />}
-      />
-      <OrgSwitcher currentOrgId={currentOrgId} />
+      <View style={styles.organizationControls}>
+        <Pressable
+          onPress={handleGoHome}
+          style={({ pressed }) => [styles.homeButtonShell, pressed && styles.homeButtonPressed]}
+        >
+          <Card padding="md" style={styles.homeButtonCard}>
+            <View style={styles.homeButtonContent}>
+              <View style={styles.homeLogoWrap}>
+                <Image source={logoSource} style={styles.homeLogo} resizeMode="contain" />
+              </View>
+              <View style={styles.homeTextWrap}>
+                <Text variant="label" numberOfLines={1}>
+                  Global home
+                </Text>
+                <Text variant="caption" tone="secondary" numberOfLines={1}>
+                  Back to the main workspace
+                </Text>
+              </View>
+            </View>
+          </Card>
+        </Pressable>
+
+        <OrgSwitcher currentOrgId={currentOrgId} onSelectComplete={closeSheet} />
+      </View>
     </View>
   );
 }
@@ -195,6 +222,46 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing.md,
+  },
+  organizationControls: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: spacing.sm,
+  },
+  homeButtonShell: {
+    flex: 0.9,
+  },
+  homeButtonPressed: {
+    opacity: 0.85,
+  },
+  homeButtonCard: {
+    width: "100%",
+    minHeight: 68,
+  },
+  homeButtonContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  homeLogoWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accentSoftBorder,
+  },
+  homeLogo: {
+    width: 22,
+    height: 22,
+  },
+  homeTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   hero: {
     paddingTop: spacing.xxl,

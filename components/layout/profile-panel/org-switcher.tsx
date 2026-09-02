@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, InteractionManager, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, InteractionManager, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react-native";
@@ -16,9 +16,11 @@ import { fetchOrganizations } from "../../../src/features/orgs/organization-api"
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;
+  onSelectComplete?: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
+export function OrgSwitcher({ currentOrgId, onSelectComplete, style }: OrgSwitcherProps) {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["mobile-orgs"],
@@ -45,9 +47,10 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   };
 
   const selectOrg = (orgId: string) => {
-    closeSheet();
+    router.replace(`/(app)/orgs/${orgId}`);
     InteractionManager.runAfterInteractions(() => {
-      router.replace(`/(app)/orgs/${orgId}`);
+      closeSheet();
+      onSelectComplete?.();
     });
   };
 
@@ -83,10 +86,10 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   return (
     <>
       <Pressable
-        style={({ pressed }) => [pressed && styles.triggerPressed]}
+        style={({ pressed }) => [styles.triggerShell, pressed && styles.triggerPressed, style]}
         onPress={() => setOpen(true)}
       >
-        <Card padding="md">
+        <Card padding="md" style={styles.triggerCard}>
           <View style={styles.triggerInner}>
             <Avatar
               imageUri={currentOrg?.image}
@@ -167,8 +170,14 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
 }
 
 const styles = StyleSheet.create({
+  triggerShell: {
+    flex: 1,
+  },
   triggerPressed: {
     opacity: 0.85,
+  },
+  triggerCard: {
+    width: "100%",
   },
   triggerInner: {
     minHeight: 40,
