@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Bell, Building2, ChevronLeft, ListTodo, Network, ShieldCheck, User, Wrench } from "lucide-react-native";
+import { Bell, Building2, ChevronLeft, ListTodo, Network, ShieldCheck, User, Users, Wrench } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
@@ -124,7 +124,8 @@ function isAuthRoute(pathname: string) {
 }
 
 function getGlobalTabs(pathname: string): BottomTab[] {
-  const isOrgHubRoute = pathname === "/orgs" || pathname === "/orgs/new" || pathname === "/orgs/invite";
+  const isOrgHubRoute =
+    pathname === "/orgs" || pathname === "/orgs/new" || pathname === "/orgs/invite" || pathname === "/orgs/invites";
 
   return [
     { label: "HUB", icon: Building2, active: pathname === "/", href: "/" },
@@ -138,6 +139,7 @@ function getOrgTabs(currentOrgId: string, pathname: string): BottomTab[] {
   const appOrgRouteBase = `/(app)/orgs/${currentOrgId}`;
   const isHomeRoute = pathname === orgRouteBase;
   const isTasksRoute = pathname === `${orgRouteBase}/tasks` || pathname.startsWith(`${orgRouteBase}/tasks/`);
+  const isMembersRoute = pathname === `${orgRouteBase}/members` || pathname.startsWith(`${orgRouteBase}/members/`);
   const isToolsRoute = pathname === `${orgRouteBase}/tools` || pathname.startsWith(`${orgRouteBase}/tools/`);
 
   return [
@@ -152,6 +154,12 @@ function getOrgTabs(currentOrgId: string, pathname: string): BottomTab[] {
       icon: ListTodo,
       active: isTasksRoute,
       href: `${appOrgRouteBase}/tasks`,
+    },
+    {
+      label: "Members",
+      icon: Users,
+      active: isMembersRoute,
+      href: `${appOrgRouteBase}/members`,
     },
     {
       label: "Tools",
