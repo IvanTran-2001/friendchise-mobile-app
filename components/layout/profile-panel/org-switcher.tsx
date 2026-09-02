@@ -12,9 +12,9 @@ import { EmptyState } from "../../ui/empty-state";
 import { ErrorState, LoadingState } from "../../ui/state-views";
 import { Text } from "../../ui/text";
 import { colors, radius, spacing } from "../../../src/lib/theme";
-import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
+import { fetchOrganizations, type Org } from "../../../src/features/orgs/org-mode/shared/organization-api";
 import { LogoMark } from "./logo-mark";
-import { useOrgSwitcherStore } from "../../../src/features/orgs/org-switcher-store";
+import { useOrgSwitcherStore } from "../../../src/features/orgs/org-mode/shared/org-switcher-store";
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;
@@ -36,16 +36,16 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
   const selectedOrgId = useOrgSwitcherStore((state) => state.selectedOrgId);
   const setSelectedOrgId = useOrgSwitcherStore((state) => state.setSelectedOrgId);
   const clearSelectedOrgId = useOrgSwitcherStore((state) => state.clearSelectedOrgId);
-  const currentOrg = organizations.find((org) => org.id === currentOrgId) ?? null;
+  const currentOrg = organizations.find((org: Org) => org.id === currentOrgId) ?? null;
   const filteredOrgs = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return organizations;
 
-    return organizations.filter((org) => {
+    return organizations.filter((org: Org) => {
       return org.name.toLowerCase().includes(query) || org.id.toLowerCase().includes(query);
     });
   }, [organizations, search]);
-  const listOrgs = filteredOrgs.filter((org) => org.id !== currentOrg?.id);
+  const listOrgs = filteredOrgs.filter((org: Org) => org.id !== currentOrg?.id);
 
   const closeSheet = () => {
     setOpen(false);
