@@ -8,7 +8,7 @@ import { ProfileSheet } from "./profile-sheet";
 import { colors, radius, spacing } from "../../../src/lib/theme";
 import { Text } from "../../ui/text";
 import { fetchOrganizations, type Org } from "../../../src/features/orgs/organization-api";
-import { useMe, type MeUser } from "../../../src/features/auth";
+import { useMe } from "../../../src/features/auth";
 
 /**
  * Profile trigger shown in the app navbar.
@@ -37,23 +37,21 @@ export function ProfileOrgButton() {
   };
 
   return (
-    <>
-      <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        accessibilityRole="button"
-        accessibilityLabel="Open profile panel"
-        onPress={handleOpenProfile}
-      >
-        <View style={styles.buttonContent}>
-          <ProfileCluster currentUser={currentUser} currentOrg={currentOrg} userInitials={userInitials} />
-        </View>
-      </Pressable>
-    </>
+    <Pressable
+      style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+      accessibilityRole="button"
+      accessibilityLabel="Open profile panel"
+      onPress={handleOpenProfile}
+    >
+      <View style={styles.buttonContent}>
+        <ProfileCluster currentUser={currentUser} currentOrg={currentOrg} userInitials={userInitials} />
+      </View>
+    </Pressable>
   );
 }
 
 type ProfileClusterProps = {
-  currentUser: MeUser | null;
+  currentUser: import("../../../src/features/auth").MeUser | null;
   currentOrg: Org | null;
   userInitials: string;
 };

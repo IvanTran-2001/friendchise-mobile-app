@@ -1,11 +1,7 @@
 import { Stack, usePathname } from "expo-router";
 import { useEffect } from "react";
-import { View, StyleSheet } from "react-native";
-import { AppNavbar } from "../../components/layout/app-navbar";
-import { AppBottomBar } from "../../components/layout/app-bottom-bar";
 import { NavbarProvider } from "../../components/layout/navbar-context";
 import { GlobalSheetProvider } from "../../components/layout/global-sheet";
-import { colors } from "../../src/lib/theme";
 import { saveLastRoute } from "../../src/features/navigation/last-route-store";
 import { SessionWatcher } from "../../src/features/auth/session-watcher";
 
@@ -29,25 +25,8 @@ export default function AppLayout() {
       <GlobalSheetProvider>
         <RouteTracker />
         <SessionWatcher />
-        <View style={styles.container}>
-          <AppNavbar />
-          <View style={styles.content}>
-            <Stack screenOptions={{ headerShown: false, animation: "none" }} />
-          </View>
-          <AppBottomBar />
-        </View>
+        <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       </GlobalSheetProvider>
     </NavbarProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-});

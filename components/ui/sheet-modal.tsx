@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.md,
   },
   closeButton: {
     position: "absolute",
@@ -93,10 +93,11 @@ const styles = StyleSheet.create({
   titleWrap: {
     alignItems: "center",
     gap: 2,
-    paddingTop: spacing.xs,
+    paddingTop: spacing.sm,
   },
   body: {
     flex: 1,
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
   },
 });

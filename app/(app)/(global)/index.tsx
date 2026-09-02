@@ -2,15 +2,15 @@ import { FlatList, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2 } from "lucide-react-native";
-import { fetchOrganizations } from "../../src/features/orgs/organization-api";
-import { Avatar, getInitials } from "../../components/ui/avatar";
-import { Card } from "../../components/ui/card";
-import { ListRow } from "../../components/ui/list-row";
-import { Screen } from "../../components/ui/screen";
-import { ScreenHeader } from "../../components/ui/screen-header";
-import { EmptyState } from "../../components/ui/empty-state";
-import { ErrorState, LoadingState } from "../../components/ui/state-views";
-import { colors, spacing } from "../../src/lib/theme";
+import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
+import { Avatar, getInitials } from "../../../components/ui/avatar";
+import { Card } from "../../../components/ui/card";
+import { ListRow } from "../../../components/ui/list-row";
+import { Screen } from "../../../components/ui/screen";
+import { ScreenHeader } from "../../../components/ui/screen-header";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { ErrorState, LoadingState } from "../../../components/ui/state-views";
+import { colors, spacing } from "../../../src/lib/theme";
 
 export default function HomeScreen() {
   const router = useRouter();
