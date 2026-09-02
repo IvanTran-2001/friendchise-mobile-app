@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, InteractionManager, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react-native";
@@ -13,12 +13,17 @@ import { ErrorState, LoadingState } from "../../ui/state-views";
 import { Text } from "../../ui/text";
 import { colors, radius, spacing } from "../../../src/lib/theme";
 import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
+import { LogoMark } from "./logo-mark";
+import { useOrgSwitcherStore } from "../../../src/features/orgs/org-switcher-store";
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;
+  onSelectComplete?: () => void;
+  onPressLeadingAction?: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
+export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingAction, style }: OrgSwitcherProps) {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["mobile-orgs"],
@@ -28,6 +33,9 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   const organizations = useMemo(() => data?.organizations ?? [], [data?.organizations]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const selectedOrgId = useOrgSwitcherStore((state) => state.selectedOrgId);
+  const setSelectedOrgId = useOrgSwitcherStore((state) => state.setSelectedOrgId);
+  const clearSelectedOrgId = useOrgSwitcherStore((state) => state.clearSelectedOrgId);
   const currentOrg = organizations.find((org) => org.id === currentOrgId) ?? null;
   const filteredOrgs = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -45,72 +53,84 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   };
 
   const selectOrg = (orgId: string) => {
+    setSelectedOrgId(orgId);
     closeSheet();
-    InteractionManager.runAfterInteractions(() => {
-      router.replace(`/(app)/orgs/${orgId}`);
-    });
   };
 
-  if (isLoading) {
-    return (
-      <Card padding="md">
-        <LoadingState message="Fetching your organization list." compact />
-      </Card>
-    );
-  }
+  const handleCloseComplete = () => {
+    if (!selectedOrgId) {
+      return;
+    }
 
-  if (error) {
-    return (
-      <Card padding="md">
-        <ErrorState
-          title="Could not load organizations"
-          message="Check your connection and try again."
-          onRetry={() => void refetch()}
-          compact
-        />
-      </Card>
-    );
-  }
-
-  if (organizations.length === 0) {
-    return (
-      <Card padding="md">
-        <EmptyState title="No organizations" message="There are no organizations available on this account." />
-      </Card>
-    );
-  }
+    const orgId = selectedOrgId;
+    clearSelectedOrgId();
+    router.replace(`/(app)/orgs/${orgId}`);
+    onSelectComplete?.();
+  };
 
   return (
     <>
-      <Pressable
-        style={({ pressed }) => [pressed && styles.triggerPressed]}
-        onPress={() => setOpen(true)}
-      >
-        <Card padding="md">
-          <View style={styles.triggerInner}>
-            <Avatar
-              imageUri={currentOrg?.image}
-              label={currentOrg ? getInitials(currentOrg.name) : "?"}
-              tintId={currentOrg?.id}
+      <View style={[styles.controlRow, style]}>
+        {onPressLeadingAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go to global home"
+            onPress={onPressLeadingAction}
+            style={({ pressed }) => [styles.leadingShell, pressed && styles.triggerPressed]}
+          >
+            <LogoMark size={56} />
+          </Pressable>
+        ) : null}
+        {isLoading ? (
+          <OrganizationStateCard>
+            <LoadingState message="Fetching your organization list." compact />
+          </OrganizationStateCard>
+        ) : error ? (
+          <OrganizationStateCard>
+            <ErrorState
+              title="Could not load organizations"
+              message="Check your connection and try again."
+              onRetry={() => void refetch()}
+              compact
             />
+          </OrganizationStateCard>
+        ) : organizations.length === 0 ? (
+          <OrganizationStateCard>
+            <EmptyState title="No organizations" message="There are no organizations available on this account." />
+          </OrganizationStateCard>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.triggerShell, pressed && styles.triggerPressed]}
+            onPress={() => setOpen(true)}
+          >
+            <Card padding="md" style={styles.triggerCard}>
+              <View style={styles.triggerInner}>
+                <Avatar
+                  imageUri={currentOrg?.image}
+                  label={currentOrg ? getInitials(currentOrg.name) : "?"}
+                  tintId={currentOrg?.id}
+                />
 
-            <View style={styles.triggerTextWrap}>
-              <Text variant="label" tone="secondary">
-                Organization
-              </Text>
-              <Text variant="bodyStrong" numberOfLines={1}>
-                {currentOrg?.name ?? "Select organization"}
-              </Text>
-            </View>
+                <View style={styles.triggerTextWrap}>
+                  <Text variant="label" tone="secondary">
+                    Organization
+                  </Text>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    {currentOrg?.name ?? "Select organization"}
+                  </Text>
+                </View>
 
-            <ChevronDown size={18} strokeWidth={2.2} color={colors.textTertiary} />
-          </View>
-        </Card>
-      </Pressable>
+                <ChevronDown size={18} strokeWidth={2.2} color={colors.textTertiary} />
+              </View>
+            </Card>
+          </Pressable>
+        )}
+      </View>
 
       <SheetModal
         visible={open}
         onClose={closeSheet}
+        onCloseComplete={handleCloseComplete}
         title="Switch organization"
         subtitle="Search and jump between orgs"
       >
@@ -166,9 +186,32 @@ export function OrgSwitcher({ currentOrgId }: OrgSwitcherProps) {
   );
 }
 
+function OrganizationStateCard({ children }: { children: React.ReactNode }) {
+  return (
+    <Card padding="md" style={styles.triggerCard}>
+      {children}
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
+  controlRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: spacing.sm,
+  },
+  leadingShell: {
+    width: 56,
+    height: 56,
+  },
+  triggerShell: {
+    flex: 1,
+  },
   triggerPressed: {
     opacity: 0.85,
+  },
+  triggerCard: {
+    width: "100%",
   },
   triggerInner: {
     minHeight: 40,

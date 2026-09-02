@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Home, LogOut, Settings2, UserRound } from "lucide-react-native";
+import { LogOut, Settings2, UserRound } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { InteractionManager, StyleSheet, View } from "react-native";
 import { useAuthStore } from "../../../src/features/auth/auth-store";
 import { clearSessionAndRedirect, useMe, type MeUser } from "../../../src/features/auth";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
@@ -115,21 +115,22 @@ function ProfilePanel({ currentUser, userInitials, isDemo, demoExpiresAt }: Prof
 }
 
 function OrganizationPanel({ currentOrgId }: OrganizationPanelProps) {
+  const { closeSheet } = useGlobalSheet();
   const router = useRouter();
+
+  const handleGoHome = () => {
+    router.replace("/(app)");
+    void InteractionManager.runAfterInteractions(() => {
+      closeSheet();
+    });
+  };
 
   return (
     <View style={styles.section}>
       <Text variant="label" tone="secondary">
         Organization
       </Text>
-      <Button
-        label="Global home"
-        onPress={() => router.replace("/(app)")}
-        variant="secondary"
-        fullWidth
-        leftIcon={<Home size={16} strokeWidth={2.2} color={colors.accent} />}
-      />
-      <OrgSwitcher currentOrgId={currentOrgId} />
+      <OrgSwitcher currentOrgId={currentOrgId} onSelectComplete={closeSheet} onPressLeadingAction={handleGoHome} />
     </View>
   );
 }
