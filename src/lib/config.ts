@@ -1,7 +1,23 @@
 export function getApiUrl() {
-  const configured = process.env.EXPO_PUBLIC_API_URL;
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (configured) {
-    return configured;
+    let parsed: URL;
+
+    try {
+      parsed = new URL(configured.replace(/\/+$/, ""));
+    } catch {
+      throw new Error(
+        "EXPO_PUBLIC_API_URL must be a valid HTTPS URL. Use a secure backend URL when testing on a device; http:// and malformed values are rejected.",
+      );
+    }
+
+    if (parsed.protocol !== "https:") {
+      throw new Error(
+        "EXPO_PUBLIC_API_URL must be a valid HTTPS URL. Use a secure backend URL when testing on a device; http:// and malformed values are rejected.",
+      );
+    }
+
+    return configured.replace(/\/+$/, "");
   }
 
   throw new Error(

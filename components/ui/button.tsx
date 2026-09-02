@@ -29,7 +29,7 @@ type ButtonProps = {
 };
 
 const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number; fontSize: number }> = {
-  // 44 is the minimum comfortable, accessible tap target (see minTapTarget).
+  // Keep the compact visual size, then expand the hit area back to 44pt below.
   xs: { height: 38, paddingHorizontal: spacing.md, fontSize: 11 },
   sm: { height: minTapTarget, paddingHorizontal: spacing.lg, fontSize: 12 },
   md: { height: 50, paddingHorizontal: spacing.xl, fontSize: 14 },
@@ -97,11 +97,21 @@ export function Button({
   const palette = variantStyles[variant];
   const isDisabled = disabled || loading;
   const labelText = loading ? loadingLabel ?? label : label;
+  const hitSlop =
+    size === "xs"
+      ? {
+          top: (minTapTarget - dims.height) / 2,
+          bottom: (minTapTarget - dims.height) / 2,
+          left: (minTapTarget - dims.height) / 2,
+          right: (minTapTarget - dims.height) / 2,
+        }
+      : undefined;
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
+      hitSlop={hitSlop}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? labelText}
       accessibilityState={{ disabled: isDisabled, busy: loading ?? false }}

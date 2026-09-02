@@ -26,6 +26,7 @@ const PAGE_SIZE = 20;
 
 export function OrgMembersScreen({ orgId }: OrgMembersScreenProps) {
   const [search, setSearch] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 150);
   const isSearchSettled = debouncedSearch === search;
   const { setActions } = useNavbarSetters();
@@ -126,6 +127,16 @@ export function OrgMembersScreen({ orgId }: OrgMembersScreenProps) {
     void fetchNextPage();
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Screen padded={false}>
       <CollapsibleSearchDock
@@ -149,8 +160,8 @@ export function OrgMembersScreen({ orgId }: OrgMembersScreenProps) {
             onScroll={onScroll}
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.45}
-            refreshing={isLoading}
-            onRefresh={() => void refetch()}
+            refreshing={isRefreshing}
+            onRefresh={() => void handleRefresh()}
             ListEmptyComponent={
               <Card padding="lg">
                 <EmptyState

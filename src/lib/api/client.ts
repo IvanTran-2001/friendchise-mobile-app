@@ -3,7 +3,7 @@ import { getAuthToken } from "../../features/auth/token-store";
 import { Platform } from "react-native";
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}) {
-  const token = await getAuthToken();
+  const baseUrl = getApiUrl();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
 
@@ -11,11 +11,13 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
     headers.set("Content-Type", "application/json");
   }
 
+  const token = await getAuthToken();
+
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${getApiUrl()}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers,
     credentials: Platform.OS === "web" ? "include" : init.credentials,

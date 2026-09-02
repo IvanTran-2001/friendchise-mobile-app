@@ -8,13 +8,17 @@ import { ListRow } from "../../../../../components/ui/list-row";
 import { Screen } from "../../../../../components/ui/screen";
 import { ScreenHeader } from "../../../../../components/ui/screen-header";
 import { colors, spacing } from "../../../../lib/theme";
+import { useMe } from "../../../../features/auth/me";
 import { fetchPendingMobileInviteCount } from "../../org-mode/shared/organization-api";
 
 export function OrgsHubScreen() {
   const router = useRouter();
+  const { data: me } = useMe();
+  const accountId = me?.user.id ?? null;
   const { data: pendingInviteCount } = useQuery({
-    queryKey: ["mobile-pending-org-invites-count"],
+    queryKey: ["mobile-pending-org-invites-count", accountId],
     queryFn: fetchPendingMobileInviteCount,
+    enabled: Boolean(accountId),
   });
 
   const inviteCountLabel = pendingInviteCount?.count ? String(Math.min(pendingInviteCount.count, 99)) + (pendingInviteCount.count > 99 ? "+" : "") : null;

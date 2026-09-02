@@ -16,6 +16,7 @@ import { Screen } from "../../../../../components/ui/screen";
 import { colors, spacing } from "../../../../lib/theme";
 import { useDebouncedValue } from "../../../../../hooks/use-debounced-value";
 import { useNavbarSetters } from "../../../../../components/layout/navbar-context";
+import { useMe } from "../../../../features/auth/me";
 import {
   acceptMobileInvite,
   declineMobileInvite,
@@ -29,8 +30,15 @@ export function OrgInvitesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { setActions } = useNavbarSetters();
+  const { data: me } = useMe();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 150);
+  const accountId = me?.user.id ?? null;
+  const orgInvitesQueryKey = useMemo(() => ["mobile-org-invites", accountId] as const, [accountId]);
+  const pendingInviteCountQueryKey = useMemo(
+    () => ["mobile-pending-org-invites-count", accountId] as const,
+    [accountId],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -49,10 +57,11 @@ export function OrgInvitesScreen() {
   );
 
   const { data, error, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
-    queryKey: ["mobile-org-invites"],
+    queryKey: orgInvitesQueryKey,
     queryFn: ({ pageParam = 1 }) => fetchMobileInvites(pageParam, PAGE_SIZE),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
+    enabled: Boolean(accountId),
   });
 
   const invites = useMemo(() => {
@@ -84,14 +93,15 @@ export function OrgInvitesScreen() {
     async (invite: MobileInviteItem) => {
       try {
         await acceptMobileInvite(invite.id);
-        await queryClient.invalidateQueries({ queryKey: ["mobile-org-invites"] });
+        await queryClient.invalidateQueries({ queryKey: orgInvitesQueryKey });
+        await queryClient.invalidateQueries({ queryKey: pendingInviteCountQueryKey });
         await queryClient.invalidateQueries({ queryKey: ["mobile-orgs"] });
         router.replace(`/(app)/orgs/${invite.orgId}`);
       } catch (err) {
         Alert.alert("Could not accept invite", err instanceof Error ? err.message : "Please try again.");
       }
     },
-    [queryClient, router],
+    [orgInvitesQueryKey, pendingInviteCountQueryKey, queryClient, router],
   );
 
   const handleDecline = useCallback(
@@ -105,7 +115,8 @@ export function OrgInvitesScreen() {
             void (async () => {
               try {
                 await declineMobileInvite(invite.id);
-                await queryClient.invalidateQueries({ queryKey: ["mobile-org-invites"] });
+                await queryClient.invalidateQueries({ queryKey: orgInvitesQueryKey });
+                await queryClient.invalidateQueries({ queryKey: pendingInviteCountQueryKey });
               } catch (err) {
                 Alert.alert("Could not decline invite", err instanceof Error ? err.message : "Please try again.");
               }
@@ -114,7 +125,7 @@ export function OrgInvitesScreen() {
         },
       ]);
     },
-    [queryClient],
+    [orgInvitesQueryKey, pendingInviteCountQueryKey, queryClient],
   );
 
   return (
