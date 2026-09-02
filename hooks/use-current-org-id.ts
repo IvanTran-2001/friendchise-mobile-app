@@ -5,7 +5,7 @@ export function useCurrentOrgId() {
   const match = pathname.match(/\/orgs\/([^/]+)/);
   const orgId = match?.[1] ?? null;
 
-  if (!orgId || ["new", "join", "invite"].includes(orgId)) {
+  if (!orgId || ["new", "join", "invite", "invites"].includes(orgId)) {
     return null;
   }
 

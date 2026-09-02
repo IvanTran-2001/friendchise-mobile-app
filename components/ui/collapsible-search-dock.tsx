@@ -17,6 +17,7 @@ type CollapsibleSearchDockProps = {
   onChangeSearch: (value: string) => void;
   placeholder: string;
   disabled?: boolean;
+  topContent?: ReactNode;
   children: (props: { onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void }) => ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
   searchDockStyle?: StyleProp<ViewStyle>;
@@ -36,6 +37,7 @@ export function CollapsibleSearchDock({
   onChangeSearch,
   placeholder,
   disabled,
+  topContent,
   children,
   containerStyle,
   searchDockStyle,
@@ -124,6 +126,7 @@ export function CollapsibleSearchDock({
           accessibilityElementsHidden={!searchVisible}
           importantForAccessibility={searchVisible ? "auto" : "no-hide-descendants"}
         >
+          {topContent ? <View style={styles.topContent}>{topContent}</View> : null}
           <SearchField ref={inputRef} value={search} onChangeText={onChangeSearch} placeholder={placeholder} disabled={disabled} />
         </Animated.View>
       </View>
@@ -147,5 +150,8 @@ const styles = StyleSheet.create({
   },
   searchShell: {
     borderRadius: radius.lg,
+  },
+  topContent: {
+    marginBottom: spacing.sm,
   },
 });

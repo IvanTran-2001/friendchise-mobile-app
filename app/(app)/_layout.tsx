@@ -7,7 +7,7 @@ import { AppNavbar } from "../../components/layout/app-navbar";
 import { AppBottomBar } from "../../components/layout/app-bottom-bar";
 import { saveLastRoute } from "../../src/features/navigation/last-route-store";
 import { SessionWatcher } from "../../src/features/auth/session-watcher";
-import { colors } from "../../src/lib/theme";
+import { colors, spacing } from "../../src/lib/theme";
 
 function RouteTracker() {
   const pathname = usePathname();
@@ -49,5 +49,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: spacing.sm,
   },
 });

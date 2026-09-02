@@ -11,7 +11,7 @@ import { colors, minTapTarget, radius, spacing } from "../../src/lib/theme";
 import { Text } from "./text";
 
 export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 type ButtonProps = {
   label: string;
@@ -30,6 +30,7 @@ type ButtonProps = {
 
 const sizeStyles: Record<ButtonSize, { height: number; paddingHorizontal: number; fontSize: number }> = {
   // 44 is the minimum comfortable, accessible tap target (see minTapTarget).
+  xs: { height: 38, paddingHorizontal: spacing.md, fontSize: 11 },
   sm: { height: minTapTarget, paddingHorizontal: spacing.lg, fontSize: 12 },
   md: { height: 50, paddingHorizontal: spacing.xl, fontSize: 14 },
   lg: { height: 56, paddingHorizontal: spacing.xxl, fontSize: 15 },
