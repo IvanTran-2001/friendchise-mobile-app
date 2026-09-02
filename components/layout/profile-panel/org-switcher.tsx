@@ -14,6 +14,7 @@ import { Text } from "../../ui/text";
 import { colors, radius, spacing } from "../../../src/lib/theme";
 import { fetchOrganizations } from "../../../src/features/orgs/organization-api";
 import { LogoMark } from "./logo-mark";
+import { useOrgSwitcherStore } from "../../../src/features/orgs/org-switcher-store";
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;
@@ -32,7 +33,9 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
   const organizations = useMemo(() => data?.organizations ?? [], [data?.organizations]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const selectedOrgId = useOrgSwitcherStore((state) => state.selectedOrgId);
+  const setSelectedOrgId = useOrgSwitcherStore((state) => state.setSelectedOrgId);
+  const clearSelectedOrgId = useOrgSwitcherStore((state) => state.clearSelectedOrgId);
   const currentOrg = organizations.find((org) => org.id === currentOrgId) ?? null;
   const filteredOrgs = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -60,39 +63,10 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
     }
 
     const orgId = selectedOrgId;
-    setSelectedOrgId(null);
+    clearSelectedOrgId();
     router.replace(`/(app)/orgs/${orgId}`);
     onSelectComplete?.();
   };
-
-  if (isLoading) {
-    return (
-      <Card padding="md">
-        <LoadingState message="Fetching your organization list." compact />
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card padding="md">
-        <ErrorState
-          title="Could not load organizations"
-          message="Check your connection and try again."
-          onRetry={() => void refetch()}
-          compact
-        />
-      </Card>
-    );
-  }
-
-  if (organizations.length === 0) {
-    return (
-      <Card padding="md">
-        <EmptyState title="No organizations" message="There are no organizations available on this account." />
-      </Card>
-    );
-  }
 
   return (
     <>
@@ -107,32 +81,50 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
             <LogoMark size={56} />
           </Pressable>
         ) : null}
+        {isLoading ? (
+          <OrganizationStateCard>
+            <LoadingState message="Fetching your organization list." compact />
+          </OrganizationStateCard>
+        ) : error ? (
+          <OrganizationStateCard>
+            <ErrorState
+              title="Could not load organizations"
+              message="Check your connection and try again."
+              onRetry={() => void refetch()}
+              compact
+            />
+          </OrganizationStateCard>
+        ) : organizations.length === 0 ? (
+          <OrganizationStateCard>
+            <EmptyState title="No organizations" message="There are no organizations available on this account." />
+          </OrganizationStateCard>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.triggerShell, pressed && styles.triggerPressed]}
+            onPress={() => setOpen(true)}
+          >
+            <Card padding="md" style={styles.triggerCard}>
+              <View style={styles.triggerInner}>
+                <Avatar
+                  imageUri={currentOrg?.image}
+                  label={currentOrg ? getInitials(currentOrg.name) : "?"}
+                  tintId={currentOrg?.id}
+                />
 
-        <Pressable
-          style={({ pressed }) => [styles.triggerShell, pressed && styles.triggerPressed]}
-          onPress={() => setOpen(true)}
-        >
-          <Card padding="md" style={styles.triggerCard}>
-            <View style={styles.triggerInner}>
-              <Avatar
-                imageUri={currentOrg?.image}
-                label={currentOrg ? getInitials(currentOrg.name) : "?"}
-                tintId={currentOrg?.id}
-              />
+                <View style={styles.triggerTextWrap}>
+                  <Text variant="label" tone="secondary">
+                    Organization
+                  </Text>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    {currentOrg?.name ?? "Select organization"}
+                  </Text>
+                </View>
 
-              <View style={styles.triggerTextWrap}>
-                <Text variant="label" tone="secondary">
-                  Organization
-                </Text>
-                <Text variant="bodyStrong" numberOfLines={1}>
-                  {currentOrg?.name ?? "Select organization"}
-                </Text>
+                <ChevronDown size={18} strokeWidth={2.2} color={colors.textTertiary} />
               </View>
-
-              <ChevronDown size={18} strokeWidth={2.2} color={colors.textTertiary} />
-            </View>
-          </Card>
-        </Pressable>
+            </Card>
+          </Pressable>
+        )}
       </View>
 
       <SheetModal
@@ -191,6 +183,14 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
         />
       </SheetModal>
     </>
+  );
+}
+
+function OrganizationStateCard({ children }: { children: React.ReactNode }) {
+  return (
+    <Card padding="md" style={styles.triggerCard}>
+      {children}
+    </Card>
   );
 }
 

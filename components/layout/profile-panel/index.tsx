@@ -67,9 +67,7 @@ function ProfileCluster({ currentUser, currentOrg, userInitials }: ProfileCluste
       {currentOrg ? (
         <Avatar imageUri={currentOrg.image} label={getInitials(currentOrg.name)} size="sm" tintId={currentOrg.id} />
       ) : (
-        <View style={styles.notSelectedBadge}>
-          <LogoMark size={28} />
-        </View>
+        <LogoMark size={28} />
       )}
     </View>
   );
@@ -107,12 +105,5 @@ const styles = StyleSheet.create({
   notSelectedBadge: {
     width: 28,
     height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.surface,
-    overflow: "hidden",
   },
 });
