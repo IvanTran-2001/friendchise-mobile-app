@@ -1,21 +1,29 @@
-import { Alert, View } from "react-native";
+import { Alert, FlatList, View } from "react-native";
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
-import { Building2, ShieldCheck, UserRound } from "lucide-react-native";
+import { Building2, MoreVertical, ShieldCheck } from "lucide-react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, getInitials } from "../../../../../components/ui/avatar";
+import { Badge } from "../../../../../components/ui/badge";
 import { Card } from "../../../../../components/ui/card";
+import { CollapsibleSearchDock } from "../../../../../components/ui/collapsible-search-dock";
 import { EmptyState } from "../../../../../components/ui/empty-state";
 import { ErrorState, LoadingState } from "../../../../../components/ui/state-views";
+import { ListSkeleton } from "../../../../../components/ui/list-skeleton";
 import { ListRow } from "../../../../../components/ui/list-row";
+import { IconButton } from "../../../../../components/ui/icon-button";
 import { Screen } from "../../../../../components/ui/screen";
 import { ScreenHeader } from "../../../../../components/ui/screen-header";
 import { TextField } from "../../../../../components/ui/text-field";
 import { Text } from "../../../../../components/ui/text";
 import { Button } from "../../../../../components/ui/button";
 import { colors, spacing } from "../../../../lib/theme";
-import { deleteOrganization, fetchOrganizations, leaveOrganization } from "../shared/organization-api";
+import { deleteOrgRole, deleteOrganization, fetchOrgRoles, fetchOrganizations, leaveOrganization, type OrgRole } from "../shared/organization-api";
+import { useDebouncedValue } from "../../../../../hooks/use-debounced-value";
+import { useDismissKeyboardOnIdle } from "../../../../../hooks/use-dismiss-keyboard-on-idle";
+import { useIsFocused } from "@react-navigation/native";
 import { useOrgSettingsPermissions } from "./org-settings-permissions";
+import { RoleEditorSheet } from "./role-management-sheets";
 
 export type OrgSettingsSection = "user" | "organization" | "roles";
 
@@ -171,6 +179,10 @@ function OrgSettingsManagementScreen({ orgId, section }: OrgSettingsScreenProps)
     );
   }
 
+  if (section === "roles") {
+    return <RolesSection orgId={orgId} />;
+  }
+
   const isDeleteConfirmed = org ? confirmName.trim() === org.name : false;
 
   const handleDelete = () => {
@@ -260,17 +272,256 @@ function OrgSettingsManagementScreen({ orgId, section }: OrgSettingsScreenProps)
             disabled={!canManageOrg || deleteMutation.isPending || !isDeleteConfirmed}
           />
         </Card>
-      ) : (
-        <Card padding="lg">
-          <EmptyState
-            icon={<UserRound size={24} strokeWidth={2} color={colors.textTertiary} />}
-            title="Roles"
-            message="This section is ready for settings controls."
-          />
-        </Card>
-      )}
+      ) : null}
     </Screen>
   );
+}
+
+function RolesSection({ orgId }: { orgId: string }) {
+  const [search, setSearch] = useState("");
+  const [editingRole, setEditingRole] = useState<OrgRole | null>(null);
+  const debouncedSearch = useDebouncedValue(search, 150);
+  const isFocused = useIsFocused();
+  const queryClient = useQueryClient();
+  const rolesQuery = useQuery({
+    queryKey: ["mobile-org-roles", orgId],
+    queryFn: () => fetchOrgRoles(orgId),
+    enabled: Boolean(orgId),
+  });
+
+  const roles = useMemo(() => {
+    return [...(rolesQuery.data?.roles ?? [])].sort((left, right) => {
+      if (left.isDefault !== right.isDefault) {
+        return Number(right.isDefault) - Number(left.isDefault);
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+  }, [rolesQuery.data?.roles]);
+
+  const filteredRoles = useMemo(() => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return roles;
+    }
+
+    return roles.filter((role) => {
+      const searchableParts = [
+        role.name,
+        ...role.permissions.map((permission) => formatPermissionLabel(permission.action)),
+        ...role.eligibleFor.map(({ task }) => task.name),
+      ];
+
+      return searchableParts.some((part) => part.toLowerCase().includes(normalizedSearch));
+    });
+  }, [debouncedSearch, roles]);
+
+  const totalCount = filteredRoles.length;
+  const isInitialLoading = rolesQuery.isLoading && roles.length === 0;
+  const isRefreshing = rolesQuery.isRefetching;
+  const deleteRoleMutation = useMutation({
+    mutationFn: (roleId: string) => deleteOrgRole(orgId, roleId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["mobile-org-roles", orgId] }),
+        queryClient.invalidateQueries({ queryKey: ["mobile-org-members", orgId] }),
+      ]);
+    },
+    onError: () => {
+      Alert.alert("Could not delete role", "Please try again.");
+    },
+  });
+
+  useDismissKeyboardOnIdle(search, 1000, { enabled: isFocused });
+
+  const handleDeleteRole = (role: OrgRole) => {
+    Alert.alert(
+      "Delete role",
+      `This will permanently remove ${role.name} and unassign it from all members. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: deleteRoleMutation.isPending ? "Deleting..." : "Delete",
+          style: "destructive",
+          onPress: () => deleteRoleMutation.mutate(role.id),
+        },
+      ],
+    );
+  };
+
+  const handleRoleMenuPress = (role: OrgRole) => {
+    const actions = [
+      {
+        text: "Edit",
+        onPress: () => setEditingRole(role),
+      },
+    ];
+
+    if (role.isDeletable) {
+      actions.push({
+        text: "Delete",
+        onPress: () => handleDeleteRole(role),
+      });
+    }
+
+    actions.push({ text: "Cancel", onPress: () => {} });
+
+    Alert.alert(role.name, "Choose an action", actions);
+  };
+
+  return (
+    <>
+      <Screen padded={false}>
+        <CollapsibleSearchDock
+          search={search}
+          onChangeSearch={setSearch}
+          placeholder="Search roles"
+          containerStyle={styles.rolesContainer}
+          searchShellStyle={styles.rolesSearchShell}
+          topContent={
+            <Text variant="caption" tone="secondary">
+              {totalCount} role{totalCount === 1 ? "" : "s"}
+            </Text>
+          }
+        >
+          {({ onScroll }) => (
+            <FlatList
+              data={filteredRoles}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.rolesListContent}
+              ItemSeparatorComponent={() => <View style={styles.rolesSeparator} />}
+              onScroll={onScroll}
+              refreshing={isRefreshing}
+              onRefresh={() => void rolesQuery.refetch()}
+              ListEmptyComponent={
+                isInitialLoading ? (
+                  <ListSkeleton variant="role" count={4} />
+                ) : rolesQuery.error ? (
+                  <Card padding="lg">
+                    <ErrorState
+                      title="Could not load roles"
+                      message="Check your connection and try again."
+                      onRetry={() => void rolesQuery.refetch()}
+                    />
+                  </Card>
+                ) : (
+                  <Card padding="lg">
+                    <EmptyState
+                      icon={<ShieldCheck size={24} strokeWidth={2} color={colors.textTertiary} />}
+                      title={search.trim() ? "No matching roles" : "No roles"}
+                      message={search.trim() ? "Try a different role, permission, or task." : "This organization does not have any roles yet."}
+                    />
+                  </Card>
+                )
+              }
+              renderItem={({ item }) => (
+                <RoleCard
+                  role={item}
+                  onMenuPress={item.key === "owner" ? undefined : () => handleRoleMenuPress(item)}
+                />
+              )}
+            />
+          )}
+        </CollapsibleSearchDock>
+      </Screen>
+
+      <RoleEditorSheet
+        orgId={orgId}
+        visible={Boolean(editingRole)}
+        role={editingRole}
+        onClose={() => setEditingRole(null)}
+        onSaved={() => setEditingRole(null)}
+      />
+    </>
+  );
+}
+
+function RoleCard({
+  role,
+  onMenuPress,
+}: {
+  role: OrgRole;
+  onMenuPress?: () => void;
+}) {
+  const permissionLabels = role.permissions.map((permission) => formatPermissionLabel(permission.action));
+  const taskLabels = role.eligibleFor.map(({ task }) => task);
+
+  return (
+    <Card padding="md" style={styles.roleCard}>
+      <View style={styles.roleHeader}>
+        <View style={styles.roleIdentity}>
+          <View
+            style={[
+              styles.roleSwatch,
+              {
+                backgroundColor: role.color ?? colors.textTertiary,
+              },
+            ]}
+          />
+          <View style={styles.roleTitleWrap}>
+            <Text variant="bodyStrong" numberOfLines={1}>
+              {role.name}
+            </Text>
+            <Text variant="caption" tone="secondary">
+              {role.isDefault ? "Default role" : "Custom role"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.roleHeaderActions}>
+          <Badge label={role.isDefault ? "Default" : "Custom"} tone={role.isDefault ? "accent" : "neutral"} />
+          {onMenuPress ? (
+            <IconButton accessibilityLabel={`Open actions for ${role.name}`} onPress={onMenuPress} size="sm" variant="muted">
+              <MoreVertical size={18} strokeWidth={2.3} color={colors.textSecondary} />
+            </IconButton>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.roleSection}>
+        <Text variant="label" tone="secondary" style={styles.roleSectionTitle}>
+          Permissions
+        </Text>
+        {permissionLabels.length > 0 ? (
+          <View style={styles.badgeList}>
+            {permissionLabels.map((label) => (
+              <Badge key={label} label={label} tone="neutral" />
+            ))}
+          </View>
+        ) : (
+          <Text variant="caption" tone="secondary">
+            No permissions assigned.
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.roleSection}>
+        <Text variant="label" tone="secondary" style={styles.roleSectionTitle}>
+          Tasks
+        </Text>
+        {taskLabels.length > 0 ? (
+          <View style={styles.badgeList}>
+            {taskLabels.map((task) => (
+              <Badge key={task.id} label={task.name} dotted dotColor={task.color} tone="neutral" />
+            ))}
+          </View>
+        ) : (
+          <Text variant="caption" tone="secondary">
+            Not assigned to any tasks.
+          </Text>
+        )}
+      </View>
+    </Card>
+  );
+}
+
+function formatPermissionLabel(action: string) {
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 const styles = {
@@ -301,5 +552,67 @@ const styles = {
   },
   deleteInput: {
     marginBottom: spacing.lg,
+  },
+  rolesContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm + 2,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  rolesSearchShell: {
+    borderRadius: 16,
+  },
+  rolesListContent: {
+    paddingTop: 72,
+    paddingBottom: spacing.lg,
+  },
+  rolesSeparator: {
+    height: spacing.md,
+  },
+  roleCard: {
+    gap: spacing.md,
+  },
+  roleHeader: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    justifyContent: "space-between" as const,
+    gap: spacing.md,
+  },
+  roleHeaderActions: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: spacing.xs,
+  },
+  roleIdentity: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: spacing.md,
+    flex: 1,
+    minWidth: 0,
+  },
+  roleSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 999,
+    marginTop: 2,
+    flexShrink: 0,
+  },
+  roleTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  roleSection: {
+    gap: spacing.sm,
+  },
+  roleSectionTitle: {
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.6,
+  },
+  badgeList: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: spacing.xs,
   },
 };

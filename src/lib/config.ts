@@ -11,7 +11,12 @@ export function getApiUrl() {
       );
     }
 
-    if (parsed.protocol !== "https:") {
+    const isDevLocalhost =
+      __DEV__ &&
+      parsed.protocol === "http:" &&
+      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1");
+
+    if (parsed.protocol !== "https:" && !isDevLocalhost) {
       throw new Error(
         "EXPO_PUBLIC_API_URL must be a valid HTTPS URL. Use a secure backend URL when testing on a device; http:// and malformed values are rejected.",
       );
