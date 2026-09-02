@@ -11,9 +11,9 @@ export function getApiUrl() {
       );
     }
 
-    if (parsed.protocol !== "https:") {
+    if (parsed.protocol !== "https:" && !__DEV__) {
       throw new Error(
-        "EXPO_PUBLIC_API_URL must be a valid HTTPS URL. Use a secure backend URL when testing on a device; http:// and malformed values are rejected.",
+        "EXPO_PUBLIC_API_URL must be a valid HTTPS URL in production. Use http://localhost or another local HTTP backend only while developing.",
       );
     }
 
