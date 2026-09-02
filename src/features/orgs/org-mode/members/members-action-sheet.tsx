@@ -151,7 +151,7 @@ export function MembersActionSheet({ visible, onClose, orgId }: MembersActionShe
         />
       </ActionSheetSection>
     );
-  }, [botMutation.isPending, botName, inviteEmail, inviteMutation.isPending, isWorking, mode]);
+  }, [botMutation, botName, inviteEmail, inviteMutation, isWorking, mode]);
 
   return (
     <ActionSheet visible={visible} onClose={handleClose} title="Members" subtitle="Actions and creation tools">
