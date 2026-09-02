@@ -1,10 +1,12 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Bell, Building2, ListTodo, Network, Wrench } from "lucide-react-native";
+import { Bell, Building2, ChevronLeft, ListTodo, Network, ShieldCheck, User, Wrench } from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 import { Text } from "../ui/text";
+import { fetchOrgSettingsPermissions } from "../../src/features/orgs/org-mode/settings/org-settings-permissions";
 
 const BAR_HEIGHT = 72;
 const TAB_SIZE = 52;
@@ -14,7 +16,17 @@ export function AppBottomBar() {
   const currentOrgId = useCurrentOrgId();
   const pathname = usePathname();
   const shellMode = getShellMode(pathname, currentOrgId);
-  const tabs = shellMode === "org" && currentOrgId ? getOrgTabs(currentOrgId, pathname) : getGlobalTabs(pathname);
+  const { data: settingsPermissions } = useQuery({
+    queryKey: ["mobile-org-settings-permissions", currentOrgId],
+    queryFn: () => fetchOrgSettingsPermissions(currentOrgId ?? ""),
+    enabled: shellMode === "settings" && Boolean(currentOrgId),
+  });
+  const tabs =
+    shellMode === "org" && currentOrgId
+      ? getOrgTabs(currentOrgId, pathname)
+      : shellMode === "settings" && currentOrgId
+        ? getSettingsTabs(currentOrgId, pathname, settingsPermissions ?? null)
+        : getGlobalTabs(pathname);
 
   if (shellMode === "none") {
     return null;
@@ -84,11 +96,20 @@ type BottomTab = {
   onPress?: () => void;
 };
 
-type ShellMode = "global" | "org" | "none";
+type ShellMode = "global" | "org" | "settings" | "none";
+type SettingsPermissions = {
+  canManageOrgSettings: boolean;
+  canManageRoles: boolean;
+  canManageSettings: boolean;
+};
 
 function getShellMode(pathname: string, currentOrgId: string | null): ShellMode {
   if (isAuthRoute(pathname)) {
     return "none";
+  }
+
+  if (currentOrgId && pathname.startsWith(`/orgs/${currentOrgId}/settings`)) {
+    return "settings";
   }
 
   if (currentOrgId && pathname.startsWith(`/orgs/${currentOrgId}`)) {
@@ -139,6 +160,57 @@ function getOrgTabs(currentOrgId: string, pathname: string): BottomTab[] {
       href: `${appOrgRouteBase}/tools`,
     },
   ];
+}
+
+function getSettingsTabs(
+  currentOrgId: string,
+  pathname: string,
+  permissions: SettingsPermissions | null,
+): BottomTab[] {
+  const settingsRouteBase = `/orgs/${currentOrgId}/settings`;
+  const appSettingsRouteBase = `/(app)/orgs/${currentOrgId}/settings`;
+  const canManageOrgSettings = permissions?.canManageOrgSettings ?? false;
+  const canManageRoles = permissions?.canManageRoles ?? false;
+
+  const tabs: BottomTab[] = [
+    {
+      label: "BACK",
+      icon: ChevronLeft,
+      href: `/(app)/orgs/${currentOrgId}`,
+    },
+    ...(
+      canManageOrgSettings
+        ? [
+            {
+              label: "ORG",
+              icon: Building2,
+              active: pathname === `${settingsRouteBase}/organization`,
+              href: `${appSettingsRouteBase}/organization`,
+            },
+          ]
+        : []
+    ),
+    ...(
+      canManageRoles
+        ? [
+            {
+              label: "ROLES",
+              icon: ShieldCheck,
+              active: pathname === `${settingsRouteBase}/roles`,
+              href: `${appSettingsRouteBase}/roles`,
+            },
+          ]
+        : []
+    ),
+    {
+      label: "USER",
+      icon: User,
+      active: pathname === settingsRouteBase,
+      href: appSettingsRouteBase,
+    },
+  ];
+
+  return tabs;
 }
 
 const styles = StyleSheet.create({

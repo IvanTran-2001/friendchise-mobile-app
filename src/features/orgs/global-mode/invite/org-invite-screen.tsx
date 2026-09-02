@@ -3,14 +3,14 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Mail, ArrowRight, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "../../../components/ui/button";
-import { Card } from "../../../components/ui/card";
-import { Screen } from "../../../components/ui/screen";
-import { ScreenHeader } from "../../../components/ui/screen-header";
-import { Text } from "../../../components/ui/text";
-import { TextField } from "../../../components/ui/text-field";
-import { colors, spacing } from "../../lib/theme";
-import { joinOrganization } from "./organization-api";
+import { Button } from "../../../../../components/ui/button";
+import { Card } from "../../../../../components/ui/card";
+import { Screen } from "../../../../../components/ui/screen";
+import { ScreenHeader } from "../../../../../components/ui/screen-header";
+import { Text } from "../../../../../components/ui/text";
+import { TextField } from "../../../../../components/ui/text-field";
+import { colors, spacing } from "../../../../lib/theme";
+import { joinOrganization } from "../../org-mode/shared/organization-api";
 
 export function OrgInviteScreen() {
   const router = useRouter();

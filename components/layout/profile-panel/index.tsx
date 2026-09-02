@@ -6,7 +6,7 @@ import { Avatar, getInitials } from "../../ui/avatar";
 import { useGlobalSheet } from "../global-sheet";
 import { ProfileSheet } from "./profile-sheet";
 import { colors, radius, spacing } from "../../../src/lib/theme";
-import { fetchOrganizations, type Org } from "../../../src/features/orgs/organization-api";
+import { fetchOrganizations, type Org } from "../../../src/features/orgs/org-mode/shared/organization-api";
 import { useMe } from "../../../src/features/auth";
 import { LogoMark } from "./logo-mark";
 
@@ -26,7 +26,7 @@ export function ProfileOrgButton() {
   });
 
   const currentUser = meData?.user ?? null;
-  const currentOrg = orgData?.organizations.find((org) => org.id === currentOrgId) ?? null;
+  const currentOrg = orgData?.organizations.find((org: Org) => org.id === currentOrgId) ?? null;
   const userInitials = useMemo(() => getInitials(currentUser?.name), [currentUser?.name]);
 
   const handleOpenProfile = () => {

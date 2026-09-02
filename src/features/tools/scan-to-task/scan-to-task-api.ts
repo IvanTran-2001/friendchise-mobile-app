@@ -1,4 +1,4 @@
-import { authenticatedFetch } from "../../lib/api/authenticated-fetch";
+import { authenticatedFetch } from "../../../lib/api/authenticated-fetch";
 
 /**
  * Max upload size, mirroring `MAX_FILE_BYTES` in the web app's

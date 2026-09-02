@@ -1,16 +1,16 @@
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ListTodo } from "lucide-react-native";
-import { fetchOrganizations } from "./organization-api";
-import { Avatar, getInitials } from "../../../components/ui/avatar";
-import { Badge } from "../../../components/ui/badge";
-import { Card } from "../../../components/ui/card";
-import { ListRow } from "../../../components/ui/list-row";
-import { Screen } from "../../../components/ui/screen";
-import { ScreenHeader } from "../../../components/ui/screen-header";
-import { ErrorState, LoadingState } from "../../../components/ui/state-views";
-import { colors, spacing } from "../../lib/theme";
+import { ListTodo, Settings2 } from "lucide-react-native";
+import { fetchOrganizations } from "../shared/organization-api";
+import { Avatar, getInitials } from "../../../../../components/ui/avatar";
+import { Badge } from "../../../../../components/ui/badge";
+import { Card } from "../../../../../components/ui/card";
+import { ListRow } from "../../../../../components/ui/list-row";
+import { Screen } from "../../../../../components/ui/screen";
+import { ScreenHeader } from "../../../../../components/ui/screen-header";
+import { ErrorState, LoadingState } from "../../../../../components/ui/state-views";
+import { colors, spacing } from "../../../../lib/theme";
 
 type OrgHomeScreenProps = {
   orgId?: string;
@@ -65,6 +65,13 @@ export function OrgHomeScreen({ orgId }: OrgHomeScreenProps) {
           leading={<ListTodo size={20} strokeWidth={2.1} color={colors.textPrimary} />}
           trailing="chevron"
           onPress={orgId ? () => router.push({ pathname: "/(app)/orgs/[orgId]/tasks", params: { orgId } }) : undefined}
+        />
+        <ListRow
+          title="Settings"
+          subtitle="Manage organization settings"
+          leading={<Settings2 size={20} strokeWidth={2.1} color={colors.textPrimary} />}
+          trailing="chevron"
+          onPress={orgId ? () => router.push({ pathname: "/(app)/orgs/[orgId]/settings", params: { orgId } }) : undefined}
         />
       </Card>
     </Screen>

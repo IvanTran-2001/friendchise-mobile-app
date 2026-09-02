@@ -2,14 +2,14 @@ import { useCallback } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Camera, FileText, Image as ImageIcon, X } from "lucide-react-native";
-import { Screen } from "../../../components/ui/screen";
-import { ScreenHeader } from "../../../components/ui/screen-header";
-import { Card } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { TextField } from "../../../components/ui/text-field";
-import { Text } from "../../../components/ui/text";
-import { LoadingState } from "../../../components/ui/state-views";
-import { colors, spacing } from "../../lib/theme";
+import { Screen } from "../../../../components/ui/screen";
+import { ScreenHeader } from "../../../../components/ui/screen-header";
+import { Card } from "../../../../components/ui/card";
+import { Button } from "../../../../components/ui/button";
+import { TextField } from "../../../../components/ui/text-field";
+import { Text } from "../../../../components/ui/text";
+import { LoadingState } from "../../../../components/ui/state-views";
+import { colors, spacing } from "../../../lib/theme";
 import { pickScanFile, type ScanSourceOrigin } from "./scan-source-picker";
 import {
   useScanToTaskWorkflowStore,

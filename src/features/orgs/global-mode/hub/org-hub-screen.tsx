@@ -1,11 +1,11 @@
 import { StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { CirclePlus, LogIn, Network } from "lucide-react-native";
-import { Card } from "../../../components/ui/card";
-import { ListRow } from "../../../components/ui/list-row";
-import { Screen } from "../../../components/ui/screen";
-import { ScreenHeader } from "../../../components/ui/screen-header";
-import { colors, spacing } from "../../lib/theme";
+import { Card } from "../../../../../components/ui/card";
+import { ListRow } from "../../../../../components/ui/list-row";
+import { Screen } from "../../../../../components/ui/screen";
+import { ScreenHeader } from "../../../../../components/ui/screen-header";
+import { colors, spacing } from "../../../../lib/theme";
 
 export function OrgsHubScreen() {
   const router = useRouter();

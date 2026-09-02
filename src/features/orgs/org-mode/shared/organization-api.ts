@@ -1,4 +1,4 @@
-import { apiFetch } from "../../lib/api/client";
+import { apiFetch } from "../../../../lib/api/client";
 
 export type Org = {
   id: string;
@@ -51,5 +51,18 @@ export async function joinOrganization(input: JoinOrganizationInput) {
   return apiFetch<JoinOrganizationResponse>("/api/mobile/me/organizations/join", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export async function leaveOrganization(orgId: string) {
+  return apiFetch<{ ok: true }>(`/api/mobile/me/organizations/${orgId}/leave`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteOrganization(orgId: string, confirmName: string) {
+  return apiFetch<{ ok: true }>(`/api/mobile/me/organizations/${orgId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ confirmName }),
   });
 }

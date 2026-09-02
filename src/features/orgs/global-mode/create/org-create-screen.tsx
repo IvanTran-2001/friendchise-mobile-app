@@ -3,15 +3,15 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Plus, Sparkles } from "lucide-react-native";
-import { Button } from "../../../components/ui/button";
-import { Card } from "../../../components/ui/card";
-import { DropdownSelect, type DropdownSelectItem } from "../../../components/ui/dropdown-select";
-import { Screen } from "../../../components/ui/screen";
-import { ScreenHeader } from "../../../components/ui/screen-header";
-import { TextField } from "../../../components/ui/text-field";
-import { Text } from "../../../components/ui/text";
-import { colors, radius, spacing } from "../../lib/theme";
-import { createOrganization } from "./organization-api";
+import { Button } from "../../../../../components/ui/button";
+import { Card } from "../../../../../components/ui/card";
+import { DropdownSelect, type DropdownSelectItem } from "../../../../../components/ui/dropdown-select";
+import { Screen } from "../../../../../components/ui/screen";
+import { ScreenHeader } from "../../../../../components/ui/screen-header";
+import { TextField } from "../../../../../components/ui/text-field";
+import { Text } from "../../../../../components/ui/text";
+import { colors, radius, spacing } from "../../../../lib/theme";
+import { createOrganization } from "../../org-mode/shared/organization-api";
 
 const ALL_DAYS = [
   { key: "mon", label: "Mon" },
