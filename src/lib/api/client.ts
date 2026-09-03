@@ -1,4 +1,5 @@
 import { getApiUrl } from "../config";
+import { shouldSendAuthHeaderToApi } from "../config";
 import { getAuthToken } from "../../features/auth/token-store";
 import { Platform } from "react-native";
 
@@ -13,7 +14,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}) {
 
   const token = await getAuthToken();
 
-  if (token) {
+  if (token && shouldSendAuthHeaderToApi(baseUrl)) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 

@@ -48,7 +48,19 @@ export type OrgRole = {
   id: string;
   name: string;
   color: string | null;
+  key: string;
+  isDeletable: boolean;
   isDefault: boolean;
+  permissions: {
+    action: string;
+  }[];
+  eligibleFor: {
+    task: {
+      id: string;
+      name: string;
+      color: string;
+    };
+  }[];
 };
 
 export type OrgMember = {
@@ -124,6 +136,22 @@ export type OrgRolesResponse = {
   roles: OrgRole[];
 };
 
+export type UpdateOrgRoleInput = {
+  name: string;
+  color?: string;
+  permissions: string[];
+  taskIds: string[];
+};
+
+export type OrgRolesPage = {
+  roles: OrgRole[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+};
+
 export async function fetchOrganizations() {
   return apiFetch<OrgResponse>("/api/mobile/me/organizations");
 }
@@ -194,9 +222,48 @@ export async function createOrgBot(orgId: string, input: CreateBotMembershipInpu
   });
 }
 
-export async function fetchOrgRoles(orgId: string) {
+export async function fetchOrgRoles(orgId: string): Promise<OrgRolesResponse>;
+export async function fetchOrgRoles(
+  orgId: string,
+  options: { page?: number; pageSize?: number; search?: string },
+): Promise<OrgRolesPage>;
+export async function fetchOrgRoles(
+  orgId: string,
+  options?: { page?: number; pageSize?: number; search?: string },
+) {
   const encodedOrgId = encodeURIComponent(orgId);
-  return apiFetch<OrgRolesResponse>(`/api/mobile/me/organizations/${encodedOrgId}/roles`);
+  if (!options) {
+    return apiFetch<OrgRolesResponse>(`/api/mobile/me/organizations/${encodedOrgId}/roles`);
+  }
+
+  const params = new URLSearchParams();
+  params.set("page", String(Math.max(1, options.page ?? 1)));
+  params.set("pageSize", String(Math.max(1, options.pageSize ?? 20)));
+
+  if (options.search?.trim()) {
+    params.set("search", options.search.trim());
+  }
+
+  return apiFetch<OrgRolesPage>(`/api/mobile/me/organizations/${encodedOrgId}/roles?${params.toString()}`);
+}
+
+export async function updateOrgRole(orgId: string, roleId: string, input: UpdateOrgRoleInput) {
+  const encodedOrgId = encodeURIComponent(orgId);
+  const encodedRoleId = encodeURIComponent(roleId);
+
+  return apiFetch<{ ok: true }>(`/api/mobile/me/organizations/${encodedOrgId}/roles/${encodedRoleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteOrgRole(orgId: string, roleId: string) {
+  const encodedOrgId = encodeURIComponent(orgId);
+  const encodedRoleId = encodeURIComponent(roleId);
+
+  return apiFetch<{ ok: true }>(`/api/mobile/me/organizations/${encodedOrgId}/roles/${encodedRoleId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function updateOrgMember(orgId: string, membershipId: string, roleIds: string[]) {

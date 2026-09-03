@@ -5,14 +5,17 @@ import { AlertTriangle } from "lucide-react-native";
 import { Avatar, getInitials } from "../../../../../components/ui/avatar";
 import { Card } from "../../../../../components/ui/card";
 import { EmptyState } from "../../../../../components/ui/empty-state";
-import { ErrorState, LoadingState } from "../../../../../components/ui/state-views";
+import { ErrorState } from "../../../../../components/ui/state-views";
+import { ListSkeleton } from "../../../../../components/ui/list-skeleton";
 import { Screen } from "../../../../../components/ui/screen";
 import { Text } from "../../../../../components/ui/text";
 import { colors, spacing } from "../../../../lib/theme";
-import { fetchOrgMembersPage, fetchOrgRoles, type OrgMember } from "../shared/organization-api";
+import { fetchOrgMembersPage, fetchOrgRoles, type OrgMember, type OrgRole } from "../shared/organization-api";
 import { useDebouncedValue } from "../../../../../hooks/use-debounced-value";
+import { useDismissKeyboardOnIdle } from "../../../../../hooks/use-dismiss-keyboard-on-idle";
 import { CollapsibleSearchDock } from "../../../../../components/ui/collapsible-search-dock";
 import { useFocusEffect } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { useNavbarSetters } from "../../../../../components/layout/navbar-context";
 import { MembersNavbarActions } from "./members-navbar-actions";
 import { Badge } from "../../../../../components/ui/badge";
@@ -29,6 +32,7 @@ export function OrgMembersScreen({ orgId }: OrgMembersScreenProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 150);
   const isSearchSettled = debouncedSearch === search;
+  const isFocused = useIsFocused();
   const { setActions } = useNavbarSetters();
   const { data: rolesData } = useQuery({
     queryKey: ["mobile-org-roles", orgId],
@@ -48,6 +52,8 @@ export function OrgMembersScreen({ orgId }: OrgMembersScreenProps) {
   const allRoles = rolesData?.roles ?? [];
   const totalCount = data?.pages[0]?.totalCount ?? members.length;
   const hasMembers = members.length > 0;
+
+  useDismissKeyboardOnIdle(search, 1000, { enabled: isFocused });
 
   useFocusEffect(
     useCallback(() => {
@@ -78,9 +84,7 @@ export function OrgMembersScreen({ orgId }: OrgMembersScreenProps) {
               onScroll={onScroll}
               renderItem={null as never}
               ListEmptyComponent={
-                <Card padding="lg">
-                  <LoadingState message="Loading members." />
-                </Card>
+                <ListSkeleton variant="member" count={4} />
               }
             />
           )}
@@ -193,7 +197,7 @@ function MemberRow({
 }: {
   member: OrgMember;
   orgId: string;
-  allRoles: { id: string; name: string; color: string | null; isDefault: boolean }[];
+  allRoles: OrgRole[];
 }) {
   const name = member.user?.name ?? member.botName ?? "Unknown member";
   const roles = member.memberRoles
