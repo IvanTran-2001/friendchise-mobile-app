@@ -5,7 +5,7 @@ import { getApiUrl } from "../../lib/config";
 import { useAuthStore } from "./auth-store";
 import { saveAuthToken } from "./token-store";
 
-export type AuthProvider = "google" | "linkedin";
+export type AuthProvider = "apple" | "google" | "linkedin";
 
 export type DevUser = {
   email: string;

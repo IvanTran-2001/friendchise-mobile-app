@@ -76,6 +76,14 @@ export default function LoginScreen() {
 
           <View style={styles.actions}>
             <AuthProviderButton
+              provider="apple"
+              label="Continue with Apple"
+              loadingLabel="Opening Apple..."
+              onPress={() => mutation.mutate("apple")}
+              disabled={mutation.isPending}
+            />
+
+            <AuthProviderButton
               provider="google"
               label="Continue with Google"
               loadingLabel="Opening Google..."

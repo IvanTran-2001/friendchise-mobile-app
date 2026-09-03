@@ -5,7 +5,7 @@ import { colors, radius, spacing } from "../../src/lib/theme";
 import { Card } from "../ui/card";
 import { Text } from "../ui/text";
 
-type Provider = "google" | "linkedin";
+type Provider = "apple" | "google" | "linkedin";
 
 type AuthCardProps = {
   children: ReactNode;
@@ -27,6 +27,13 @@ const providerStyles = {
     iconColor: colors.dark,
     textColor: colors.textPrimary,
     iconName: "google" as const,
+  },
+  apple: {
+    backgroundColor: colors.dark,
+    iconBackgroundColor: "rgba(255,255,255,0.12)",
+    iconColor: colors.background,
+    textColor: colors.background,
+    iconName: "apple" as const,
   },
   linkedin: {
     backgroundColor: colors.surface,
@@ -55,7 +62,7 @@ export function AuthCard({ children, style }: AuthCardProps) {
   );
 }
 
-/** Branded social sign-in button (Google / LinkedIn). */
+/** Branded social sign-in button (Apple / Google / LinkedIn). */
 export function AuthProviderButton({ provider, label, loadingLabel, onPress, disabled }: AuthProviderButtonProps) {
   const config = providerStyles[provider];
 
