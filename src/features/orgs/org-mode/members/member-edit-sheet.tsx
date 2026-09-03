@@ -24,7 +24,14 @@ export function MemberEditSheet({ orgId, member, allRoles, open, onClose }: Memb
   const [botName, setBotName] = useState("");
 
   const isBot = member.userId === null;
-  const currentRoleIds = useMemo(() => member.memberRoles.map((memberRole) => memberRole.role.id), [member.memberRoles]);
+  const currentRoleIds = useMemo(
+    () =>
+      member.memberRoles
+        .map((memberRole) => memberRole.role)
+        .filter((role): role is NonNullable<(typeof member.memberRoles)[number]["role"]> => Boolean(role))
+        .map((role) => role.id),
+    [member],
+  );
   const displayName = member.user?.name ?? member.botName ?? "Member";
 
   useEffect(() => {

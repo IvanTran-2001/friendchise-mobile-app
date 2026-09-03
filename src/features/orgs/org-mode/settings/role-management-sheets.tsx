@@ -120,10 +120,7 @@ export function RoleEditorSheet({ orgId, visible, role, onClose, onSaved }: Role
   );
 
   const tasks = useMemo(() => tasksQuery.data?.pages.flatMap((page) => page.tasks) ?? [], [tasksQuery.data?.pages]);
-  const availableTasks = useMemo(
-    () => tasks.filter((task) => !taskIds.includes(task.id)),
-    [taskIds, tasks],
-  );
+  const availableTasks = useMemo(() => tasks, [tasks]);
 
   useEffect(() => {
     if (!visible || !role) {
@@ -239,7 +236,18 @@ export function RoleEditorSheet({ orgId, visible, role, onClose, onSaved }: Role
             {selectedTasks.length > 0 ? (
               <View style={styles.badgeList}>
                 {selectedTasks.map((task) => (
-                  <Badge key={task.id} label={task.name} dotted dotColor={task.color} tone="neutral" />
+                  <Pressable
+                    key={task.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${task.name}`}
+                    onPress={() => toggleTask(task.id)}
+                    style={({ pressed }) => [styles.taskBadgeButton, pressed && styles.taskBadgeButtonPressed]}
+                  >
+                    <Badge label={task.name} dotted dotColor={task.color} tone="neutral" />
+                    <Text variant="caption" tone="secondary" style={styles.taskBadgeHint}>
+                      Remove
+                    </Text>
+                  </Pressable>
                 ))}
               </View>
             ) : (
@@ -304,10 +312,9 @@ export function RoleEditorSheet({ orgId, visible, role, onClose, onSaved }: Role
             return (
               <ListRow
                 title={item.name}
-                subtitle={selected ? "Already added" : undefined}
+                subtitle={selected ? "Tap to remove" : undefined}
                 leading={<View style={[styles.taskDot, { backgroundColor: item.color }]} />}
                 trailing={selected ? "check" : null}
-                disabled={selected}
                 onPress={() => toggleTask(item.id)}
               />
             );
@@ -357,6 +364,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.xs,
+  },
+  taskBadgeButton: {
+    alignItems: "flex-start",
+    gap: 4,
+  },
+  taskBadgeButtonPressed: {
+    opacity: 0.8,
+  },
+  taskBadgeHint: {
+    alignSelf: "center",
   },
   taskPickerList: {
     gap: spacing.xs,

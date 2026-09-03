@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { getApiUrl } from "../config";
+import { getApiUrl, shouldSendAuthHeaderToApi } from "../config";
 import { getAuthToken } from "../../features/auth/token-store";
 
 /**
@@ -14,7 +14,9 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}, t
     headers.set("Content-Type", "application/json");
   }
 
-  if (token) {
+  const apiUrl = getApiUrl();
+
+  if (token && shouldSendAuthHeaderToApi(apiUrl)) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -33,7 +35,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}, t
   }
 
   try {
-    const response = await fetch(`${getApiUrl()}${path}`, {
+    const response = await fetch(`${apiUrl}${path}`, {
       ...init,
       headers,
       credentials: Platform.OS === "web" ? "include" : init.credentials,
