@@ -9,21 +9,20 @@ import { ListRow } from "../../ui/list-row";
 import { SearchField } from "../../ui/search-field";
 import { SheetModal } from "../../ui/sheet-modal";
 import { EmptyState } from "../../ui/empty-state";
-import { ErrorState, LoadingState } from "../../ui/state-views";
+import { ErrorState } from "../../ui/state-views";
 import { Text } from "../../ui/text";
 import { colors, radius, spacing } from "../../../src/lib/theme";
 import { fetchOrganizations, type Org } from "../../../src/features/orgs/org-mode/shared/organization-api";
-import { LogoMark } from "./logo-mark";
 import { useOrgSwitcherStore } from "../../../src/features/orgs/org-mode/shared/org-switcher-store";
+import { ActivityIndicator } from "react-native";
 
 type OrgSwitcherProps = {
   currentOrgId?: string | null;
   onSelectComplete?: () => void;
-  onPressLeadingAction?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingAction, style }: OrgSwitcherProps) {
+export function OrgSwitcher({ currentOrgId, onSelectComplete, style }: OrgSwitcherProps) {
   const router = useRouter();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["mobile-orgs"],
@@ -71,19 +70,14 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
   return (
     <>
       <View style={[styles.controlRow, style]}>
-        {onPressLeadingAction ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go to global home"
-            onPress={onPressLeadingAction}
-            style={({ pressed }) => [styles.leadingShell, pressed && styles.triggerPressed]}
-          >
-            <LogoMark size={56} />
-          </Pressable>
-        ) : null}
         {isLoading ? (
           <OrganizationStateCard>
-            <LoadingState message="Fetching your organization list." compact />
+            <View style={styles.stateContent}>
+              <ActivityIndicator color={colors.accent} />
+              <Text variant="body" tone="secondary" align="center">
+                Loading organizations...
+              </Text>
+            </View>
           </OrganizationStateCard>
         ) : error ? (
           <OrganizationStateCard>
@@ -96,7 +90,9 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
           </OrganizationStateCard>
         ) : organizations.length === 0 ? (
           <OrganizationStateCard>
-            <EmptyState title="No organizations" message="There are no organizations available on this account." />
+            <Text variant="body" tone="secondary" align="center">
+              No organizations available.
+            </Text>
           </OrganizationStateCard>
         ) : (
           <Pressable
@@ -188,9 +184,13 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, onPressLeadingActi
 
 function OrganizationStateCard({ children }: { children: React.ReactNode }) {
   return (
-    <Card padding="md" style={styles.triggerCard}>
-      {children}
-    </Card>
+    <View style={styles.stateCardShell}>
+      <Card padding="md" style={styles.stateCard}>
+        <View style={styles.stateContent}>
+          {children}
+        </View>
+      </Card>
+    </View>
   );
 }
 
@@ -198,11 +198,6 @@ const styles = StyleSheet.create({
   controlRow: {
     flexDirection: "row",
     alignItems: "stretch",
-    gap: spacing.sm,
-  },
-  leadingShell: {
-    width: 56,
-    height: 56,
   },
   triggerShell: {
     flex: 1,
@@ -212,6 +207,20 @@ const styles = StyleSheet.create({
   },
   triggerCard: {
     width: "100%",
+  },
+  stateCardShell: {
+    flex: 1,
+  },
+  stateCard: {
+    flex: 1,
+  },
+  stateContent: {
+    width: "100%",
+    minHeight: 40,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
   },
   triggerInner: {
     minHeight: 40,

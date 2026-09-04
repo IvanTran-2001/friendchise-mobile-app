@@ -175,9 +175,8 @@ const styles = StyleSheet.create({
     borderRadius: 46,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.accentSoftBorder,
+    backgroundColor: "transparent",
+    borderWidth: 0,
     marginBottom: spacing.sm,
   },
   kicker: {

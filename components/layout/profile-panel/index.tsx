@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { Home } from "lucide-react-native";
 import { useCurrentOrgId } from "../../../hooks/use-current-org-id";
 import { Avatar, getInitials } from "../../ui/avatar";
+import { IconButton } from "../../ui/icon-button";
 import { useGlobalSheet } from "../global-sheet";
 import { ProfileSheet } from "./profile-sheet";
 import { colors, radius, spacing } from "../../../src/lib/theme";
@@ -18,6 +21,7 @@ import { LogoMark } from "./logo-mark";
  */
 export function ProfileOrgButton() {
   const { openSheet } = useGlobalSheet();
+  const router = useRouter();
   const currentOrgId = useCurrentOrgId();
   const { data: meData } = useMe();
   const { data: orgData } = useQuery({
@@ -29,10 +33,25 @@ export function ProfileOrgButton() {
   const currentOrg = orgData?.organizations.find((org: Org) => org.id === currentOrgId) ?? null;
   const userInitials = useMemo(() => getInitials(currentUser?.name), [currentUser?.name]);
 
+  const handleGoHome = () => {
+    router.replace("/(app)");
+  };
+
   const handleOpenProfile = () => {
     openSheet(<ProfileSheet />, {
       title: "Profile",
       subtitle: "Organization and account controls",
+      headerRight: (
+        <IconButton
+          size="md"
+          variant="filled"
+          accessibilityLabel="Go to global home"
+          onPress={handleGoHome}
+          style={styles.homeButton}
+        >
+          <Home size={18} strokeWidth={2.6} color={colors.textInverse} />
+        </IconButton>
+      ),
     });
   };
 
@@ -101,6 +120,13 @@ const styles = StyleSheet.create({
   },
   avatarDivider: {
     width: spacing.sm,
+  },
+  homeButton: {
+    shadowColor: colors.accent,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   notSelectedBadge: {
     width: 28,
