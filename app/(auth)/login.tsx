@@ -85,7 +85,7 @@ export default function LoginScreen() {
               label="Continue with Apple"
               loadingLabel="Opening Apple..."
               onPress={() => mutation.mutate("apple")}
-              appleFallbackOnPress={() => startOAuthLogin("apple")}
+              appleFallbackOnPress={() => mutation.mutate("apple")}
               disabled={mutation.isPending}
             />
 

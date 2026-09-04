@@ -55,7 +55,7 @@ export function shouldSendAuthHeaderToApi(baseUrl: string) {
       return true;
     }
 
-    return __DEV__ && isDevHttpHostname(parsed.hostname);
+    return __DEV__ && isDevHttpHostname(parsed.hostname) && (process.env["EXPO_PUBLIC_ALLOW_HTTP_AUTH"] === "true" || getExpoExtraConfig().allowHttpAuth === true);
   } catch {
     return false;
   }
