@@ -4,7 +4,7 @@ import {
   AppleAuthenticationButtonStyle,
   AppleAuthenticationButtonType,
 } from "expo-apple-authentication";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { colors, radius, spacing } from "../../src/lib/theme";
 import { Card } from "../ui/card";
@@ -22,6 +22,7 @@ type AuthProviderButtonProps = {
   label: string;
   loadingLabel: string;
   onPress: () => void;
+  appleFallbackOnPress?: () => void;
   disabled?: boolean;
 };
 
@@ -68,10 +69,11 @@ export function AuthCard({ children, style }: AuthCardProps) {
 }
 
 /** Branded social sign-in button (Apple / Google / LinkedIn). */
-export function AuthProviderButton({ provider, label, loadingLabel, onPress, disabled }: AuthProviderButtonProps) {
+export function AuthProviderButton({ provider, label, loadingLabel, onPress, appleFallbackOnPress, disabled }: AuthProviderButtonProps) {
   const config = providerStyles[provider];
+  const appleAvailable = useAppleAuthenticationAvailability(provider);
 
-  if (provider === "apple" && Platform.OS === "ios") {
+  if (provider === "apple" && Platform.OS === "ios" && appleAvailable) {
     return (
       <AppleAuthenticationButton
         buttonType={AppleAuthenticationButtonType.CONTINUE}
@@ -91,7 +93,7 @@ export function AuthProviderButton({ provider, label, loadingLabel, onPress, dis
         pressed && !disabled && styles.buttonPressed,
         disabled && styles.buttonDisabled,
       ]}
-      onPress={onPress}
+      onPress={provider === "apple" && Platform.OS === "ios" ? (appleFallbackOnPress ?? onPress) : onPress}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -106,6 +108,40 @@ export function AuthProviderButton({ provider, label, loadingLabel, onPress, dis
       </View>
     </Pressable>
   );
+}
+
+function useAppleAuthenticationAvailability(provider: Provider) {
+  const [available, setAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (provider !== "apple" || Platform.OS !== "ios") {
+      setAvailable(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void import("expo-apple-authentication")
+      .then((appleAuthentication) => appleAuthentication.isAvailableAsync())
+      .then((result) => {
+        if (!cancelled) {
+          setAvailable(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailable(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [provider]);
+
+  return available;
 }
 
 const styles = StyleSheet.create({

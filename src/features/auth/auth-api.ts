@@ -25,6 +25,20 @@ type NativeAppleLoginResponse = {
   attemptId?: string;
 };
 
+function isNativeAppleLoginResponse(value: unknown): value is NativeAppleLoginResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.token === "string" &&
+    candidate.token.length > 0 &&
+    typeof candidate.expiresAt === "number" &&
+    Number.isFinite(candidate.expiresAt)
+  );
+}
+
 function shouldLogAuthFlow() {
   return __DEV__;
 }
@@ -262,7 +276,11 @@ export async function startAppleLogin() {
       throw new Error(`Failed to complete Apple sign in: ${await getResponseError(response)}`);
     }
 
-    const body = (await response.json()) as NativeAppleLoginResponse;
+    const rawBody: unknown = await response.json();
+    if (!isNativeAppleLoginResponse(rawBody)) {
+      throw new Error("Apple login response was malformed");
+    }
+    const body = rawBody;
 
     if (useAuthStore.getState().activeOAuthAttemptId !== attemptId) {
       return;
@@ -299,11 +317,16 @@ export async function startDemoLogin() {
   const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
   setActiveOAuthAttemptId(attemptId);
 
+  const apiUrl = getApiUrl();
+  if (new URL(apiUrl).protocol !== "https:") {
+    throw new Error("Demo login requires an HTTPS backend URL.");
+  }
+
   try {
     // Demo provisioning needs no OAuth/browser hop, so fetch the token
     // directly and skip the WebBrowser/redirect round trip entirely.
     const response = await fetch(
-      `${getApiUrl()}/api/mobile-auth/demo?attemptId=${encodeURIComponent(attemptId)}`,
+      `${apiUrl}/api/mobile-auth/demo?attemptId=${encodeURIComponent(attemptId)}`,
       { headers: { Accept: "application/json" } },
     );
 
@@ -347,8 +370,13 @@ export async function startDemoLogin() {
 }
 
 export async function startDevLogin(email: string) {
+  const apiUrl = getApiUrl();
+  if (new URL(apiUrl).protocol !== "https:") {
+    throw new Error("Dev login requires an HTTPS backend URL.");
+  }
+
   const response = await fetch(
-    `${getApiUrl()}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,
+    `${apiUrl}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,
   );
 
   if (shouldLogAuthFlow()) {

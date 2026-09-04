@@ -9,6 +9,10 @@ declare const process: {
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+  ios: {
+    ...(config.ios ?? {}),
+    usesAppleSignIn: true,
+  },
   extra: {
     ...(config.extra ?? {}),
     apiUrl: process.env.EXPO_PUBLIC_API_URL,

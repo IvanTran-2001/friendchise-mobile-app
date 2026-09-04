@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react-native";
+import { Building2, ChevronDown } from "lucide-react-native";
 import { Avatar, getInitials } from "../../ui/avatar";
 import { Card } from "../../ui/card";
 import { ListRow } from "../../ui/list-row";
@@ -74,25 +74,28 @@ export function OrgSwitcher({ currentOrgId, onSelectComplete, style }: OrgSwitch
           <OrganizationStateCard>
             <View style={styles.stateContent}>
               <ActivityIndicator color={colors.accent} />
-              <Text variant="body" tone="secondary" align="center">
+              <Text variant="caption" tone="secondary" align="center">
                 Loading organizations...
               </Text>
             </View>
           </OrganizationStateCard>
         ) : error ? (
           <OrganizationStateCard>
-            <ErrorState
-              title="Could not load organizations"
-              message="Check your connection and try again."
-              onRetry={() => void refetch()}
-              compact
-            />
+            <ErrorState compact title="Could not load organizations" message="Check your connection and try again." onRetry={() => void refetch()} />
           </OrganizationStateCard>
         ) : organizations.length === 0 ? (
           <OrganizationStateCard>
-            <Text variant="body" tone="secondary" align="center">
-              No organizations available.
-            </Text>
+            <View style={styles.stateContent}>
+              <View style={styles.emptyIconWrap}>
+                <Building2 size={18} strokeWidth={2.2} color={colors.textTertiary} />
+              </View>
+              <Text variant="bodyStrong" align="center">
+                No organizations available
+              </Text>
+              <Text variant="caption" tone="secondary" align="center">
+                Ask an admin to add one to this account.
+              </Text>
+            </View>
           </OrganizationStateCard>
         ) : (
           <Pressable
@@ -186,9 +189,7 @@ function OrganizationStateCard({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.stateCardShell}>
       <Card padding="md" style={styles.stateCard}>
-        <View style={styles.stateContent}>
-          {children}
-        </View>
+        {children}
       </Card>
     </View>
   );
@@ -209,18 +210,25 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   stateCardShell: {
-    flex: 1,
+    width: "100%",
   },
   stateCard: {
-    flex: 1,
+    width: "100%",
   },
   stateContent: {
     width: "100%",
-    minHeight: 40,
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
+  },
+  emptyIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: "center",
+    justifyContent: "center",
   },
   triggerInner: {
     minHeight: 40,

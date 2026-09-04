@@ -57,7 +57,7 @@ export function GlobalSheetProvider({ children }: { children: ReactNode }) {
       title: options?.title ?? current.title,
       subtitle: options?.subtitle ?? current.subtitle,
       loading: options?.loading ?? current.loading,
-      headerRight: options?.headerRight ?? current.headerRight,
+      headerRight: options?.headerRight === undefined ? current.headerRight : options.headerRight,
     }));
   }, []);
 

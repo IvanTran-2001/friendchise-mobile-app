@@ -51,7 +51,11 @@ export function getApiUrl() {
 export function shouldSendAuthHeaderToApi(baseUrl: string) {
   try {
     const parsed = new URL(baseUrl);
-    return parsed.protocol === "https:";
+    if (parsed.protocol === "https:") {
+      return true;
+    }
+
+    return __DEV__ && isDevHttpHostname(parsed.hostname);
   } catch {
     return false;
   }

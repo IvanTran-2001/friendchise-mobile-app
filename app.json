@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {
