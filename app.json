@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {
@@ -29,7 +30,10 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.ivantran2001.friendchisemobileapp"
+      "bundleIdentifier": "com.ivantran2001.friendchisemobileapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.ivantran2001.friendchisemobileapp"

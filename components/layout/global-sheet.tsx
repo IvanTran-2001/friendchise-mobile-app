@@ -7,6 +7,7 @@ type GlobalSheetOptions = {
   title?: string;
   subtitle?: string;
   loading?: boolean;
+  headerRight?: ReactNode;
 };
 
 type GlobalSheetState = {
@@ -15,6 +16,7 @@ type GlobalSheetState = {
   title?: string;
   subtitle?: string;
   loading: boolean;
+  headerRight?: ReactNode;
 };
 
 type GlobalSheetContextValue = {
@@ -31,6 +33,7 @@ const initialState: GlobalSheetState = {
   title: undefined,
   subtitle: undefined,
   loading: false,
+  headerRight: undefined,
 };
 
 export function GlobalSheetProvider({ children }: { children: ReactNode }) {
@@ -43,6 +46,7 @@ export function GlobalSheetProvider({ children }: { children: ReactNode }) {
       title: options?.title,
       subtitle: options?.subtitle,
       loading: options?.loading ?? false,
+      headerRight: options?.headerRight,
     });
   }, []);
 
@@ -53,6 +57,7 @@ export function GlobalSheetProvider({ children }: { children: ReactNode }) {
       title: options?.title ?? current.title,
       subtitle: options?.subtitle ?? current.subtitle,
       loading: options?.loading ?? current.loading,
+      headerRight: options?.headerRight === undefined ? current.headerRight : options.headerRight,
     }));
   }, []);
 
@@ -78,6 +83,7 @@ export function GlobalSheetProvider({ children }: { children: ReactNode }) {
         onCloseComplete={handleDismiss}
         title={sheetState.title}
         subtitle={sheetState.subtitle}
+        headerRight={sheetState.headerRight}
       >
         {sheetState.loading ? <GlobalSheetSkeleton /> : sheetState.content}
       </SheetModal>

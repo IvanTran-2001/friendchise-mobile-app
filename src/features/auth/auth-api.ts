@@ -1,11 +1,13 @@
 import * as ExpoLinking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
+import { Platform } from "react-native";
+import type { AppleAuthenticationCredential } from "expo-apple-authentication";
 import { getApiUrl } from "../../lib/config";
 import { useAuthStore } from "./auth-store";
 import { saveAuthToken } from "./token-store";
 
-export type AuthProvider = "google" | "linkedin";
+export type AuthProvider = "apple" | "google" | "linkedin";
 
 export type DevUser = {
   email: string;
@@ -16,6 +18,26 @@ export type DevUser = {
 type DevLoginResponse = {
   token: string;
 };
+
+type NativeAppleLoginResponse = {
+  token: string;
+  expiresAt: number;
+  attemptId?: string;
+};
+
+function isNativeAppleLoginResponse(value: unknown): value is NativeAppleLoginResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.token === "string" &&
+    candidate.token.length > 0 &&
+    typeof candidate.expiresAt === "number" &&
+    Number.isFinite(candidate.expiresAt)
+  );
+}
 
 function shouldLogAuthFlow() {
   return __DEV__;
@@ -43,6 +65,32 @@ function redactCallbackUrl(url: string) {
   } catch {
     return "<unparseable>";
   }
+}
+
+function formatAppleDisplayName(fullName?: AppleAuthenticationCredential["fullName"] | null) {
+  if (!fullName) {
+    return null;
+  }
+
+  const parts = [fullName.givenName, fullName.middleName, fullName.familyName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => !!part);
+
+  if (parts.length > 0) {
+    return parts.join(" ");
+  }
+
+  const nickname = fullName.nickname?.trim();
+  return nickname || null;
+}
+
+function isAppleCancellationError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+  return code.includes("CANCEL") || error.message.toLowerCase().includes("cancel");
 }
 
 async function getResponseError(response: Response) {
@@ -164,16 +212,121 @@ export async function startOAuthLogin(provider: AuthProvider) {
   }
 }
 
+export async function startAppleLogin() {
+  if (Platform.OS !== "ios") {
+    await startOAuthLogin("apple");
+    return;
+  }
+
+  const attemptId = generateAttemptId();
+  const logPrefix = `[AUTH ${attemptId}][MOBILE]`;
+  const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
+  setActiveOAuthAttemptId(attemptId);
+
+  try {
+    const appleAuthentication = await import("expo-apple-authentication");
+    const available = await appleAuthentication.isAvailableAsync();
+
+    if (!available) {
+      await startOAuthLogin("apple");
+      return;
+    }
+
+    if (shouldLogAuthFlow()) {
+      console.info(`${logPrefix} native Apple sign-in started`, { route: "/(auth)/login" });
+    }
+
+    const credential = (await appleAuthentication.signInAsync({
+      requestedScopes: [
+        appleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        appleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    })) as AppleAuthenticationCredential;
+
+    const apiUrl = getApiUrl();
+    if (new URL(apiUrl).protocol !== "https:") {
+      throw new Error("Apple sign in requires an HTTPS backend URL.");
+    }
+
+    const identityToken = credential.identityToken?.trim();
+    if (!identityToken) {
+      throw new Error("Apple did not return an identity token");
+    }
+
+    const response = await fetch(`${apiUrl}/api/mobile-auth/apple`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identityToken,
+        authorizationCode: credential.authorizationCode ?? undefined,
+        email: credential.email ?? undefined,
+        displayName: formatAppleDisplayName(credential.fullName),
+        attemptId,
+      }),
+    });
+
+    if (shouldLogAuthFlow()) {
+      console.info(`${logPrefix} native Apple response`, {
+        ok: response.ok,
+        status: response.status,
+      });
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to complete Apple sign in: ${await getResponseError(response)}`);
+    }
+
+    const rawBody: unknown = await response.json();
+    if (!isNativeAppleLoginResponse(rawBody)) {
+      throw new Error("Apple login response was malformed");
+    }
+    const body = rawBody;
+
+    if (useAuthStore.getState().activeOAuthAttemptId !== attemptId) {
+      return;
+    }
+
+    await saveAuthToken(body.token);
+
+    if (useAuthStore.getState().activeOAuthAttemptId !== attemptId) {
+      return;
+    }
+
+    useAuthStore.getState().setAuthenticated(true);
+    useAuthStore.getState().setSessionExpiresAt(body.expiresAt);
+    useAuthStore.getState().setDemoSession({ isDemo: false, expiresAt: null });
+    clearActiveOAuthAttemptId();
+    router.replace("/(app)");
+  } catch (error) {
+    if (isAppleCancellationError(error)) {
+      if (useAuthStore.getState().activeOAuthAttemptId === attemptId) {
+        clearActiveOAuthAttemptId();
+      }
+      return;
+    }
+
+    if (useAuthStore.getState().activeOAuthAttemptId === attemptId) {
+      clearActiveOAuthAttemptId();
+    }
+    throw error;
+  }
+}
+
 export async function startDemoLogin() {
   const attemptId = generateAttemptId();
   const { setActiveOAuthAttemptId, clearActiveOAuthAttemptId } = useAuthStore.getState();
   setActiveOAuthAttemptId(attemptId);
 
+  const apiUrl = getApiUrl();
+  if (new URL(apiUrl).protocol !== "https:") {
+    throw new Error("Demo login requires an HTTPS backend URL.");
+  }
+
   try {
     // Demo provisioning needs no OAuth/browser hop, so fetch the token
     // directly and skip the WebBrowser/redirect round trip entirely.
     const response = await fetch(
-      `${getApiUrl()}/api/mobile-auth/demo?attemptId=${encodeURIComponent(attemptId)}`,
+      `${apiUrl}/api/mobile-auth/demo?attemptId=${encodeURIComponent(attemptId)}`,
       { headers: { Accept: "application/json" } },
     );
 
@@ -217,8 +370,13 @@ export async function startDemoLogin() {
 }
 
 export async function startDevLogin(email: string) {
+  const apiUrl = getApiUrl();
+  if (new URL(apiUrl).protocol !== "https:") {
+    throw new Error("Dev login requires an HTTPS backend URL.");
+  }
+
   const response = await fetch(
-    `${getApiUrl()}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,
+    `${apiUrl}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,
   );
 
   if (shouldLogAuthFlow()) {

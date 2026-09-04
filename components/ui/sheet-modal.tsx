@@ -13,6 +13,7 @@ type SheetModalProps = {
   onCloseComplete?: () => void;
   title?: string;
   subtitle?: string;
+  headerRight?: ReactNode;
   children: ReactNode;
 };
 
@@ -26,7 +27,16 @@ type SheetModalProps = {
  *   {content}
  * </SheetModal>
  */
-export function SheetModal({ visible, onClose, onDismiss, onCloseComplete, title, subtitle, children }: SheetModalProps) {
+export function SheetModal({
+  visible,
+  onClose,
+  onDismiss,
+  onCloseComplete,
+  title,
+  subtitle,
+  headerRight,
+  children,
+}: SheetModalProps) {
   const previousVisibleRef = useRef(visible);
   const handleCloseComplete = onCloseComplete ?? onDismiss;
 
@@ -55,6 +65,7 @@ export function SheetModal({ visible, onClose, onDismiss, onCloseComplete, title
           <IconButton accessibilityLabel="Close" onPress={onClose} style={styles.closeButton}>
             <X size={16} strokeWidth={2.5} color={colors.textPrimary} />
           </IconButton>
+          {headerRight ? <View style={styles.headerRight}>{headerRight}</View> : null}
           {title ? (
             <View style={styles.titleWrap}>
               <Text variant="heading" align="center" numberOfLines={1}>
@@ -87,6 +98,12 @@ const styles = StyleSheet.create({
   closeButton: {
     position: "absolute",
     left: spacing.lg,
+    top: spacing.md,
+    zIndex: 2,
+  },
+  headerRight: {
+    position: "absolute",
+    right: spacing.lg,
     top: spacing.md,
     zIndex: 2,
   },

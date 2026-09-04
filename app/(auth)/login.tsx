@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react-native";
 import { getApiUrl } from "../../src/lib/config";
 import {
   startDemoLogin,
+  startAppleLogin,
   startOAuthLogin,
   type AuthProvider,
 } from "../../src/features/auth/auth-api";
@@ -34,7 +35,11 @@ export default function LoginScreen() {
 
   const mutation = useMutation({
     mutationFn: (method: AuthProvider | "demo") =>
-      method === "demo" ? startDemoLogin() : startOAuthLogin(method),
+      method === "demo"
+        ? startDemoLogin()
+        : method === "apple"
+          ? startAppleLogin()
+          : startOAuthLogin(method),
   });
 
   if (apiUrlResult.error) {
@@ -75,6 +80,15 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.actions}>
+            <AuthProviderButton
+              provider="apple"
+              label="Continue with Apple"
+              loadingLabel="Opening Apple..."
+              onPress={() => mutation.mutate("apple")}
+              appleFallbackOnPress={() => mutation.mutate("apple")}
+              disabled={mutation.isPending}
+            />
+
             <AuthProviderButton
               provider="google"
               label="Continue with Google"
@@ -167,9 +181,8 @@ const styles = StyleSheet.create({
     borderRadius: 46,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.accentSoftBorder,
+    backgroundColor: "transparent",
+    borderWidth: 0,
     marginBottom: spacing.sm,
   },
   kicker: {
