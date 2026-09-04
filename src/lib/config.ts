@@ -51,15 +51,7 @@ export function getApiUrl() {
 export function shouldSendAuthHeaderToApi(baseUrl: string) {
   try {
     const parsed = new URL(baseUrl);
-    const isLoopbackHttp =
-      parsed.protocol === "http:" &&
-      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "[::1]" || parsed.hostname === "::1");
-
-    if (!isLoopbackHttp) {
-      return true;
-    }
-
-    return __DEV__ && (process.env["EXPO_PUBLIC_ALLOW_HTTP_AUTH"] === "true" || getExpoExtraConfig().allowHttpAuth === true);
+    return parsed.protocol === "https:";
   } catch {
     return false;
   }

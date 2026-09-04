@@ -1,6 +1,11 @@
 import { FontAwesome5 } from "@expo/vector-icons";
+import {
+  AppleAuthenticationButton,
+  AppleAuthenticationButtonStyle,
+  AppleAuthenticationButtonType,
+} from "expo-apple-authentication";
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { colors, radius, spacing } from "../../src/lib/theme";
 import { Card } from "../ui/card";
 import { Text } from "../ui/text";
@@ -66,6 +71,18 @@ export function AuthCard({ children, style }: AuthCardProps) {
 export function AuthProviderButton({ provider, label, loadingLabel, onPress, disabled }: AuthProviderButtonProps) {
   const config = providerStyles[provider];
 
+  if (provider === "apple" && Platform.OS === "ios") {
+    return (
+      <AppleAuthenticationButton
+        buttonType={AppleAuthenticationButtonType.CONTINUE}
+        buttonStyle={AppleAuthenticationButtonStyle.BLACK}
+        cornerRadius={radius.lg}
+        style={[styles.appleButton, disabled && styles.buttonDisabled]}
+        onPress={disabled ? () => {} : onPress}
+      />
+    );
+  }
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -115,6 +132,11 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  appleButton: {
+    width: "100%",
+    height: 50,
+    marginTop: spacing.xs,
   },
   buttonContent: {
     width: "100%",

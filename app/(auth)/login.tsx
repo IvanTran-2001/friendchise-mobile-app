@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react-native";
 import { getApiUrl } from "../../src/lib/config";
 import {
   startDemoLogin,
+  startAppleLogin,
   startOAuthLogin,
   type AuthProvider,
 } from "../../src/features/auth/auth-api";
@@ -34,7 +35,11 @@ export default function LoginScreen() {
 
   const mutation = useMutation({
     mutationFn: (method: AuthProvider | "demo") =>
-      method === "demo" ? startDemoLogin() : startOAuthLogin(method),
+      method === "demo"
+        ? startDemoLogin()
+        : method === "apple"
+          ? startAppleLogin()
+          : startOAuthLogin(method),
   });
 
   if (apiUrlResult.error) {

@@ -20,7 +20,7 @@ import { LogoMark } from "./logo-mark";
  * shared profile sheet when pressed.
  */
 export function ProfileOrgButton() {
-  const { openSheet } = useGlobalSheet();
+  const { openSheet, closeSheet } = useGlobalSheet();
   const router = useRouter();
   const currentOrgId = useCurrentOrgId();
   const { data: meData } = useMe();
@@ -34,6 +34,7 @@ export function ProfileOrgButton() {
   const userInitials = useMemo(() => getInitials(currentUser?.name), [currentUser?.name]);
 
   const handleGoHome = () => {
+    closeSheet();
     router.replace("/(app)");
   };
 

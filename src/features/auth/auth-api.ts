@@ -2,6 +2,7 @@ import * as ExpoLinking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { Platform } from "react-native";
+import type { AppleAuthenticationCredential } from "expo-apple-authentication";
 import { getApiUrl } from "../../lib/config";
 import { useAuthStore } from "./auth-store";
 import { saveAuthToken } from "./token-store";
@@ -22,20 +23,6 @@ type NativeAppleLoginResponse = {
   token: string;
   expiresAt: number;
   attemptId?: string;
-};
-
-type AppleFullName = {
-  givenName?: string | null;
-  middleName?: string | null;
-  familyName?: string | null;
-  nickname?: string | null;
-};
-
-type AppleCredential = {
-  identityToken?: string | null;
-  authorizationCode?: string | null;
-  email?: string | null;
-  fullName?: AppleFullName | null;
 };
 
 function shouldLogAuthFlow() {
@@ -66,7 +53,7 @@ function redactCallbackUrl(url: string) {
   }
 }
 
-function formatAppleDisplayName(fullName?: AppleFullName | null) {
+function formatAppleDisplayName(fullName?: AppleAuthenticationCredential["fullName"] | null) {
   if (!fullName) {
     return null;
   }
@@ -240,14 +227,19 @@ export async function startAppleLogin() {
         appleAuthentication.AppleAuthenticationScope.FULL_NAME,
         appleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
-    })) as AppleCredential;
+    })) as AppleAuthenticationCredential;
+
+    const apiUrl = getApiUrl();
+    if (new URL(apiUrl).protocol !== "https:") {
+      throw new Error("Apple sign in requires an HTTPS backend URL.");
+    }
 
     const identityToken = credential.identityToken?.trim();
     if (!identityToken) {
       throw new Error("Apple did not return an identity token");
     }
 
-    const response = await fetch(`${getApiUrl()}/api/mobile-auth/apple`, {
+    const response = await fetch(`${apiUrl}/api/mobile-auth/apple`, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({
