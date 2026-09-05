@@ -370,13 +370,8 @@ export async function startDemoLogin() {
 }
 
 export async function startDevLogin(email: string) {
-  const apiUrl = getApiUrl();
-  if (new URL(apiUrl).protocol !== "https:") {
-    throw new Error("Dev login requires an HTTPS backend URL.");
-  }
-
   const response = await fetch(
-    `${apiUrl}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,
+    `${getApiUrl()}/api/mobile-auth/dev?email=${encodeURIComponent(email)}`,
   );
 
   if (shouldLogAuthFlow()) {
