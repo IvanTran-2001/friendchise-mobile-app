@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Mail, ArrowRight, ChevronLeft } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../../../components/ui/button";
 import { Card } from "../../../../../components/ui/card";
@@ -14,35 +14,51 @@ import { joinOrganization } from "../../org-mode/shared/organization-api";
 
 export function OrgInviteScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ token?: string | string[] }>();
   const queryClient = useQueryClient();
   const [token, setToken] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const autoJoinTriggered = useRef(false);
 
-  const handleJoinFranchisee = async () => {
-    const trimmedToken = token.trim();
+  const handleJoinFranchisee = useCallback(
+    async (overrideToken?: string) => {
+      const trimmedToken = (overrideToken ?? token).trim();
 
-    setMessage(null);
-    setError(null);
+      setMessage(null);
+      setError(null);
 
-    if (!trimmedToken) {
-      setError("Invite token is required.");
+      if (!trimmedToken) {
+        setError("Invite token is required.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const result = await joinOrganization({ token: trimmedToken });
+        await queryClient.invalidateQueries({ queryKey: ["mobile-orgs"] });
+        setMessage("Franchise joined successfully.");
+        router.replace(`/(app)/orgs/${result.organization.id}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to join franchisee.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [queryClient, router, token],
+  );
+
+  useEffect(() => {
+    const tokenParam = Array.isArray(params.token) ? params.token[0] : params.token;
+    if (!tokenParam || autoJoinTriggered.current) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const result = await joinOrganization({ token: trimmedToken });
-      await queryClient.invalidateQueries({ queryKey: ["mobile-orgs"] });
-      setMessage("Franchise joined successfully.");
-      router.replace(`/(app)/orgs/${result.organization.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to join franchisee.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    autoJoinTriggered.current = true;
+    setToken(tokenParam);
+    void handleJoinFranchisee(tokenParam);
+  }, [handleJoinFranchisee, params.token]);
 
   return (
     <Screen scroll>
