@@ -6,7 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 import { Text } from "../ui/text";
+import { useMe } from "../../src/features/auth/me";
 import { fetchOrgSettingsPermissions } from "../../src/features/orgs/org-mode/settings/org-settings-permissions";
+import { fetchNotificationFeed } from "../../src/features/notifications/notifications-api";
 
 const BAR_HEIGHT = 72;
 const TAB_SIZE = 52;
@@ -14,6 +16,8 @@ const TAB_SIZE = 52;
 export function AppBottomBar() {
   const router = useRouter();
   const currentOrgId = useCurrentOrgId();
+  const { data: me } = useMe();
+  const accountId = me?.user.id ?? null;
   const pathname = usePathname();
   const shellMode = getShellMode(pathname, currentOrgId);
   const { data: settingsPermissions } = useQuery({
@@ -21,12 +25,20 @@ export function AppBottomBar() {
     queryFn: () => fetchOrgSettingsPermissions(currentOrgId ?? ""),
     enabled: shellMode === "settings" && Boolean(currentOrgId),
   });
+  const { data: notificationSummary } = useQuery({
+    queryKey: ["mobile-notifications", accountId, "summary"],
+    queryFn: () => fetchNotificationFeed(1, 1, "all"),
+    enabled: shellMode === "global" && Boolean(accountId),
+    retry: false,
+    staleTime: 30_000,
+  });
+  const notificationCount = notificationSummary?.unseenCount ?? 0;
   const tabs =
     shellMode === "org" && currentOrgId
       ? getOrgTabs(currentOrgId, pathname)
       : shellMode === "settings" && currentOrgId
         ? getSettingsTabs(currentOrgId, pathname, settingsPermissions ?? null)
-        : getGlobalTabs(pathname);
+        : getGlobalTabs(pathname, notificationCount);
 
   if (shellMode === "none") {
     return null;
@@ -73,6 +85,13 @@ export function AppBottomBar() {
               strokeWidth={2.1}
               color={tab.active ? colors.accent : colors.textPrimary}
             />
+            {typeof tab.badge === "number" && tab.badge > 0 ? (
+              <View style={styles.badge}>
+                <Text variant="label" style={styles.badgeLabel} numberOfLines={1}>
+                  {tab.badge > 99 ? "99+" : String(tab.badge)}
+                </Text>
+              </View>
+            ) : null}
             <Text
               variant="label"
               style={[styles.buttonLabel, tab.active && styles.buttonLabelActive]}
@@ -94,6 +113,7 @@ type BottomTab = {
   disabled?: boolean;
   href?: string;
   onPress?: () => void;
+  badge?: number;
 };
 
 type ShellMode = "global" | "org" | "settings" | "none";
@@ -123,14 +143,14 @@ function isAuthRoute(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/(auth)") || pathname.startsWith("/signin");
 }
 
-function getGlobalTabs(pathname: string): BottomTab[] {
+function getGlobalTabs(pathname: string, notificationCount: number): BottomTab[] {
   const isOrgHubRoute =
     pathname === "/orgs" || pathname === "/orgs/new" || pathname === "/orgs/invite" || pathname === "/orgs/invites";
 
   return [
     { label: "HUB", icon: Building2, active: pathname === "/", href: "/" },
     { label: "ORG", icon: Network, active: isOrgHubRoute, href: "/orgs" },
-    { label: "NOTIF", icon: Bell, disabled: true },
+    { label: "NOTIF", icon: Bell, active: pathname === "/notifications", href: "/notifications", badge: notificationCount },
   ];
 }
 
@@ -267,5 +287,23 @@ const styles = StyleSheet.create({
   },
   buttonLabelActive: {
     color: colors.accent,
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.accent,
+  },
+  badgeLabel: {
+    color: colors.textInverse,
+    fontSize: 8,
+    lineHeight: 10,
+    letterSpacing: 0,
   },
 });

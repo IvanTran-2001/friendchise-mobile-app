@@ -107,7 +107,10 @@ function TaskListItem({
       <Pressable
         onPress={() => {
           if (!orgId) return;
-          router.push(`/orgs/${orgId}/tasks/${item.id}`);
+          router.push({
+            pathname: "/(app)/orgs/[orgId]/tasks/[taskId]",
+            params: { orgId, taskId: item.id },
+          });
         }}
         style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
       >
