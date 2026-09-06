@@ -21,6 +21,7 @@ import {
   type NotificationView,
 } from "./notifications-api";
 import { acceptMobileInvite, declineMobileInvite } from "../orgs/org-mode/shared/organization-api";
+import { useMe } from "../auth/me";
 
 const PAGE_SIZE = 20;
 
@@ -32,13 +33,16 @@ type NotificationsParams = {
 export function NotificationsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe();
+  const accountId = me?.user.id ?? null;
   const params = useLocalSearchParams<NotificationsParams>();
   const page = parsePositiveInt(params.page, 1);
   const view = parseView(params.view);
 
   const feedQuery = useQuery({
-    queryKey: ["mobile-notifications", page, view],
+    queryKey: ["mobile-notifications", accountId, page, view],
     queryFn: () => fetchNotificationFeed(page, PAGE_SIZE, view),
+    enabled: Boolean(accountId),
   });
 
   const feed = feedQuery.data;
@@ -48,8 +52,12 @@ export function NotificationsScreen() {
   const hasNextPage = page < totalPages;
 
   const invalidateFeed = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["mobile-notifications"] });
-  }, [queryClient]);
+    if (!accountId) {
+      return;
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ["mobile-notifications", accountId] });
+  }, [accountId, queryClient]);
 
   const notificationSeenMutation = useMutation({
     mutationFn: markNotificationSeen,
@@ -104,11 +112,11 @@ export function NotificationsScreen() {
         </View>
 
         <Card padding="none" style={styles.feedCard}>
-          {feedQuery.isLoading ? (
+          {isMeLoading || feedQuery.isLoading ? (
             <View style={styles.stateWrap}>
               <LoadingState message="Loading notifications..." />
             </View>
-          ) : feedQuery.error ? (
+          ) : isMeError || feedQuery.error ? (
             <View style={styles.stateWrap}>
               <ErrorState
                 title="Failed to load notifications"

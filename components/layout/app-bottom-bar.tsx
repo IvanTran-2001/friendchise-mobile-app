@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCurrentOrgId } from "../../hooks/use-current-org-id";
 import { colors, radius, shadows, spacing } from "../../src/lib/theme";
 import { Text } from "../ui/text";
+import { useMe } from "../../src/features/auth/me";
 import { fetchOrgSettingsPermissions } from "../../src/features/orgs/org-mode/settings/org-settings-permissions";
 import { fetchNotificationFeed } from "../../src/features/notifications/notifications-api";
 
@@ -15,6 +16,8 @@ const TAB_SIZE = 52;
 export function AppBottomBar() {
   const router = useRouter();
   const currentOrgId = useCurrentOrgId();
+  const { data: me } = useMe();
+  const accountId = me?.user.id ?? null;
   const pathname = usePathname();
   const shellMode = getShellMode(pathname, currentOrgId);
   const { data: settingsPermissions } = useQuery({
@@ -23,9 +26,9 @@ export function AppBottomBar() {
     enabled: shellMode === "settings" && Boolean(currentOrgId),
   });
   const { data: notificationSummary } = useQuery({
-    queryKey: ["mobile-notifications", "summary"],
+    queryKey: ["mobile-notifications", accountId, "summary"],
     queryFn: () => fetchNotificationFeed(1, 1, "all"),
-    enabled: shellMode === "global",
+    enabled: shellMode === "global" && Boolean(accountId),
     retry: false,
     staleTime: 30_000,
   });
