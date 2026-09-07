@@ -244,7 +244,7 @@ export async function startAppleLogin() {
     })) as AppleAuthenticationCredential;
 
     const apiUrl = getApiUrl();
-    if (new URL(apiUrl).protocol !== "https:") {
+    if (process.env.NODE_ENV === "production" && new URL(apiUrl).protocol !== "https:") {
       throw new Error("Apple sign in requires an HTTPS backend URL.");
     }
 
@@ -318,9 +318,6 @@ export async function startDemoLogin() {
   setActiveOAuthAttemptId(attemptId);
 
   const apiUrl = getApiUrl();
-  if (new URL(apiUrl).protocol !== "https:") {
-    throw new Error("Demo login requires an HTTPS backend URL.");
-  }
 
   try {
     // Demo provisioning needs no OAuth/browser hop, so fetch the token
